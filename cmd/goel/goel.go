@@ -40,4 +40,5 @@ func main() {
 
 	ex := goel.NewExistentialConcept(r, conj)
 	fmt.Println(ex)
+
 }

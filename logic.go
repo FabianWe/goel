@@ -47,6 +47,10 @@ func NewELBaseComponents(nominals, cdExtensions, names, roles uint) *ELBaseCompo
 // Concept is the interface for all Concept defintions.
 // Concepts in EL++ are defined recursively, this is the general interface.
 type Concept interface {
+	// IsInBCD must return true for all concepts that are in the basic concept
+	// description, these are: ⊤, all concept names, all concepts of the form {a}
+	// and p(f1, ..., fk).
+	IsInBCD() bool
 }
 
 // TopConcept is the Top concept ⊤.
@@ -63,6 +67,10 @@ func (top TopConcept) String() string {
 	return "⊤"
 }
 
+func (top TopConcept) IsInBCD() bool {
+	return true
+}
+
 // BottomConcept is the Bottom Concept ⊥.
 type BottomConcept struct{}
 
@@ -75,6 +83,10 @@ func NewBottomConcept() BottomConcept {
 
 func (bot BottomConcept) String() string {
 	return "⊥"
+}
+
+func (bot BottomConcept) IsInBCD() bool {
+	return false
 }
 
 // Top is a constant concept that represents to top concept ⊤.
@@ -90,6 +102,10 @@ type NamedConcept uint
 
 func (name NamedConcept) String() string {
 	return fmt.Sprintf("A(%d)", name)
+}
+
+func (name NamedConcept) IsInBCD() bool {
+	return true
 }
 
 // Nominal is a nominal a ∈ N_I, identified by id.
@@ -109,6 +125,10 @@ func (nominal NominalConcept) String() string {
 	return fmt.Sprintf("{a(%d)}", nominal)
 }
 
+func (nominal NominalConcept) IsInBCD() bool {
+	return true
+}
+
 // Role is an EL++ role r ∈ N_R, identifiey by id.
 // Each r ∈ N_R is encoded as a unique integer with this type.
 type Role uint
@@ -116,6 +136,10 @@ type Role uint
 func (role Role) String() string {
 	return fmt.Sprintf("r(%d)", role)
 }
+
+const (
+	NoRole Role = Role(^uint(0))
+)
 
 // ConcreteDomainExtension is a concrete domain extension of the form
 // p(f1, ..., fk). All this information (predicate and function) has to be
@@ -125,6 +149,10 @@ type ConcreteDomainExtension uint
 
 func (cd ConcreteDomainExtension) String() string {
 	return fmt.Sprintf("CD(%d)", cd)
+}
+
+func (cd ConcreteDomainExtension) IsInBCD() bool {
+	return true
 }
 
 // Conjunction is a concept of the form C ⊓ D.
@@ -142,6 +170,10 @@ func (conjunction *Conjunction) String() string {
 	return fmt.Sprintf("(%v ⊓ %v)", conjunction.C, conjunction.D)
 }
 
+func (Conjunction *Conjunction) IsInBCD() bool {
+	return false
+}
+
 // ExistentialConcept is a concept of the form ∃r.C.
 type ExistentialConcept struct {
 	R Role
@@ -156,6 +188,10 @@ func NewExistentialConcept(r Role, c Concept) *ExistentialConcept {
 
 func (existential *ExistentialConcept) String() string {
 	return fmt.Sprintf("∃ %v.%v", existential.R, existential.C)
+}
+
+func (existential *ExistentialConcept) IsInBCD() bool {
+	return false
 }
 
 //// TBox ////
@@ -206,6 +242,96 @@ type TBox struct {
 // NewTBox returns a new TBox.
 func NewTBox(gcis []*GCIConstraint, ris []*RoleInclusion) *TBox {
 	return &TBox{GCIs: gcis, RIs: ris}
+}
+
+//// Normalized TBox ////
+
+// NormalizedCI is a normalized CI of the form C1 ⊓ C2 ⊑ D or C1 ⊑ D.
+// For C1 ⊑ D C2 is set to nil.
+// C1 and C2 must be in BC(T) and D must be in BC(T) or ⊥.
+type NormalizedCI struct {
+	// C1 and C2 form the LHS of the CI.
+	C1, C2 Concept
+	// D is the RHS of the CI
+	D Concept
+}
+
+// NewNormalizedCI returns a new normalized CI of the form C1 ⊓ C2 ⊑ D.
+// C1 and C2 must be in BC(T) and D must be in BC(T) or ⊥.
+func NewNormalizedCI(c1, c2, d Concept) *NormalizedCI {
+	return &NormalizedCI{C1: c1, C2: c2, D: d}
+}
+
+// NewNormalizedCISingle returns a new normalized CI of the form C1 ⊑ D.
+func NewNormalizedCISingle(c1, d Concept) *NormalizedCI {
+	return NewNormalizedCI(c1, nil, d)
+}
+
+func (ci *NormalizedCI) String() string {
+	switch ci.C2 {
+	case nil:
+		return fmt.Sprintf("%v ⊑ %v", ci.C1, ci.D)
+	default:
+		return fmt.Sprintf("%v ⊓ %v ⊑ %v", ci.C1, ci.C2, ci.D)
+	}
+}
+
+// NormalizedCIRightEx is a normalized CI where the existential quantifier is on
+// the right-hand side, i.e. of the form C1 ⊑ ∃r.C2.
+// C1 and C2 must be in BC(T) and D must be in BC(T) or ⊥.
+type NormalizedCIRightEx struct {
+	C1, C2 Concept
+	R      Role
+}
+
+// NewNormalizedCIRightEx returns a new CI of the form C1 ⊑ ∃r.C2.
+func NewNormalizedCIRightEx(c1 Concept, r Role, c2 Concept) *NormalizedCIRightEx {
+	return &NormalizedCIRightEx{C1: c1, R: r, C2: c2}
+}
+
+func (ci *NormalizedCIRightEx) String() string {
+	return fmt.Sprintf("%v ⊑ ∃ %s.%v", ci.C1, ci.R.String(), ci.C2)
+}
+
+// NormalizedCILeftEx is a normalized CI where the existential quantifier is on
+// the left-hand side, i.e. of the form ∃r.C1 ⊑ D.
+// C1 must be in BC(T) and D must be in BC(T) or ⊥.
+type NormalizedCILeftEx struct {
+	C1, D Concept
+	R     Role
+}
+
+// NewNormalizedCILeftEx returns a new CI of the form ∃r.C1 ⊑ D.
+func NewNormalizedCILeftEx(r Role, c1, d Concept) *NormalizedCILeftEx {
+	return &NormalizedCILeftEx{C1: c1, D: d, R: r}
+}
+
+func (ci *NormalizedCILeftEx) String() string {
+	return fmt.Sprintf("∃ %s.%v ⊑ %v", ci.R.String(), ci.C1, ci.D)
+}
+
+// NormalizedRI is a normalized RI of the form r1 o r2 ⊑ s or r1 ⊑ s.
+// For the second form R2 is set to NoRole.
+type NormalizedRI struct {
+	R1, R2, S Role
+}
+
+// NewNormalizedRI returns a new normalized RI of the form r1 o r2 ⊑ s.
+func NewNormalizedRI(r1, r2, s Role) *NormalizedRI {
+	return &NormalizedRI{R1: r1, R2: r2, S: s}
+}
+
+// NewNormalizedRISingle returns a new normalized RI of the form r1 ⊑ s.
+func NewNormalizedRISingle(r1, s Role) *NormalizedRI {
+	return NewNormalizedRI(r1, NoRole, s)
+}
+
+// NormalizedTBox is a TBox containing only normalized CIs.
+type NormalizedTBox struct {
+	CIs     []*NormalizedCI
+	CILeft  []*NormalizedCILeftEx
+	CIRight []*NormalizedCIRightEx
+	RIs     []*NormalizedRI
 }
 
 //// ABox ////
