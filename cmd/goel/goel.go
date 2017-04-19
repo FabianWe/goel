@@ -22,23 +22,27 @@
 
 package main
 
-import "fmt"
-import "gkigit.informatik.uni-freiburg.de/fwenzelmann/goel"
+import (
+	"fmt"
+	"math/rand"
+	"time"
+
+	"gkigit.informatik.uni-freiburg.de/fwenzelmann/goel"
+)
 
 func main() {
-	fmt.Println(goel.Top)
-	fmt.Println(goel.Bottom)
-	var c goel.NamedConcept = 0
-	var a goel.NominalConcept = 1
-	var r goel.Role = 2
-	fmt.Println(c)
-	fmt.Println(a)
-	fmt.Println(r)
-
-	conj := goel.NewConjunction(c, a)
-	fmt.Println(conj)
-
-	ex := goel.NewExistentialConcept(r, conj)
-	fmt.Println(ex)
-
+	rand.Seed(time.Now().UTC().UnixNano())
+	builder := goel.RandomELBuilder{NumIndividuals: 10000,
+		NumConceptNames:    10000,
+		NumRoles:           5000,
+		NumConcreteDomains: 100,
+		MaxCDSize:          1000,
+		MaxNumPredicates:   2000,
+		MaxNumFeatures:     1000}
+	fmt.Println("Building random TBox ...")
+	start := time.Now()
+	_, tbox := builder.GenerateRandomTBox(1000, 10000, 10000, 100, 10000, 10000)
+	end := time.Since(start)
+	fmt.Printf("... Done after %v\n\n", end)
+	fmt.Println(tbox)
 }

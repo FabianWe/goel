@@ -100,6 +100,11 @@ var Bottom BottomConcept = NewBottomConcept()
 // Each concept name A ∈ N_C is encoded as a unique integer with this type.
 type NamedConcept uint
 
+// NewNamedConcept returns a new NamedConcept with the given id.
+func NewNamedConcept(i uint) NamedConcept {
+	return NamedConcept(i)
+}
+
 func (name NamedConcept) String() string {
 	return fmt.Sprintf("A(%d)", name)
 }
@@ -121,6 +126,11 @@ func (nominal Nominal) String() string {
 // of a Nominal as a Concept.
 type NominalConcept Nominal
 
+// NewNominalConcept returns a new NominalConcept with the given id.
+func NewNominalConcept(i uint) NominalConcept {
+	return NominalConcept(i)
+}
+
 func (nominal NominalConcept) String() string {
 	return fmt.Sprintf("{a(%d)}", nominal)
 }
@@ -132,6 +142,11 @@ func (nominal NominalConcept) IsInBCD() bool {
 // Role is an EL++ role r ∈ N_R, identifiey by id.
 // Each r ∈ N_R is encoded as a unique integer with this type.
 type Role uint
+
+// NewRole returns a new Rolen with the given id.
+func NewRole(i uint) Role {
+	return Role(i)
+}
 
 func (role Role) String() string {
 	return fmt.Sprintf("r(%d)", role)
@@ -146,6 +161,11 @@ const (
 // stored somewhere else, we only store the an id that identifies the concrete
 // domain.
 type ConcreteDomainExtension uint
+
+// NewConcreteDomainExtension returns a new ConcreteDomainExtension with the given id.
+func NewConcreteDomainExtension(i uint) ConcreteDomainExtension {
+	return ConcreteDomainExtension(i)
+}
 
 func (cd ConcreteDomainExtension) String() string {
 	return fmt.Sprintf("CD(%d)", cd)
@@ -230,18 +250,19 @@ func (ri *RoleInclusion) String() string {
 	for i, r := range ri.LHS {
 		strs[i] = r.String()
 	}
-	return fmt.Sprintf("%s ⊑ %s", strings.Join(strs, "o"), ri.RHS.String())
+	return fmt.Sprintf("%s ⊑ %s", strings.Join(strs, " o "), ri.RHS.String())
 }
 
 // TBox describes a TBox as a set of GCIs and RIs.
 type TBox struct {
-	GCIs []*GCIConstraint
-	RIs  []*RoleInclusion
+	Components *ELBaseComponents
+	GCIs       []*GCIConstraint
+	RIs        []*RoleInclusion
 }
 
 // NewTBox returns a new TBox.
-func NewTBox(gcis []*GCIConstraint, ris []*RoleInclusion) *TBox {
-	return &TBox{GCIs: gcis, RIs: ris}
+func NewTBox(components *ELBaseComponents, gcis []*GCIConstraint, ris []*RoleInclusion) *TBox {
+	return &TBox{Components: components, GCIs: gcis, RIs: ris}
 }
 
 //// Normalized TBox ////
@@ -334,6 +355,16 @@ type NormalizedTBox struct {
 	RIs     []*NormalizedRI
 }
 
+// NewNormalizedTBox returns a new TBox were all CI sets are empty.
+func NewNormalizedTBox() *NormalizedTBox {
+	cis := make([]*NormalizedCI, 0)
+	ciLeft := make([]*NormalizedCILeftEx, 0)
+	ciRight := make([]*NormalizedCIRightEx, 0)
+	ris := make([]*NormalizedRI, 0)
+	return &NormalizedTBox{CIs: cis, CILeft: ciLeft,
+		CIRight: ciRight, RIs: ris}
+}
+
 //// ABox ////
 
 // ConceptAssertion is an concept assertion of the form C(a).
@@ -363,7 +394,7 @@ func NewRoleAssertion(r Role, a, b Nominal) *RoleAssertion {
 }
 
 func (ra *RoleAssertion) String() string {
-	return fmt.Sprintf("%v(%v, %v)", ra.R, ra.A, ra.B)
+	return fmt.Sprintf("%s(%v, %v)", ra.R.String(), ra.A, ra.B)
 }
 
 // ABox describes an ABox as a set of concept assertions and role assertions.
