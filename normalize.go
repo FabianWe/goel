@@ -121,6 +121,7 @@ func (tbox *TBoxAccessController) AddRI(ri *NormalizedRI) {
 // PhaseOneNormResult is used in the first phase of the normalization.
 // It is used as a way to communicate between the different constraints
 // during normalization.
+// Don't forget to call Close() once all adding operations are done!
 type PhaseOneNormResult struct {
 	// TBoxAccessController is used to store the CIs that are already in
 	// normal form.
@@ -165,6 +166,7 @@ func (phaseRes *PhaseOneNormResult) GetNextName() NamedConcept {
 }
 
 func (tbox *TBox) ApplyPhaseOne(bufferSize int) *PhaseOneNormResult {
-	// res := NewPhaseOneNormResult(tbox., bufferSize)
-	return nil
+	res := NewPhaseOneNormResult(tbox.Components, bufferSize)
+	defer res.Close()
+	return res
 }

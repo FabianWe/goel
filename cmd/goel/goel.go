@@ -44,5 +44,5 @@ func main() {
 	_, tbox := builder.GenerateRandomTBox(1000, 10000, 10000, 100, 10000, 10000)
 	end := time.Since(start)
 	fmt.Printf("... Done after %v\n\n", end)
-	fmt.Println(tbox)
+	fmt.Println(tbox.ApplyPhaseOne(1))
 }
