@@ -20,32 +20,40 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-package main
+package goel
 
-import (
-	"fmt"
-	"math/rand"
-	"time"
+// IntMax returns the maximum of a and b.
+func IntMax(a, b int) int {
+	if a > b {
+		return a
+	} else {
+		return b
+	}
+}
 
-	"gkigit.informatik.uni-freiburg.de/fwenzelmann/goel"
-)
+// IntMin returns the minimum of a and b.
+func IntMin(a, b int) int {
+	if a < b {
+		return a
+	} else {
+		return b
+	}
+}
 
-func main() {
-	rand.Seed(time.Now().UTC().UnixNano())
-	builder := goel.RandomELBuilder{NumIndividuals: 10000,
-		NumConceptNames:    10000,
-		NumRoles:           5000,
-		NumConcreteDomains: 100,
-		MaxCDSize:          1000,
-		MaxNumPredicates:   2000,
-		MaxNumFeatures:     1000}
-	fmt.Println("Building random TBox ...")
-	_, tbox := builder.GenerateRandomTBox(1000, 10000, 10000, 100, 10000, 10000)
-	fmt.Println("... Done")
-	normalizer := &goel.DefaultTBoxNormalizer{BufferSize: 10}
-	fmt.Println("Normalizing TBox ...")
-	start := time.Now()
-	fmt.Println(normalizer.Normalize(tbox))
-	execTime := time.Since(start)
-	fmt.Printf("... Done after %v\n", execTime)
+// UIntMax returns the maximum of a and b.
+func UIntMax(a, b uint) uint {
+	if a > b {
+		return a
+	} else {
+		return b
+	}
+}
+
+// UIntMin returns the minimum of a and b.
+func UIntMin(a, b uint) uint {
+	if a < b {
+		return a
+	} else {
+		return b
+	}
 }
