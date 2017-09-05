@@ -1,17 +1,17 @@
 // The MIT License (MIT)
-
+//
 // Copyright (c) 2016, 2017 Fabian Wenzelmann
-
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -51,6 +51,46 @@ type Concept interface {
 	// description, these are: ⊤, all concept names, all concepts of the form {a}
 	// and p(f1, ..., fk).
 	IsInBCD() bool
+
+	// NormalizedID is used to give each element of the basic concept description
+	// and the bottom concept a unique id.
+	// This might be useful if we want to store for example a set of elements from
+	// the BCD.
+	// The ids are defined in the following way:
+	// The bottom concept has an id of 0
+	// The top concept has an id of 1
+	// All nominals have an id in 2...NumNoinals + 1
+	// All CDExtensions have an id in NumNoinals + 2...NumNomials + NumCDExtensions + 1
+	//All names haven an id in NumNomials + NumCDExtensions + 2....NumNomials + NumCDExtensions + NumNames + 1
+	// This way we can easily add new names all the time, because the ids are at
+	// the end of the representation and when we add a new name we don't have to
+	// adjust all other ids in use (if this is ever required).
+	//
+	// So we can think of the representation in the wollowing way:
+	// [⊥ ⊤ Individiaul1...IndividualN CDExtension1...CDExtensioN Name1...NameN]
+	NormalizedID(c *ELBaseComponents) uint
+}
+
+// BottomConcept is the Bottom Concept ⊥.
+type BottomConcept struct{}
+
+// NewBottomConcept returns a new BottomConcept.
+// Instead of creating it again and again all the time you should
+// use the const value Bottom.
+func NewBottomConcept() BottomConcept {
+	return BottomConcept{}
+}
+
+func (bot BottomConcept) String() string {
+	return "⊥"
+}
+
+func (bot BottomConcept) IsInBCD() bool {
+	return false
+}
+
+func (bot BottomConcept) NormalizedID(c *ELBaseComponents) uint {
+	return 0
 }
 
 // TopConcept is the Top concept ⊤.
@@ -71,22 +111,8 @@ func (top TopConcept) IsInBCD() bool {
 	return true
 }
 
-// BottomConcept is the Bottom Concept ⊥.
-type BottomConcept struct{}
-
-// NewBottomConcept returns a new BottomConcept.
-// Instead of creating it again and again all the time you should
-// use the const value Bottom.
-func NewBottomConcept() BottomConcept {
-	return BottomConcept{}
-}
-
-func (bot BottomConcept) String() string {
-	return "⊥"
-}
-
-func (bot BottomConcept) IsInBCD() bool {
-	return false
+func (top TopConcept) NormalizedID(c *ELBaseComponents) uint {
+	return 1
 }
 
 // Top is a constant concept that represents to top concept ⊤.
@@ -113,6 +139,10 @@ func (name NamedConcept) IsInBCD() bool {
 	return true
 }
 
+func (name NamedConcept) NormalizedID(c *ELBaseComponents) uint {
+	return 2 + c.Nominals + c.CDExtensions + uint(name)
+}
+
 // Nominal is a nominal a ∈ N_I, identified by id.
 // Each nominal a ∈ N_I is encoded as a unique integer with this type.
 type Nominal uint
@@ -137,6 +167,10 @@ func (nominal NominalConcept) String() string {
 
 func (nominal NominalConcept) IsInBCD() bool {
 	return true
+}
+
+func (nominal NominalConcept) NormalizedID(c *ELBaseComponents) uint {
+	return 2 + uint(nominal)
 }
 
 // Role is an EL++ role r ∈ N_R, identifiey by id.
@@ -176,6 +210,10 @@ func (cd ConcreteDomainExtension) IsInBCD() bool {
 	return true
 }
 
+func (cd ConcreteDomainExtension) NormalizedID(c *ELBaseComponents) uint {
+	return 2 + c.Nominals + uint(cd)
+}
+
 // Conjunction is a concept of the form C ⊓ D.
 type Conjunction struct {
 	// C, D are the parts of the conjuntion.
@@ -191,8 +229,12 @@ func (conjunction Conjunction) String() string {
 	return fmt.Sprintf("(%v ⊓ %v)", conjunction.C, conjunction.D)
 }
 
-func (Conjunction Conjunction) IsInBCD() bool {
+func (conjunction Conjunction) IsInBCD() bool {
 	return false
+}
+
+func (conjunction Conjunction) NormalizedID(c *ELBaseComponents) uint {
+	return ^uint(0)
 }
 
 // ExistentialConcept is a concept of the form ∃r.C.
@@ -213,6 +255,10 @@ func (existential ExistentialConcept) String() string {
 
 func (existential ExistentialConcept) IsInBCD() bool {
 	return false
+}
+
+func (existential ExistentialConcept) NormalizedID(c *ELBaseComponents) uint {
+	return ^uint(0)
 }
 
 // BCDOrFalse checks if the concept is either the bottom concept ⊥ or otherwise
