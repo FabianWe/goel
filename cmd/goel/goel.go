@@ -42,10 +42,10 @@ func main() {
 	fmt.Println("Building random TBox ...")
 	_, tbox := builder.GenerateRandomTBox(1000, 10000, 10000, 100, 10000, 10000)
 	fmt.Println("... Done")
-	normalizer := &goel.DefaultTBoxNormalizer{BufferSize: 10}
+	normalizer := goel.NewDefaultNormalFormBUilder(100)
 	fmt.Println("Normalizing TBox ...")
 	start := time.Now()
-	fmt.Println(normalizer.Normalize(tbox))
+	normalizer.Normalize(tbox)
 	execTime := time.Since(start)
 	fmt.Printf("... Done after %v\n", execTime)
 }

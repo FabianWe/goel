@@ -298,19 +298,64 @@ func NormalizeStepPhaseTwo(gci *GCIConstraint, intermediate *phaseTwoResult) {
 	}
 }
 
+func NormalizeSingleRI(ri *RoleInclusion, firstNewIndex uint) []*NormalizedRI {
+	lhs := ri.LHS
+	n := uint(len(lhs))
+	switch n {
+	case 0:
+		// TODO is it possible that the lhs is empty?
+		return []*NormalizedRI{NewNormalizedRI(NoRole, NoRole, ri.RHS)}
+	case 1:
+		return []*NormalizedRI{NewNormalizedRI(lhs[0], NoRole, ri.RHS)}
+	case 2:
+		return []*NormalizedRI{NewNormalizedRI(lhs[0], lhs[1], ri.RHS)}
+	default:
+		// TODO thoroughly test this case
+		rList := make([]*NormalizedRI, 0, n-1)
+		// now we need a loop to add all RIs as given in the algorithm
+		// add first one by hand
+		// the first one always has the following form:
+		// u1 o rk ⊑ s where u1 is a new role
+		rList = append(rList, NewNormalizedRI(NewRole(firstNewIndex), lhs[n-1], ri.RHS))
+
+		var i uint
+		for i = 0; i < n-3; i++ {
+			rList = append(rList, NewNormalizedRI(
+				NewRole(firstNewIndex+i+1),
+				lhs[n-2-i],
+				NewRole(firstNewIndex+i)))
+		}
+		// also add the following RI which is left after the loop:
+		// r1 o r2 ⊑ un
+		// where un is the last new role
+		rList = append(rList, NewNormalizedRI(lhs[0],
+			lhs[1],
+			NewRole(firstNewIndex+n-2-1)))
+		return rList
+	}
+}
+
 type TBoxNormalformBuilder interface {
 	Normalize(tbox *TBox) *NormalizedTBox
 }
 
 type DefaultNormalFormBuilder struct {
-	k           int
-	distributor *IntDistributor
-	phaseOne    *phaseOneResult
-	ris         []*NormalizedRI
+	k                  int
+	rolesAfterPhaseOne uint
+	distributor        *IntDistributor
+	phaseOne           *phaseOneResult
+	ris                []*NormalizedRI
 }
 
 func NewDefaultNormalFormBUilder(k int) *DefaultNormalFormBuilder {
 	return &DefaultNormalFormBuilder{k: k, phaseOne: newPhaseOneResult(nil)}
+}
+
+func (builder *DefaultNormalFormBuilder) reset() {
+	builder.rolesAfterPhaseOne = 0
+	builder.distributor = nil
+	builder.phaseOne = newPhaseOneResult(nil)
+	builder.ris = nil
 }
 
 func (builder *DefaultNormalFormBuilder) phaseOneSingle(gci *GCIConstraint) *phaseOneResult {
@@ -323,6 +368,20 @@ func (builder *DefaultNormalFormBuilder) phaseOneSingle(gci *GCIConstraint) *pha
 		res.waiting[n-1] = nil
 		res.waiting = res.waiting[:n-1]
 		NormalizeStepPhaseOne(next, res)
+	}
+	return res
+}
+
+func (builder *DefaultNormalFormBuilder) phaseTwoSingle(gci *GCIConstraint) *phaseTwoResult {
+	res := newPhaseTwoResult(builder.distributor)
+
+	res.waiting = []*GCIConstraint{gci}
+	for len(res.waiting) > 0 {
+		n := len(res.waiting)
+		next := res.waiting[n-1]
+		res.waiting[n-1] = nil
+		res.waiting = res.waiting[:n-1]
+		NormalizeStepPhaseTwo(next, res)
 	}
 	return res
 }
@@ -346,7 +405,7 @@ func (builder *DefaultNormalFormBuilder) runPhaseOne(tbox *TBox) {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
-	// start a listener for that waits for all phase one results and merges
+	// start a listener that waits for all phase one results and merges
 	// the current result with the new result
 	go func() {
 		defer wg.Done()
@@ -399,42 +458,72 @@ func (builder *DefaultNormalFormBuilder) runPhaseOne(tbox *TBox) {
 			nextNew += (k - 2)
 		}
 	}
+	builder.rolesAfterPhaseOne = nextNew
 	wg.Wait()
 }
 
-func NormalizeSingleRI(ri *RoleInclusion, firstNewIndex uint) []*NormalizedRI {
-	lhs := ri.LHS
-	n := uint(len(lhs))
-	switch n {
-	case 0:
-		// TODO is it possible that the lhs is empty?
-		return []*NormalizedRI{NewNormalizedRI(NoRole, NoRole, ri.RHS)}
-	case 1:
-		return []*NormalizedRI{NewNormalizedRI(lhs[0], NoRole, ri.RHS)}
-	case 2:
-		return []*NormalizedRI{NewNormalizedRI(lhs[0], lhs[1], ri.RHS)}
-	default:
-		// TODO thoroughly test this case
-		rList := make([]*NormalizedRI, 0, n-1)
-		// now we need a loop to add all RIs as given in the algorithm
-		// add first one by hand
-		// the first one always has the following form:
-		// u1 o rk ⊑ s where u1 is a new role
-		rList = append(rList, NewNormalizedRI(NewRole(firstNewIndex), lhs[n-1], ri.RHS))
+func (builder *DefaultNormalFormBuilder) runPhaseTwo() *phaseTwoResult {
+	res := newPhaseTwoResult(builder.distributor)
+	res.intermediateCILeft = builder.phaseOne.intermediateCILeft
+	res.intermediateCIRight = builder.phaseOne.intermediateCIRight
+	res.intermediateCIs = builder.phaseOne.intermediateCIs
+	// create a channel that is used to coordinate the workers
+	// this means: create a channel with buffer size k, writes to this channel
+	// will block once k things are running, when a normlization is done
+	// it will read a value from the channel
+	workers := make(chan struct{}, builder.k)
+	// a channel that is used to collect all normalization results for a single
+	// formula
+	resChan := make(chan *phaseTwoResult)
 
-		var i uint
-		for i = 0; i < n-3; i++ {
-			rList = append(rList, NewNormalizedRI(
-				NewRole(firstNewIndex+i+1),
-				lhs[n-2-i],
-				NewRole(firstNewIndex+i)))
+	// a channel to wait for everything to finish
+	done := make(chan struct{})
+
+	// start a listener for that waits for all phase two results and merges
+	// the current result with the new result
+	go func() {
+		for i := 0; i < len(builder.phaseOne.intermediateRes); i++ {
+			next := <-resChan
+			res.union(next)
 		}
-		// also add the following RI which is left after the loop:
-		// r1 o r2 ⊑ un
-		// where un is the last new role
-		rList = append(rList, NewNormalizedRI(lhs[0],
-			lhs[1],
-			NewRole(firstNewIndex+n-2-1)))
-		return rList
+		done <- struct{}{}
+	}()
+
+	// start the GCI normalization
+	for _, gci := range builder.phaseOne.intermediateRes {
+		// wait for a free worker
+		workers <- struct{}{}
+		// run normalization concurrently, free worker when done
+		go func(gci *GCIConstraint) {
+			resChan <- builder.phaseTwoSingle(gci)
+			<-workers
+		}(gci)
 	}
+
+	<-done
+	return res
+}
+
+func (builder *DefaultNormalFormBuilder) Normalize(tbox *TBox) *NormalizedTBox {
+	// run phase one
+	builder.runPhaseOne(tbox)
+	// now rune phase two
+	phaseTwoRes := builder.runPhaseTwo()
+	// create the updated components
+	newComponents := NewELBaseComponents(tbox.Components.Nominals,
+		tbox.Components.CDExtensions,
+		// TODO should be correct?
+		builder.distributor.Next(),
+		builder.rolesAfterPhaseOne)
+	res := NormalizedTBox{
+		Components: newComponents,
+		CIs:        phaseTwoRes.intermediateCIs,
+		CIRight:    phaseTwoRes.intermediateCIRight,
+		CILeft:     phaseTwoRes.intermediateCILeft,
+		RIs:        builder.ris,
+	}
+	// empty all fields, just to be sure
+	// this may help garbage collection if we already delete all stuff
+	builder.reset()
+	return &res
 }

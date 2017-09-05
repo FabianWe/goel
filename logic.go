@@ -354,20 +354,11 @@ func NewNormalizedRISingle(r1, s Role) *NormalizedRI {
 
 // NormalizedTBox is a TBox containing only normalized CIs.
 type NormalizedTBox struct {
-	CIs     []*NormalizedCI
-	CILeft  []*NormalizedCILeftEx
-	CIRight []*NormalizedCIRightEx
-	RIs     []*NormalizedRI
-}
-
-// NewNormalizedTBox returns a new TBox were all CI sets are empty.
-func NewNormalizedTBox() *NormalizedTBox {
-	cis := make([]*NormalizedCI, 0)
-	ciLeft := make([]*NormalizedCILeftEx, 0)
-	ciRight := make([]*NormalizedCIRightEx, 0)
-	ris := make([]*NormalizedRI, 0)
-	return &NormalizedTBox{CIs: cis, CILeft: ciLeft,
-		CIRight: ciRight, RIs: ris}
+	Components *ELBaseComponents
+	CIs        []*NormalizedCI
+	CILeft     []*NormalizedCILeftEx
+	CIRight    []*NormalizedCIRightEx
+	RIs        []*NormalizedRI
 }
 
 //// ABox ////
