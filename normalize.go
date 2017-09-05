@@ -301,3 +301,140 @@ func NormalizeStepPhaseTwo(gci *GCIConstraint, intermediate *phaseTwoResult) {
 type TBoxNormalformBuilder interface {
 	Normalize(tbox *TBox) *NormalizedTBox
 }
+
+type DefaultNormalFormBuilder struct {
+	k           int
+	distributor *IntDistributor
+	phaseOne    *phaseOneResult
+	ris         []*NormalizedRI
+}
+
+func NewDefaultNormalFormBUilder(k int) *DefaultNormalFormBuilder {
+	return &DefaultNormalFormBuilder{k: k, phaseOne: newPhaseOneResult(nil)}
+}
+
+func (builder *DefaultNormalFormBuilder) phaseOneSingle(gci *GCIConstraint) *phaseOneResult {
+	res := newPhaseOneResult(builder.distributor)
+
+	res.waiting = []*GCIConstraint{gci}
+	for len(res.waiting) > 0 {
+		n := len(res.waiting)
+		next := res.waiting[n-1]
+		res.waiting[n-1] = nil
+		res.waiting = res.waiting[:n-1]
+		NormalizeStepPhaseOne(next, res)
+	}
+	return res
+}
+
+func (builder *DefaultNormalFormBuilder) runPhaseOne(tbox *TBox) {
+	distributor := NewIntDistributor(tbox.Components.Names)
+	builder.distributor = distributor
+	// create a channel that is used to coordinate the workers
+	// this means: create a channel with buffer size k, writes to this channel
+	// will block once k things are running, when a normlization is done
+	// it will read a value from the channel
+	workers := make(chan struct{}, builder.k)
+	// a channel that is used to collect all normalization results for a single
+	// formula
+	resChan := make(chan *phaseOneResult)
+
+	// a channel for normalized RIs, the idea is the same as with resChan
+	riChan := make(chan []*NormalizedRI)
+
+	// a wait group to wait for everything to finish
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	// start a listener for that waits for all phase one results and merges
+	// the current result with the new result
+	go func() {
+		defer wg.Done()
+		for i := 0; i < len(tbox.GCIs); i++ {
+			next := <-resChan
+			builder.phaseOne.union(next)
+		}
+	}()
+
+	// listener for the ris
+	go func() {
+		defer wg.Done()
+		for i := 0; i < len(tbox.RIs); i++ {
+			next := <-riChan
+			builder.ris = append(builder.ris, next...)
+		}
+	}()
+
+	// start the GCI normalization
+	for _, gci := range tbox.GCIs {
+		// wait for a free worker
+		workers <- struct{}{}
+		// run normalization concurrently, free worker when done
+		go func(gci *GCIConstraint) {
+			resChan <- builder.phaseOneSingle(gci)
+			<-workers
+		}(gci)
+	}
+
+	// iterate over all ris and normalize them
+	// this variable contains the next free index the normalization
+	// can use to create new roles
+	// the first one that is safe to use is the number of roles used in the
+	// original model
+	nextNew := tbox.Components.Roles
+	for _, ri := range tbox.RIs {
+		// wait for a free worker
+		workers <- struct{}{}
+		// run normalization concurrently
+		go func(ri *RoleInclusion, nextIndex uint) {
+			// TODO
+			riChan <- NormalizeSingleRI(ri, nextIndex)
+			<-workers
+		}(ri, nextNew)
+		// an RI of the form r1 o ... rk [= s requires k - 2 new role names if
+		// k > 2
+		// otherwise it requires 0
+		k := uint(len(ri.LHS))
+		if k > 2 {
+			nextNew += (k - 2)
+		}
+	}
+	wg.Wait()
+}
+
+func NormalizeSingleRI(ri *RoleInclusion, firstNewIndex uint) []*NormalizedRI {
+	lhs := ri.LHS
+	n := uint(len(lhs))
+	switch n {
+	case 0:
+		// TODO is it possible that the lhs is empty?
+		return []*NormalizedRI{NewNormalizedRI(NoRole, NoRole, ri.RHS)}
+	case 1:
+		return []*NormalizedRI{NewNormalizedRI(lhs[0], NoRole, ri.RHS)}
+	case 2:
+		return []*NormalizedRI{NewNormalizedRI(lhs[0], lhs[1], ri.RHS)}
+	default:
+		// TODO thoroughly test this case
+		rList := make([]*NormalizedRI, 0, n-1)
+		// now we need a loop to add all RIs as given in the algorithm
+		// add first one by hand
+		// the first one always has the following form:
+		// u1 o rk ⊑ s where u1 is a new role
+		rList = append(rList, NewNormalizedRI(NewRole(firstNewIndex), lhs[n-1], ri.RHS))
+
+		var i uint
+		for i = 0; i < n-3; i++ {
+			rList = append(rList, NewNormalizedRI(
+				NewRole(firstNewIndex+i+1),
+				lhs[n-2-i],
+				NewRole(firstNewIndex+i)))
+		}
+		// also add the following RI which is left after the loop:
+		// r1 o r2 ⊑ un
+		// where un is the last new role
+		rList = append(rList, NewNormalizedRI(lhs[0],
+			lhs[1],
+			NewRole(firstNewIndex+n-2-1)))
+		return rList
+	}
+}
