@@ -29,99 +29,114 @@ import (
 	"sync"
 )
 
-type IntDistributor struct {
-	next  uint
-	mutex *sync.Mutex
-}
-
-func NewIntDistributor(next uint) *IntDistributor {
-	return &IntDistributor{next: next, mutex: new(sync.Mutex)}
-}
-
-func (dist *IntDistributor) Next() uint {
-	dist.mutex.Lock()
-	defer dist.mutex.Unlock()
-	next := dist.next
-	dist.next++
-	return next
-}
-
-type phaseOneResult struct {
-	distributor     *IntDistributor
-	waiting         []*GCIConstraint
-	intermediateRes []*GCIConstraint
+// PhaseOneResult is a helper type that stores certain information about
+// normalization in phase 1.
+//
+// The idea is that each formula that gets normalized uses its own result
+// and stores all information inside.
+//
+// It is not save for concurrent use.
+//
+// The following information is stored:
+//
+// Distributor is used to create new names, so it should be the same in
+// all objects of this type when normalizing a set of formulae.
+// Waiting is a "queue" that stores all elements that need further processing,
+// that means it may be that additional rules can be applied in phase 1.
+// So when replacing a formula with other formulae just add the new formulae
+// to Waiting.
+// IntermediateRes is the set of all formulae that must not be processed in
+// phase 1 but must be used in phase 2.
+// The other intermediate results are used for formulae already in normal form:
+// We don't have to check them again in phase 2 so we can already add them here.
+type PhaseOneResult struct {
+	Distributor     *IntDistributor
+	Waiting         []*GCIConstraint
+	IntermediateRes []*GCIConstraint
 	// for CIs already in normal form we can just add them already for phase 2
-	intermediateCIs     []*NormalizedCI
-	intermediateCILeft  []*NormalizedCILeftEx
-	intermediateCIRight []*NormalizedCIRightEx
+	IntermediateCIs     []*NormalizedCI
+	IntermediateCILeft  []*NormalizedCILeftEx
+	IntermediateCIRight []*NormalizedCIRightEx
 }
 
-func newPhaseOneResult(distributor *IntDistributor) *phaseOneResult {
-	return &phaseOneResult{distributor: distributor}
+func NewPhaseOneResult(distributor *IntDistributor) *PhaseOneResult {
+	return &PhaseOneResult{Distributor: distributor}
 }
 
-func (res *phaseOneResult) union(other *phaseOneResult) {
+// Union merges two results.
+// That is it builds the union of all intermediate results.
+// This is useful when combining results from different normalizations.
+// The combined results are stored in res.
+func (res *PhaseOneResult) Union(other *PhaseOneResult) {
 	var wg sync.WaitGroup
 	wg.Add(4)
 
 	go func() {
 		defer wg.Done()
-		res.intermediateRes = append(res.intermediateRes, other.intermediateRes...)
+		res.IntermediateRes = append(res.IntermediateRes, other.IntermediateRes...)
 	}()
 
 	go func() {
 		defer wg.Done()
-		res.intermediateCIs = append(res.intermediateCIs, other.intermediateCIs...)
+		res.IntermediateCIs = append(res.IntermediateCIs, other.IntermediateCIs...)
 	}()
 
 	go func() {
 		defer wg.Done()
-		res.intermediateCILeft = append(res.intermediateCILeft, other.intermediateCILeft...)
+		res.IntermediateCILeft = append(res.IntermediateCILeft, other.IntermediateCILeft...)
 	}()
 
 	go func() {
 		defer wg.Done()
-		res.intermediateCIRight = append(res.intermediateCIRight, other.intermediateCIRight...)
+		res.IntermediateCIRight = append(res.IntermediateCIRight, other.IntermediateCIRight...)
 	}()
 
 	wg.Wait()
 }
 
-type phaseTwoResult struct {
-	distributor         *IntDistributor
-	waiting             []*GCIConstraint
-	intermediateCIs     []*NormalizedCI
-	intermediateCILeft  []*NormalizedCILeftEx
-	intermediateCIRight []*NormalizedCIRightEx
+// PhaseTwoResult stores information about normalization in phase 2.
+// The idea is the same as for PhaseOneResult, so see documentation there.
+type PhaseTwoResult struct {
+	Distributor         *IntDistributor
+	Waiting             []*GCIConstraint
+	IntermediateCIs     []*NormalizedCI
+	IntermediateCILeft  []*NormalizedCILeftEx
+	IntermediateCIRight []*NormalizedCIRightEx
 }
 
-func newPhaseTwoResult(distributor *IntDistributor) *phaseTwoResult {
-	return &phaseTwoResult{distributor: distributor}
+func NewPhaseTwoResult(distributor *IntDistributor) *PhaseTwoResult {
+	return &PhaseTwoResult{Distributor: distributor}
 }
 
-func (res *phaseTwoResult) union(other *phaseTwoResult) {
+func (res *PhaseTwoResult) Union(other *PhaseTwoResult) {
 	var wg sync.WaitGroup
 	wg.Add(3)
 
 	go func() {
 		defer wg.Done()
-		res.intermediateCIs = append(res.intermediateCIs, other.intermediateCIs...)
+		res.IntermediateCIs = append(res.IntermediateCIs, other.IntermediateCIs...)
 	}()
 
 	go func() {
 		defer wg.Done()
-		res.intermediateCILeft = append(res.intermediateCILeft, other.intermediateCILeft...)
+		res.IntermediateCILeft = append(res.IntermediateCILeft, other.IntermediateCILeft...)
 	}()
 
 	go func() {
 		defer wg.Done()
-		res.intermediateCIRight = append(res.intermediateCIRight, other.intermediateCIRight...)
+		res.IntermediateCIRight = append(res.IntermediateCIRight, other.IntermediateCIRight...)
 	}()
 
 	wg.Wait()
 }
 
-func NormalizeStepPhaseOne(gci *GCIConstraint, intermediate *phaseOneResult) {
+// NormalizeStepPhaseOne performs one step of the normalization in phase 1.
+// It tests what form the gci has and adds new formulae to the right slice
+// of the intermediate result. That is it appends formulae to waiting
+// or one of the intermediate results.
+//
+// Phase one means to apply the rules NF2 - NF4 (NF1 is applied somewhere else).
+func NormalizeStepPhaseOne(gci *GCIConstraint, intermediate *PhaseOneResult) {
 	// do a case distinction on lhs. Check if gci is already in normal form, if
 	// a rule can be applied in phase 1 or if no rule can be applied in phase 1
 	switch lhs := gci.C.(type) {
@@ -134,20 +149,20 @@ func NormalizeStepPhaseOne(gci *GCIConstraint, intermediate *phaseOneResult) {
 			// lhs is in BCD and rhs is in BCD or false, so it is already in
 			// normal form
 			normalized := NewNormalizedCI(lhs, nil, rhs)
-			intermediate.intermediateCIs = append(intermediate.intermediateCIs, normalized)
+			intermediate.IntermediateCIs = append(intermediate.IntermediateCIs, normalized)
 		case ExistentialConcept:
 			// check if the rhs is of the form ∃r.C2 where C2 is in BCD
 			if rhs.C.IsInBCD() {
 				// in normal form, add it
 				normalized := NewNormalizedCIRightEx(lhs, rhs.R, rhs.C)
-				intermediate.intermediateCIRight = append(intermediate.intermediateCIRight, normalized)
+				intermediate.IntermediateCIRight = append(intermediate.IntermediateCIRight, normalized)
 			} else {
 				// not in normal form
-				intermediate.intermediateRes = append(intermediate.intermediateRes, gci)
+				intermediate.IntermediateRes = append(intermediate.IntermediateRes, gci)
 			}
 		default:
 			// no rule applicable in phase one and not in normal form
-			intermediate.intermediateRes = append(intermediate.intermediateRes, gci)
+			intermediate.IntermediateRes = append(intermediate.IntermediateRes, gci)
 		}
 	case BottomConcept:
 		// rule NF4: Nothing to be done
@@ -163,24 +178,24 @@ func NormalizeStepPhaseOne(gci *GCIConstraint, intermediate *phaseOneResult) {
 		case firstBCD && secondBCD && gci.D.IsInBCD():
 			// in normal form, so add it
 			normalized := NewNormalizedCI(lhs.C, lhs.D, gci.D)
-			intermediate.intermediateCIs = append(intermediate.intermediateCIs, normalized)
+			intermediate.IntermediateCIs = append(intermediate.IntermediateCIs, normalized)
 		case !firstBCD:
 			// apply rule NF2
-			newName := NewNamedConcept(intermediate.distributor.Next())
+			newName := NewNamedConcept(intermediate.Distributor.Next())
 			newConjunction := NewConjunction(lhs.D, newName)
 			first := NewGCIConstraint(lhs.C, newName)
 			second := NewGCIConstraint(newConjunction, gci.D)
-			intermediate.waiting = append(intermediate.waiting, first, second)
+			intermediate.Waiting = append(intermediate.Waiting, first, second)
 		case !secondBCD:
 			// apply rule NF2
-			newName := NewNamedConcept(intermediate.distributor.Next())
+			newName := NewNamedConcept(intermediate.Distributor.Next())
 			newConjunction := NewConjunction(lhs.C, newName)
 			first := NewGCIConstraint(lhs.D, newName)
 			second := NewGCIConstraint(newConjunction, gci.D)
-			intermediate.waiting = append(intermediate.waiting, first, second)
+			intermediate.Waiting = append(intermediate.Waiting, first, second)
 		default:
 			// no rule can be applied in phase one
-			intermediate.intermediateRes = append(intermediate.intermediateRes, gci)
+			intermediate.IntermediateRes = append(intermediate.IntermediateRes, gci)
 		}
 	case ExistentialConcept:
 		// try to apply rule NF3, this is only possible the concept of the
@@ -189,34 +204,57 @@ func NormalizeStepPhaseOne(gci *GCIConstraint, intermediate *phaseOneResult) {
 			if BCDOrFalse(gci.D) {
 				// in normal form, append to result
 				normalized := NewNormalizedCILeftEx(lhs.R, lhs.C, gci.D)
-				intermediate.intermediateCILeft = append(intermediate.intermediateCILeft, normalized)
+				intermediate.IntermediateCILeft = append(intermediate.IntermediateCILeft, normalized)
 			} else {
 				// can't apply rule, add for further processing
-				intermediate.intermediateRes = append(intermediate.intermediateRes, gci)
+				intermediate.IntermediateRes = append(intermediate.IntermediateRes, gci)
 			}
 		} else {
 			// apply rule and add new elements
-			newName := NewNamedConcept(intermediate.distributor.Next())
+			newName := NewNamedConcept(intermediate.Distributor.Next())
 			first := NewGCIConstraint(lhs.C, newName)
 			newExistential := NewExistentialConcept(lhs.R, newName)
 			second := NewGCIConstraint(newExistential, gci.D)
-			intermediate.waiting = append(intermediate.waiting, first, second)
+			intermediate.Waiting = append(intermediate.Waiting, first, second)
 			// TODO(Fabian): Can we append second to the IntermediateRes already?
 			// it should never be affected again in phase one?
 		}
 	}
 }
 
-func NormalizeStepPhaseTwo(gci *GCIConstraint, intermediate *phaseTwoResult) {
+// PhaseOneSingle runs phase 1 of the normalization for a given gci.
+// That is it exhaustively applies the rules NF2 - NF4 and returns the
+// result.
+func PhaseOneSingle(gci *GCIConstraint, distributor *IntDistributor) *PhaseOneResult {
+	res := NewPhaseOneResult(distributor)
+
+	res.Waiting = []*GCIConstraint{gci}
+	for len(res.Waiting) > 0 {
+		n := len(res.Waiting)
+		next := res.Waiting[n-1]
+		res.Waiting[n-1] = nil
+		res.Waiting = res.Waiting[:n-1]
+		NormalizeStepPhaseOne(next, res)
+	}
+	return res
+}
+
+// NormalizeStepPhaseTwo performs one step of the normalization in phase 2.
+// It tests what form the gci has and adds new formulae to the right slice
+// of the intermediate result. That is it appends formulae to waiting
+// or one of the intermediate results.
+//
+// Phase one means to apply the rules NF5 - NF7.
+func NormalizeStepPhaseTwo(gci *GCIConstraint, intermediate *PhaseTwoResult) {
 	// again a analyze what form we have
 	// check which of the rules of phase two can be applied, if none can be
 	// applied gci must already be in normal form
 	if !gci.C.IsInBCD() && !gci.D.IsInBCD() {
 		// apply NF5
-		newName := NewNamedConcept(intermediate.distributor.Next())
+		newName := NewNamedConcept(intermediate.Distributor.Next())
 		first := NewGCIConstraint(gci.C, newName)
 		second := NewGCIConstraint(newName, gci.D)
-		intermediate.waiting = append(intermediate.waiting, first, second)
+		intermediate.Waiting = append(intermediate.Waiting, first, second)
 		return
 	}
 	switch rhs := gci.D.(type) {
@@ -231,21 +269,21 @@ func NormalizeStepPhaseTwo(gci *GCIConstraint, intermediate *phaseTwoResult) {
 			} else {
 				// everything ok, add the result
 				normalized := NewNormalizedCIRightEx(gci.C, rhs.R, rhs.C)
-				intermediate.intermediateCIRight = append(intermediate.intermediateCIRight, normalized)
+				intermediate.IntermediateCIRight = append(intermediate.IntermediateCIRight, normalized)
 			}
 		} else {
 			// apply NF6
-			newName := NewNamedConcept(intermediate.distributor.Next())
+			newName := NewNamedConcept(intermediate.Distributor.Next())
 			newExistential := NewExistentialConcept(rhs.R, newName)
 			first := NewGCIConstraint(gci.C, newExistential)
 			second := NewGCIConstraint(newName, rhs.C)
-			intermediate.waiting = append(intermediate.waiting, first, second)
+			intermediate.Waiting = append(intermediate.Waiting, first, second)
 		}
 	case Conjunction:
 		// aply NF7
 		first := NewGCIConstraint(gci.C, rhs.C)
 		second := NewGCIConstraint(gci.C, rhs.D)
-		intermediate.waiting = append(intermediate.waiting, first, second)
+		intermediate.Waiting = append(intermediate.Waiting, first, second)
 	default:
 		// none of the rules can be applied in phase two, so it must be in normal
 		// form and we can simply add the result
@@ -254,7 +292,7 @@ func NormalizeStepPhaseTwo(gci *GCIConstraint, intermediate *phaseTwoResult) {
 		// first case: lhs is in BCD and rhs is in BCD or false
 		if gci.C.IsInBCD() && BCDOrFalse(gci.D) {
 			normalized := NewNormalizedCI(gci.C, nil, gci.D)
-			intermediate.intermediateCIs = append(intermediate.intermediateCIs, normalized)
+			intermediate.IntermediateCIs = append(intermediate.IntermediateCIs, normalized)
 			return
 		}
 
@@ -264,7 +302,7 @@ func NormalizeStepPhaseTwo(gci *GCIConstraint, intermediate *phaseTwoResult) {
 			// now both parts of the conjunction must be in BCD, check for this
 			if lhs.C.IsInBCD() && lhs.D.IsInBCD() {
 				normalized := NewNormalizedCI(lhs.C, lhs.D, rhs)
-				intermediate.intermediateCIs = append(intermediate.intermediateCIs, normalized)
+				intermediate.IntermediateCIs = append(intermediate.IntermediateCIs, normalized)
 				return
 			} else {
 				fmt.Printf("Normalization phase two: Found conjunction on LHS, but its parts are not both in the BCD, types: %v and %v\n",
@@ -283,7 +321,7 @@ func NormalizeStepPhaseTwo(gci *GCIConstraint, intermediate *phaseTwoResult) {
 			if lhs.C.IsInBCD() {
 				// TODO bad, don't remeber why...
 				normalized := NewNormalizedCILeftEx(lhs.R, lhs.C, gci.D)
-				intermediate.intermediateCILeft = append(intermediate.intermediateCILeft, normalized)
+				intermediate.IntermediateCILeft = append(intermediate.IntermediateCILeft, normalized)
 				return
 			} else {
 				log.Printf("Normalization phase two: Found existential on LHS, but its concept is not in BCD (type %v): MISTAKE\n",
@@ -298,6 +336,28 @@ func NormalizeStepPhaseTwo(gci *GCIConstraint, intermediate *phaseTwoResult) {
 	}
 }
 
+// PhaseTwoSingle runs phase 2 of the normalization for a given gci.
+// That is it exhaustively applies the rules NF5 - NF7 and returns the
+// result.
+func PhaseTwoSingle(gci *GCIConstraint, distributor *IntDistributor) *PhaseTwoResult {
+	res := NewPhaseTwoResult(distributor)
+
+	res.Waiting = []*GCIConstraint{gci}
+	for len(res.Waiting) > 0 {
+		n := len(res.Waiting)
+		next := res.Waiting[n-1]
+		res.Waiting[n-1] = nil
+		res.Waiting = res.Waiting[:n-1]
+		NormalizeStepPhaseTwo(next, res)
+	}
+	return res
+}
+
+// NormalizeSingleRI normalizes a rule inclusion, that is it exhaustively
+// applies rule NF1.
+// firstNewIndex must be the next index we can use to create new roles.
+// If k is the length of the left hand side it requires k - 2 new role names
+// if k > 2 and 0 new names otherwise.
 func NormalizeSingleRI(ri *RoleInclusion, firstNewIndex uint) []*NormalizedRI {
 	lhs := ri.LHS
 	n := uint(len(lhs))
@@ -335,57 +395,42 @@ func NormalizeSingleRI(ri *RoleInclusion, firstNewIndex uint) []*NormalizedRI {
 	}
 }
 
+// TBoxNormalformBuilder is anything that transforms a tbox to a normalized
+// tbox. Multiple calls to Normalize should be possible (i.e. data must be
+// reset when running this method).
 type TBoxNormalformBuilder interface {
 	Normalize(tbox *TBox) *NormalizedTBox
 }
 
+// DefaultNormalFormBuilder is an implementation of TBoxNormalformBuilder
+// that normalizes up to k formulae concurrently.
 type DefaultNormalFormBuilder struct {
 	k                  int
 	rolesAfterPhaseOne uint
 	distributor        *IntDistributor
-	phaseOne           *phaseOneResult
+	phaseOne           *PhaseOneResult
 	ris                []*NormalizedRI
 }
 
+// NewDefaultNormalFormBUilder returns a new DefaultNormalFormBuilder.
+// k must be a value > 0 and is the number of formulae that will be
+// normalized concurrently. That is at most k normalizations will be performed
+// at the same time. So k = 1 means that no concurrency happens, instead
+// each formulae is normalized on it's own.
 func NewDefaultNormalFormBUilder(k int) *DefaultNormalFormBuilder {
-	return &DefaultNormalFormBuilder{k: k, phaseOne: newPhaseOneResult(nil)}
+	return &DefaultNormalFormBuilder{k: k, phaseOne: NewPhaseOneResult(nil)}
 }
 
+// reset clears all data from the previous run.
 func (builder *DefaultNormalFormBuilder) reset() {
 	builder.rolesAfterPhaseOne = 0
 	builder.distributor = nil
-	builder.phaseOne = newPhaseOneResult(nil)
+	builder.phaseOne = NewPhaseOneResult(nil)
 	builder.ris = nil
 }
 
-func (builder *DefaultNormalFormBuilder) phaseOneSingle(gci *GCIConstraint) *phaseOneResult {
-	res := newPhaseOneResult(builder.distributor)
-
-	res.waiting = []*GCIConstraint{gci}
-	for len(res.waiting) > 0 {
-		n := len(res.waiting)
-		next := res.waiting[n-1]
-		res.waiting[n-1] = nil
-		res.waiting = res.waiting[:n-1]
-		NormalizeStepPhaseOne(next, res)
-	}
-	return res
-}
-
-func (builder *DefaultNormalFormBuilder) phaseTwoSingle(gci *GCIConstraint) *phaseTwoResult {
-	res := newPhaseTwoResult(builder.distributor)
-
-	res.waiting = []*GCIConstraint{gci}
-	for len(res.waiting) > 0 {
-		n := len(res.waiting)
-		next := res.waiting[n-1]
-		res.waiting[n-1] = nil
-		res.waiting = res.waiting[:n-1]
-		NormalizeStepPhaseTwo(next, res)
-	}
-	return res
-}
-
+// runPhaseOne normalizes all GCIs and RIs of the tbox (only rules NF1 - NF4).
+// As described above at most k normalizations will happen concurrently.
 func (builder *DefaultNormalFormBuilder) runPhaseOne(tbox *TBox) {
 	distributor := NewIntDistributor(tbox.Components.Names)
 	builder.distributor = distributor
@@ -396,7 +441,7 @@ func (builder *DefaultNormalFormBuilder) runPhaseOne(tbox *TBox) {
 	workers := make(chan struct{}, builder.k)
 	// a channel that is used to collect all normalization results for a single
 	// formula
-	resChan := make(chan *phaseOneResult)
+	resChan := make(chan *PhaseOneResult)
 
 	// a channel for normalized RIs, the idea is the same as with resChan
 	riChan := make(chan []*NormalizedRI)
@@ -411,7 +456,7 @@ func (builder *DefaultNormalFormBuilder) runPhaseOne(tbox *TBox) {
 		defer wg.Done()
 		for i := 0; i < len(tbox.GCIs); i++ {
 			next := <-resChan
-			builder.phaseOne.union(next)
+			builder.phaseOne.Union(next)
 		}
 	}()
 
@@ -430,7 +475,7 @@ func (builder *DefaultNormalFormBuilder) runPhaseOne(tbox *TBox) {
 		workers <- struct{}{}
 		// run normalization concurrently, free worker when done
 		go func(gci *GCIConstraint) {
-			resChan <- builder.phaseOneSingle(gci)
+			resChan <- PhaseOneSingle(gci, distributor)
 			<-workers
 		}(gci)
 	}
@@ -462,11 +507,13 @@ func (builder *DefaultNormalFormBuilder) runPhaseOne(tbox *TBox) {
 	wg.Wait()
 }
 
-func (builder *DefaultNormalFormBuilder) runPhaseTwo() *phaseTwoResult {
-	res := newPhaseTwoResult(builder.distributor)
-	res.intermediateCILeft = builder.phaseOne.intermediateCILeft
-	res.intermediateCIRight = builder.phaseOne.intermediateCIRight
-	res.intermediateCIs = builder.phaseOne.intermediateCIs
+// runPhaseTwo normalizes all GCIs of the tbox (rules NF5 - NF7).
+// As described above at most k normalizations will happen concurrently.
+func (builder *DefaultNormalFormBuilder) runPhaseTwo() *PhaseTwoResult {
+	res := NewPhaseTwoResult(builder.distributor)
+	res.IntermediateCILeft = builder.phaseOne.IntermediateCILeft
+	res.IntermediateCIRight = builder.phaseOne.IntermediateCIRight
+	res.IntermediateCIs = builder.phaseOne.IntermediateCIs
 	// create a channel that is used to coordinate the workers
 	// this means: create a channel with buffer size k, writes to this channel
 	// will block once k things are running, when a normlization is done
@@ -474,7 +521,7 @@ func (builder *DefaultNormalFormBuilder) runPhaseTwo() *phaseTwoResult {
 	workers := make(chan struct{}, builder.k)
 	// a channel that is used to collect all normalization results for a single
 	// formula
-	resChan := make(chan *phaseTwoResult)
+	resChan := make(chan *PhaseTwoResult)
 
 	// a channel to wait for everything to finish
 	done := make(chan struct{})
@@ -482,20 +529,20 @@ func (builder *DefaultNormalFormBuilder) runPhaseTwo() *phaseTwoResult {
 	// start a listener for that waits for all phase two results and merges
 	// the current result with the new result
 	go func() {
-		for i := 0; i < len(builder.phaseOne.intermediateRes); i++ {
+		for i := 0; i < len(builder.phaseOne.IntermediateRes); i++ {
 			next := <-resChan
-			res.union(next)
+			res.Union(next)
 		}
 		done <- struct{}{}
 	}()
 
 	// start the GCI normalization
-	for _, gci := range builder.phaseOne.intermediateRes {
+	for _, gci := range builder.phaseOne.IntermediateRes {
 		// wait for a free worker
 		workers <- struct{}{}
 		// run normalization concurrently, free worker when done
 		go func(gci *GCIConstraint) {
-			resChan <- builder.phaseTwoSingle(gci)
+			resChan <- PhaseTwoSingle(gci, builder.distributor)
 			<-workers
 		}(gci)
 	}
@@ -517,9 +564,9 @@ func (builder *DefaultNormalFormBuilder) Normalize(tbox *TBox) *NormalizedTBox {
 		builder.rolesAfterPhaseOne)
 	res := NormalizedTBox{
 		Components: newComponents,
-		CIs:        phaseTwoRes.intermediateCIs,
-		CIRight:    phaseTwoRes.intermediateCIRight,
-		CILeft:     phaseTwoRes.intermediateCILeft,
+		CIs:        phaseTwoRes.IntermediateCIs,
+		CIRight:    phaseTwoRes.IntermediateCIRight,
+		CILeft:     phaseTwoRes.IntermediateCILeft,
 		RIs:        builder.ris,
 	}
 	// empty all fields, just to be sure

@@ -22,6 +22,8 @@
 
 package goel
 
+import "sync"
+
 // IntMax returns the maximum of a and b.
 func IntMax(a, b int) int {
 	if a > b {
@@ -56,4 +58,32 @@ func UIntMin(a, b uint) uint {
 	} else {
 		return b
 	}
+}
+
+// IntDistributor is a type used to generate new uint values.
+// The solving algorithm requires that new names are introduced, we use this
+// distributor to generate new integer values concurrently.
+// This means that the Next method can be used concurrently from different
+// goroutines.
+type IntDistributor struct {
+	next  uint
+	mutex *sync.Mutex
+}
+
+// NewIntDistributor returns a new distributor s.t. the Next method first
+// produces the value next.
+func NewIntDistributor(next uint) *IntDistributor {
+	return &IntDistributor{next: next, mutex: new(sync.Mutex)}
+}
+
+// Next returns the next integer value. That is the first element produced
+// is the provided next value, then next + 1 etc.
+//
+// It is safe to use concurrently from different goroutines.
+func (dist *IntDistributor) Next() uint {
+	dist.mutex.Lock()
+	defer dist.mutex.Unlock()
+	next := dist.next
+	dist.next++
+	return next
 }

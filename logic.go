@@ -153,6 +153,7 @@ func (role Role) String() string {
 }
 
 const (
+	// NoRule is used to identify a role as not valid.
 	NoRole Role = Role(^uint(0))
 )
 
@@ -214,6 +215,8 @@ func (existential ExistentialConcept) IsInBCD() bool {
 	return false
 }
 
+// BCDOrFalse checks if the concept is either the bottom concept ⊥ or otherwise
+// if it is in the BCD.
 func BCDOrFalse(c Concept) bool {
 	_, isFalse := c.(BottomConcept)
 	return isFalse || c.IsInBCD()
