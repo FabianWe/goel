@@ -182,15 +182,15 @@ type Conjunction struct {
 }
 
 // NewConjunction returns a new conjunction given C and D.
-func NewConjunction(c, d Concept) *Conjunction {
-	return &Conjunction{C: c, D: d}
+func NewConjunction(c, d Concept) Conjunction {
+	return Conjunction{C: c, D: d}
 }
 
-func (conjunction *Conjunction) String() string {
+func (conjunction Conjunction) String() string {
 	return fmt.Sprintf("(%v ⊓ %v)", conjunction.C, conjunction.D)
 }
 
-func (Conjunction *Conjunction) IsInBCD() bool {
+func (Conjunction Conjunction) IsInBCD() bool {
 	return false
 }
 
@@ -202,16 +202,21 @@ type ExistentialConcept struct {
 
 // NewExistentialConcept returns a new existential concept of the form
 // ∃r.C.
-func NewExistentialConcept(r Role, c Concept) *ExistentialConcept {
-	return &ExistentialConcept{R: r, C: c}
+func NewExistentialConcept(r Role, c Concept) ExistentialConcept {
+	return ExistentialConcept{R: r, C: c}
 }
 
-func (existential *ExistentialConcept) String() string {
+func (existential ExistentialConcept) String() string {
 	return fmt.Sprintf("∃ %v.%v", existential.R, existential.C)
 }
 
-func (existential *ExistentialConcept) IsInBCD() bool {
+func (existential ExistentialConcept) IsInBCD() bool {
 	return false
+}
+
+func BCDOrFalse(c Concept) bool {
+	_, isFalse := c.(BottomConcept)
+	return isFalse || c.IsInBCD()
 }
 
 //// TBox ////
