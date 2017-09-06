@@ -36,6 +36,8 @@ type GraphSearcher interface {
 	IsReachable(succ SuccFunction, goal uint, start ...uint) bool
 }
 
+// BFSearcher is a GraphSearcher that searches the graph with
+// Breadth-first search (BFS).
 type BFSearcher struct{}
 
 func NewBFSearcher() BFSearcher {

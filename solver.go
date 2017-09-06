@@ -27,6 +27,8 @@ type BCSet interface {
 	Add(c Concept) bool
 }
 
+type BCSetFactory func() BCSet
+
 type MapBCSet struct {
 	m map[uint]struct{}
 	c *ELBaseComponents
@@ -36,6 +38,12 @@ func NewMapBCSet(c *ELBaseComponents, initialCapacity uint) *MapBCSet {
 	return &MapBCSet{
 		m: make(map[uint]struct{}, initialCapacity),
 		c: c,
+	}
+}
+
+func MapBCSetFactory(c *ELBaseComponents, initialCapacity uint) BCSetFactory {
+	return func() BCSet {
+		return NewMapBCSet(c, initialCapacity)
 	}
 }
 
@@ -58,6 +66,8 @@ type BCPairSet interface {
 	Contains(c, d Concept) bool
 	Add(c, d Concept) bool
 }
+
+type BCPairSetFactory func() BCPairSet
 
 type bcPair struct {
 	First, Second uint
@@ -82,6 +92,12 @@ func NewMapBCPairSet(c *ELBaseComponents, initialCapacity uint) *MapBCPairSet {
 	}
 }
 
+func MapBCPairSetFactory(c *ELBaseComponents, initialCapacity uint) BCPairSetFactory {
+	return func() BCPairSet {
+		return NewMapBCPairSet(c, initialCapacity)
+	}
+}
+
 func (s *MapBCPairSet) Contains(c, d Concept) bool {
 	_, has := s.m[newBCPair(c, d, s.c)]
 	return has
@@ -94,4 +110,59 @@ func (s *MapBCPairSet) Add(c, d Concept) bool {
 	}
 	s.m[p] = struct{}{}
 	return true
+}
+
+type BCMap interface {
+	GetVAlue(c Concept) BCSet
+}
+
+type DefaultBCMap struct {
+	m       map[uint]BCSet
+	factory BCSetFactory
+	c       *ELBaseComponents
+}
+
+func NewDefaultBCMap(factory BCSetFactory, c *ELBaseComponents, initialCapacity uint) *DefaultBCMap {
+	return &DefaultBCMap{
+		m:       make(map[uint]BCSet, initialCapacity),
+		factory: factory,
+		c:       c,
+	}
+}
+
+func (m *DefaultBCMap) GetValue(c Concept) BCSet {
+	id := c.NormalizedID(m.c)
+	if res, has := m.m[id]; has {
+		return res
+	} else {
+		newSet := m.factory()
+		m.m[id] = newSet
+		return newSet
+	}
+}
+
+type RoleMap interface {
+	GetValue(r Role) BCPairSet
+}
+
+type DefaultRoleMap struct {
+	m       map[Role]BCPairSet
+	factory BCPairSetFactory
+}
+
+func NewDefaultRoleMap(factory BCPairSetFactory, initialCapacity uint) *DefaultRoleMap {
+	return &DefaultRoleMap{
+		m:       make(map[Role]BCPairSet, initialCapacity),
+		factory: factory,
+	}
+}
+
+func (m *DefaultRoleMap) GetValue(r Role) BCPairSet {
+	if res, has := m.m[r]; has {
+		return res
+	} else {
+		newSet := m.factory()
+		m.m[r] = newSet
+		return newSet
+	}
 }
