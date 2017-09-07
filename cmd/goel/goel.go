@@ -23,6 +23,7 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"runtime"
 	"time"
 
 	"gkigit.informatik.uni-freiburg.de/fwenzelmann/goel"
@@ -33,32 +34,36 @@ func main() {
 	builder := goel.RandomELBuilder{NumIndividuals: 10000,
 		NumConceptNames:    10000,
 		NumRoles:           5000,
-		NumConcreteDomains: 100,
+		NumConcreteDomains: 0,
 		MaxCDSize:          1000,
 		MaxNumPredicates:   2000,
 		MaxNumFeatures:     1000}
 	fmt.Println("Building random TBox ...")
-	_, tbox := builder.GenerateRandomTBox(1000, 10000, 10000, 100, 10000, 10000)
+	_, tbox := builder.GenerateRandomTBox(0, 10000, 10000, 10, 10000, 10000)
 	fmt.Println("... Done")
 	normalizer := goel.NewDefaultNormalFormBUilder(100)
 	fmt.Println("Normalizing TBox ...")
 	start := time.Now()
-	normalizer.Normalize(tbox)
+	normalized := normalizer.Normalize(tbox)
 	execTime := time.Since(start)
 	fmt.Printf("... Done after %v\n", execTime)
+	fmt.Printf("There are %d goroutines running\n", runtime.NumGoroutine())
+	solver := goel.NewNaiveSolver(goel.MapBCSetFactory(normalized.Components,
+		10),
+		goel.MapBCPairSetFactory(normalized.Components, 10),
+		goel.NewSetGraph())
+	fmt.Println("Solving ...")
+	start = time.Now()
+	solver.Solve(normalized)
+	execTime = time.Since(start)
+	fmt.Printf("... Done after %v\n", execTime)
 
-	var a, b, c, d goel.Concept
-	a = goel.NewNamedConcept(0)
-	b = goel.NewNominalConcept(0)
-	c = goel.NewNamedConcept(0)
-	d = goel.NewNominalConcept(0)
-	fmt.Println(a == b)
-	fmt.Println(a == c)
-	fmt.Println(b == d)
-
-	m := make(map[goel.Concept]bool)
-	m[a] = true
-	m[c] = false
-	m[b] = true
-	fmt.Println(m)
+	baseComp := goel.NewELBaseComponents(0,
+		0,
+		1,
+		3)
+	var i uint = 0
+	for ; i < baseComp.NumBCD()+1; i++ {
+		fmt.Println(baseComp.GetConcept(i))
+	}
 }

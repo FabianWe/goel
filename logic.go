@@ -44,6 +44,31 @@ func NewELBaseComponents(nominals, cdExtensions, names, roles uint) *ELBaseCompo
 		Names: names, Roles: roles}
 }
 
+// NumBCD returns the number of elements in the basic concept description.
+// That is the number of nominals, names, cd extensions + 1 (⊤).
+func (c *ELBaseComponents) NumBCD() uint {
+	return c.Nominals + c.CDExtensions + c.Names + 1
+}
+
+// TODO think this through, escpecially if one is 0!
+func (c *ELBaseComponents) GetConcept(normalizedID uint) Concept {
+	switch {
+	default:
+		// should never happen
+		return nil
+	case normalizedID == 0:
+		return Bottom
+	case normalizedID == 1:
+		return Top
+	case normalizedID < 2+c.Nominals:
+		return NewNominalConcept(normalizedID - 2)
+	case normalizedID < 2+c.Nominals+c.CDExtensions:
+		return NewConcreteDomainExtension(normalizedID - 2 - c.Nominals)
+	case normalizedID < 2+c.Nominals+c.CDExtensions+c.Names:
+		return NewNamedConcept(normalizedID - 2 - c.Nominals - c.CDExtensions)
+	}
+}
+
 // Concept is the interface for all Concept defintions.
 // Concepts in EL++ are defined recursively, this is the general interface.
 type Concept interface {
@@ -61,7 +86,7 @@ type Concept interface {
 	// The top concept has an id of 1
 	// All nominals have an id in 2...NumNoinals + 1
 	// All CDExtensions have an id in NumNoinals + 2...NumNomials + NumCDExtensions + 1
-	//All names haven an id in NumNomials + NumCDExtensions + 2....NumNomials + NumCDExtensions + NumNames + 1
+	// All names haven an id in NumNomials + NumCDExtensions + 2....NumNomials + NumCDExtensions + NumNames + 1
 	// This way we can easily add new names all the time, because the ids are at
 	// the end of the representation and when we add a new name we don't have to
 	// adjust all other ids in use (if this is ever required).

@@ -22,29 +22,86 @@
 
 package goel
 
-// SuccFunction is a function that must produce all successors of the specified
-// vertex in a directed graph.
-// All successors must be written to the channel and the channel must be closed
-// once all successors have been produced.
-type SuccFunction func(vertex uint, ch chan<- uint)
-
-// GraphSearcher is an interface for all algorithms that perform a graph search.
-// This search must check if the goal state can be reached when starting in
-// any of the specified start states.
-// succ is used to generate all successors of a vertex.
-type GraphSearcher interface {
-	IsReachable(succ SuccFunction, goal uint, start ...uint) bool
+type ConceptGraph interface {
+	Init(numConcepts uint)
+	AddEdge(source, target uint)
+	Succ(vertex uint, ch chan<- uint)
 }
 
-// BFSearcher is a GraphSearcher that searches the graph with
-// Breadth-first search (BFS).
-type BFSearcher struct{}
-
-func NewBFSearcher() BFSearcher {
-	return BFSearcher{}
+type SetGraph struct {
+	graph []map[uint]struct{}
 }
 
-func (bfs BFSearcher) IsReachable(succ SuccFunction, goal uint, start ...uint) bool {
+func NewSetGraph() *SetGraph {
+	return &SetGraph{graph: nil}
+}
+
+func (g *SetGraph) Init(numConcepts uint) {
+	g.graph = make([]map[uint]struct{}, numConcepts)
+	var i uint = 0
+	for ; i < numConcepts; i++ {
+		g.graph[i] = make(map[uint]struct{})
+	}
+}
+
+func (g *SetGraph) AddEdge(source, target uint) {
+	g.graph[source][target] = struct{}{}
+}
+
+func (g *SetGraph) Succ(vertex uint, ch chan<- uint) {
+	for succ, _ := range g.graph[vertex] {
+		ch <- succ
+	}
+	close(ch)
+}
+
+type SliceGraph struct {
+	Graph [][]uint
+}
+
+func NewSliceGraph() *SliceGraph {
+	return &SliceGraph{nil}
+}
+
+func (g *SliceGraph) Init(numConcepts uint) {
+	g.Graph = make([][]uint, numConcepts)
+}
+
+func (g *SliceGraph) AddEdge(source, target uint) {
+	g.Graph[source] = append(g.Graph[source], target)
+}
+
+func (g *SliceGraph) Succ(vertex uint, ch chan<- uint) {
+	for _, val := range g.Graph[vertex] {
+		ch <- val
+	}
+	close(ch)
+}
+
+type ReachabilitySearch func(g ConceptGraph, goal uint, start ...uint) bool
+
+type GraphSearcher struct {
+	g        ConceptGraph
+	search   ReachabilitySearch
+	nominals []uint
+}
+
+func NewGraphSearcher(g ConceptGraph, search ReachabilitySearch, nominals []uint) *GraphSearcher {
+	internalNominals := make([]uint, len(nominals)+1)
+	copy(internalNominals[1:], nominals)
+	return &GraphSearcher{
+		g:        g,
+		search:   search,
+		nominals: internalNominals,
+	}
+}
+
+func (searcher *GraphSearcher) Search(additionalStart, goal uint) bool {
+	searcher.nominals[0] = additionalStart
+	return searcher.search(searcher.g, goal, searcher.nominals...)
+}
+
+func BFS(g ConceptGraph, goal uint, start ...uint) bool {
 	visited := make(map[uint]struct{}, len(start))
 	for _, value := range start {
 		visited[value] = struct{}{}
@@ -59,11 +116,16 @@ func (bfs BFSearcher) IsReachable(succ SuccFunction, goal uint, start ...uint) b
 		}
 		// expand the node
 		ch := make(chan uint, 1)
-		go succ(next, ch)
+		go g.Succ(next, ch)
 		for v := range ch {
 			if _, in := visited[v]; !in {
 				visited[v] = struct{}{}
 				queue = append(queue, v)
+				// note that we don't check here if we reached the goal
+				// this is also important because otherwise ch might stay open
+				// because succ closes the channel!
+				// of course we could check if we added goal to the queue and
+				// after all iterations are done return already true though
 			}
 		}
 	}
