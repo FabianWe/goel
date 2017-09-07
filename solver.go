@@ -288,12 +288,48 @@ func (solver *NaiveSolver) Solve(tbox *NormalizedTBox) {
 		// first try to apply rules CR1 - CR4, for each cgi there is only one
 		// rule we can apply here
 		// so first we iterate over all cgis of the form C1 ⊑ D and C1 ⊓ C2 ⊑ D
-		for _, cgi := range tbox.CIs {
-			if cgi.C2 != nil {
+		for _, gci := range tbox.CIs {
+			if gci.C2 == nil {
 				// try CR1
+				for _, sc := range solver.S[1:] {
+					if CheckCR1(gci, sc) {
+						// add to sc
+						if sc.Add(gci.D) {
+							changed = true
+						}
+					}
+				}
 			} else {
 				// try CR2
+				for _, sc := range solver.S[1:] {
+					if CheckCR2(gci, sc) {
+						// add to sc
+						if sc.Add(gci.D) {
+							changed = true
+						}
+					}
+				}
 			}
+		}
+		// now try rule CR3
+		for c, gci := range tbox.CIRight {
+			for _, sc := range solver.S[1:] {
+				if CheckCR3(gci, sc) {
+					// add
+					r := gci.R
+					if solver.R[uint(r)].Add(tbox.Components.GetConcept(uint(c)), gci.C2) {
+						changed = true
+					}
+				}
+			}
+		}
+		// now try rule CR4
+		// don't use CheckCR4, this way is faster
+		for _, _ = range tbox.CILeft {
+			// get the set R(r)
+			// sr := solver.R[uint(gci.R)]
+			// iterate each pair (C, D) in R(r), then only check if D'
+			// is in S(D)
 		}
 	}
 }
