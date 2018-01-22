@@ -55,9 +55,7 @@ func main() {
 	execTime := time.Since(start)
 	fmt.Printf("... Done after %v\n", execTime)
 	fmt.Printf("There are %d goroutines running\n", runtime.NumGoroutine())
-	solver := goel.NewNaiveSolver(goel.MapBCSetFactory(normalized.Components,
-		10),
-		goel.MapBCPairSetFactory(normalized.Components, 10),
+	solver := goel.NewNaiveSolver(
 		goel.NewSetGraph())
 	fmt.Println("Solving ...")
 	start = time.Now()

@@ -30,155 +30,68 @@ import (
 
 // TODO redefine set interfaces s.t. that accept the components as well
 
-type BCSet interface {
-	Contains(c Concept) bool
-	Add(c Concept) bool
-}
-
-type BCSetFactory func() BCSet
-
-type MapBCSet struct {
+type BCSet struct {
 	m map[uint]struct{}
 	c *ELBaseComponents
 }
 
-func NewMapBCSet(c *ELBaseComponents, initialCapacity uint) *MapBCSet {
-	return &MapBCSet{
+func NewBCSet(c *ELBaseComponents, initialCapacity uint) *BCSet {
+	return &BCSet{
 		m: make(map[uint]struct{}, initialCapacity),
 		c: c,
 	}
 }
 
-func MapBCSetFactory(c *ELBaseComponents, initialCapacity uint) BCSetFactory {
-	return func() BCSet {
-		return NewMapBCSet(c, initialCapacity)
-	}
-}
-
-func (s *MapBCSet) Contains(c Concept) bool {
+func (s *BCSet) Contains(c Concept) bool {
 	_, has := s.m[c.NormalizedID(s.c)]
 	return has
 }
 
-// TODO avoid lookups, simply check length?
-func (s *MapBCSet) Add(c Concept) bool {
-	normalizedID := c.NormalizedID(s.c)
-	if _, has := s.m[normalizedID]; has {
-		return false
-	} else {
-		s.m[normalizedID] = struct{}{}
-		return true
+func (s *BCSet) Add(c Concept) bool {
+	oldLen := len(s.m)
+	s.m[c.NormalizedID(s.c)] = struct{}{}
+	return oldLen != len(s.m)
+}
+
+func (s *BCSet) Union(other *BCSet) bool {
+	oldLen := len(s.m)
+	for v, _ := range other.m {
+		s.m[v] = struct{}{}
 	}
+	return oldLen != len(s.m)
 }
-
-type BCPairSet interface {
-	Contains(c, d Concept) bool
-	Add(c, d Concept) bool
-}
-
-type BCPairSetFactory func() BCPairSet
 
 type bcPair struct {
 	First, Second uint
 }
 
-func newBCPair(c, d Concept, comp *ELBaseComponents) bcPair {
-	return bcPair{
-		First:  c.NormalizedID(comp),
-		Second: d.NormalizedID(comp),
-	}
-}
-
-type MapBCPairSet struct {
+type BCPairSet struct {
 	m map[bcPair]struct{}
 	c *ELBaseComponents
 }
 
-func NewMapBCPairSet(c *ELBaseComponents, initialCapacity uint) *MapBCPairSet {
-	return &MapBCPairSet{
+func NewBCPairSet(c *ELBaseComponents, initialCapacity uint) *BCPairSet {
+	return &BCPairSet{
 		m: make(map[bcPair]struct{}, initialCapacity),
 		c: c,
 	}
 }
 
-func MapBCPairSetFactory(c *ELBaseComponents, initialCapacity uint) BCPairSetFactory {
-	return func() BCPairSet {
-		return NewMapBCPairSet(c, initialCapacity)
-	}
-}
-
-func (s *MapBCPairSet) Contains(c, d Concept) bool {
-	_, has := s.m[newBCPair(c, d, s.c)]
+func (s *BCPairSet) Contains(c, d Concept) bool {
+	_, has := s.m[bcPair{c.NormalizedID(s.c), d.NormalizedID(s.c)}]
 	return has
 }
 
-func (s *MapBCPairSet) Add(c, d Concept) bool {
-	p := newBCPair(c, d, s.c)
-	if _, has := s.m[p]; has {
-		return false
-	}
+func (s *BCPairSet) Add(c, d Concept) bool {
+	oldLen := len(s.m)
+	p := bcPair{c.NormalizedID(s.c), d.NormalizedID(s.c)}
 	s.m[p] = struct{}{}
-	return true
-}
-
-type BCMap interface {
-	GetVAlue(c Concept) BCSet
-}
-
-type DefaultBCMap struct {
-	m       map[uint]BCSet
-	factory BCSetFactory
-	c       *ELBaseComponents
-}
-
-func NewDefaultBCMap(factory BCSetFactory, c *ELBaseComponents, initialCapacity uint) *DefaultBCMap {
-	return &DefaultBCMap{
-		m:       make(map[uint]BCSet, initialCapacity),
-		factory: factory,
-		c:       c,
-	}
-}
-
-func (m *DefaultBCMap) GetValue(c Concept) BCSet {
-	id := c.NormalizedID(m.c)
-	if res, has := m.m[id]; has {
-		return res
-	} else {
-		newSet := m.factory()
-		m.m[id] = newSet
-		return newSet
-	}
-}
-
-type RoleMap interface {
-	GetValue(r Role) BCPairSet
-}
-
-type DefaultRoleMap struct {
-	m       map[Role]BCPairSet
-	factory BCPairSetFactory
-}
-
-func NewDefaultRoleMap(factory BCPairSetFactory, initialCapacity uint) *DefaultRoleMap {
-	return &DefaultRoleMap{
-		m:       make(map[Role]BCPairSet, initialCapacity),
-		factory: factory,
-	}
-}
-
-func (m *DefaultRoleMap) GetValue(r Role) BCPairSet {
-	if res, has := m.m[r]; has {
-		return res
-	} else {
-		newSet := m.factory()
-		m.m[r] = newSet
-		return newSet
-	}
+	return oldLen != len(s.m)
 }
 
 // Functions that check if a rule is applicable.
 
-func CheckCR1(gci *NormalizedCI, sc BCSet) bool {
+func CheckCR1(gci *NormalizedCI, sc *BCSet) bool {
 	// TODO remove once tested
 	if gci.C2 != nil {
 		log.Printf("Invalid gci for CR1, must be of the form C ⊑ D, but got C1 ⊓ C2 ⊑ D: %v\n", gci)
@@ -187,7 +100,7 @@ func CheckCR1(gci *NormalizedCI, sc BCSet) bool {
 	return sc.Contains(gci.C1)
 }
 
-func CheckCR2(gci *NormalizedCI, sc BCSet) bool {
+func CheckCR2(gci *NormalizedCI, sc *BCSet) bool {
 	// TODO remove once tested
 	if gci.C2 == nil {
 		log.Printf("Invalid gci for CR1, must be of the form C1 ⊓ C2 ⊑ D, but got C ⊑ D: %v\n", gci)
@@ -196,19 +109,19 @@ func CheckCR2(gci *NormalizedCI, sc BCSet) bool {
 	return sc.Contains(gci.C1) && sc.Contains(gci.C2)
 }
 
-func CheckCR3(gci *NormalizedCIRightEx, sc BCSet) bool {
+func CheckCR3(gci *NormalizedCIRightEx, sc *BCSet) bool {
 	return sc.Contains(gci.C1)
 }
 
-func CheckCR4(gci *NormalizedCILeftEx, c, d Concept, sd BCSet, sr BCPairSet) bool {
+func CheckCR4(gci *NormalizedCILeftEx, c, d Concept, sd *BCSet, sr *BCPairSet) bool {
 	return sr.Contains(c, d) && sd.Contains(gci.C1)
 }
 
-func CheckCR5(c, d Concept, sd BCSet, sr BCPairSet) bool {
+func CheckCR5(c, d Concept, sd *BCSet, sr *BCPairSet) bool {
 	return sd.Contains(Bottom) && sr.Contains(c, d)
 }
 
-func CheckCR6(a NominalConcept, c, d Concept, sc, sd BCSet, search *GraphSearcher, components *ELBaseComponents) bool {
+func CheckCR6(a NominalConcept, c, d Concept, sc, sd *BCSet, search *GraphSearcher, components *ELBaseComponents) bool {
 	return sc.Contains(a) && sd.Contains(a) && search.Search(c.NormalizedID(components), d.NormalizedID(components))
 }
 
@@ -216,27 +129,23 @@ func CheckCR10(sr BCPairSet, c, d Concept) bool {
 	return sr.Contains(c, d)
 }
 
-func CheckCR11(sr1, sr2 BCPairSet, c, d, e Concept) bool {
+func CheckCR11(sr1, sr2 *BCPairSet, c, d, e Concept) bool {
 	return sr1.Contains(c, d) && sr2.Contains(d, e)
 }
 
 // TODO remove map interfaces? not required I guess...
 
 type NaiveSolver struct {
-	S        []BCSet
-	R        []BCPairSet
-	graph    ConceptGraph
-	sFactory BCSetFactory
-	rFactory BCPairSetFactory
+	S     []*BCSet
+	R     []*BCPairSet
+	graph ConceptGraph
 }
 
-func NewNaiveSolver(sFactory BCSetFactory, rFactory BCPairSetFactory, graph ConceptGraph) *NaiveSolver {
+func NewNaiveSolver(graph ConceptGraph) *NaiveSolver {
 	return &NaiveSolver{
-		S:        nil,
-		R:        nil,
-		graph:    graph,
-		sFactory: sFactory,
-		rFactory: rFactory,
+		S:     nil,
+		R:     nil,
+		graph: graph,
 	}
 }
 
@@ -253,26 +162,26 @@ func (solver *NaiveSolver) init(c *ELBaseComponents) {
 		wg.Done()
 	}()
 	go func() {
-		solver.S = make([]BCSet, numBCD)
+		solver.S = make([]*BCSet, numBCD)
 		// strictly speaking the bottom concept is not part of this and so
 		// will be ignored
 		// for the top concept we initialize S(⊤) = {⊤\
 		// and for all other concepts C we initialize S(C) = {C, ⊤}
-		solver.S[1] = solver.sFactory()
+		solver.S[1] = NewBCSet(c, 10)
 		solver.S[1].Add(Top)
 		var i uint = 2
 		for ; i < numBCD; i++ {
-			solver.S[i] = solver.sFactory()
+			solver.S[i] = NewBCSet(c, 10)
 			solver.S[i].Add(Top)
 			solver.S[i].Add(c.GetConcept(i))
 		}
 		wg.Done()
 	}()
 	go func() {
-		solver.R = make([]BCPairSet, c.Roles)
+		solver.R = make([]*BCPairSet, c.Roles)
 		var i uint = 0
 		for ; i < c.Roles; i++ {
-			solver.R[i] = solver.rFactory()
+			solver.R[i] = NewBCPairSet(c, 10)
 		}
 		wg.Done()
 	}()
@@ -325,11 +234,50 @@ func (solver *NaiveSolver) Solve(tbox *NormalizedTBox) {
 		}
 		// now try rule CR4
 		// don't use CheckCR4, this way is faster
-		for _, _ = range tbox.CILeft {
+		for _, gci := range tbox.CILeft {
 			// get the set R(r)
-			// sr := solver.R[uint(gci.R)]
+			sr := solver.R[uint(gci.R)]
 			// iterate each pair (C, D) in R(r), then only check if D'
 			// is in S(D)
+			for p, _ := range sr.m {
+				sd := solver.S[p.Second]
+				if sd.Contains(gci.C1) {
+					// add
+					sc := solver.S[p.First]
+					if sc.Add(gci.D) {
+						changed = true
+					}
+				}
+			}
+		}
+		// now try rule CR5
+		for _, sr := range solver.R {
+			// iterate over each pair (C, D) in R(r) and test if ⊥ is in S(D)
+			for p, _ := range sr.m {
+				sd := solver.S[p.Second]
+				if sd.Contains(Bottom) {
+					sc := solver.S[p.First]
+					if sc.Add(Bottom) {
+						changed = true
+					}
+				}
+			}
+		}
+		// now try rule CR6
+		// iterate over each nominal
+		var nextNominal uint = 0
+		for ; nextNominal < tbox.Components.Nominals; nextNominal++ {
+			nominal := NewNominalConcept(nextNominal)
+			// iterate over each S(C) and S(D)
+			for i, sc := range solver.S {
+				if sc.Contains(nominal) {
+					for _, sd := range solver.S[i+1:] {
+						if sd.Contains(nominal) {
+							// now extend
+						}
+					}
+				}
+			}
 		}
 	}
 }
