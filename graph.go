@@ -22,6 +22,8 @@
 
 package goel
 
+import "fmt"
+
 type ConceptGraph interface {
 	Init(numConcepts uint)
 	AddEdge(source, target uint)
@@ -45,6 +47,7 @@ func (g *SetGraph) Init(numConcepts uint) {
 }
 
 func (g *SetGraph) AddEdge(source, target uint) {
+	fmt.Println("DONE")
 	g.graph[source][target] = struct{}{}
 }
 

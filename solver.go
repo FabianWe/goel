@@ -89,6 +89,13 @@ func (s *BCPairSet) Add(c, d Concept) bool {
 	return oldLen != len(s.m)
 }
 
+func (s *BCPairSet) AddID(c, d uint) bool {
+	oldLen := len(s.m)
+	p := bcPair{c, d}
+	s.m[p] = struct{}{}
+	return oldLen != len(s.m)
+}
+
 // Functions that check if a rule is applicable.
 
 func CheckCR1(gci *NormalizedCI, sc *BCSet) bool {
@@ -165,7 +172,7 @@ func (solver *NaiveSolver) init(c *ELBaseComponents) {
 		solver.S = make([]*BCSet, numBCD)
 		// strictly speaking the bottom concept is not part of this and so
 		// will be ignored
-		// for the top concept we initialize S(⊤) = {⊤\
+		// for the top concept we initialize S(⊤) = {⊤}
 		// and for all other concepts C we initialize S(C) = {C, ⊤}
 		solver.S[1] = NewBCSet(c, 10)
 		solver.S[1].Add(Top)
@@ -186,6 +193,16 @@ func (solver *NaiveSolver) init(c *ELBaseComponents) {
 		wg.Done()
 	}()
 	wg.Wait()
+}
+
+func (solver *NaiveSolver) updateR(r Role, c, d Concept, bc *ELBaseComponents) bool {
+	cID, dID := c.NormalizedID(bc), d.NormalizedID(bc)
+	if solver.R[uint(r)].AddID(cID, dID) {
+		// update graph as well
+		solver.graph.AddEdge(cID, dID)
+		return true
+	}
+	return false
 }
 
 func (solver *NaiveSolver) Solve(tbox *NormalizedTBox) {
@@ -226,7 +243,8 @@ func (solver *NaiveSolver) Solve(tbox *NormalizedTBox) {
 				if CheckCR3(gci, sc) {
 					// add
 					r := gci.R
-					if solver.R[uint(r)].Add(tbox.Components.GetConcept(uint(c)), gci.C2) {
+					conceptC, conceptD := tbox.Components.GetConcept(uint(c)), gci.C2
+					if solver.updateR(r, conceptC, conceptD, tbox.Components) {
 						changed = true
 					}
 				}
@@ -266,12 +284,15 @@ func (solver *NaiveSolver) Solve(tbox *NormalizedTBox) {
 		// now try rule CR6
 		// iterate over each nominal
 		var nextNominal uint = 0
+		// bottom concept has a place in S, but is not a part of it (see init)
+		// thus we wish to remove the first element from solver.S
+		s := solver.S[1:]
 		for ; nextNominal < tbox.Components.Nominals; nextNominal++ {
 			nominal := NewNominalConcept(nextNominal)
 			// iterate over each S(C) and S(D)
-			for i, sc := range solver.S {
+			for i, sc := range s {
 				if sc.Contains(nominal) {
-					for _, sd := range solver.S[i+1:] {
+					for _, sd := range s[i+1:] {
 						if sd.Contains(nominal) {
 							// now extend
 						}

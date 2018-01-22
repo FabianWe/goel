@@ -23,7 +23,6 @@ package main
 import (
 	"fmt"
 	"math/rand"
-	"runtime"
 	"time"
 
 	"gkigit.informatik.uni-freiburg.de/fwenzelmann/goel"
@@ -54,9 +53,10 @@ func main() {
 	normalized := normalizer.Normalize(tbox)
 	execTime := time.Since(start)
 	fmt.Printf("... Done after %v\n", execTime)
-	fmt.Printf("There are %d goroutines running\n", runtime.NumGoroutine())
+	// fmt.Printf("There are %d goroutines running\n", runtime.NumGoroutine())
 	solver := goel.NewNaiveSolver(
-		goel.NewSetGraph())
+		goel.NewSetGraph(),
+	)
 	fmt.Println("Solving ...")
 	start = time.Now()
 	solver.Solve(normalized)
