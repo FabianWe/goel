@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2016, 2017 Fabian Wenzelmann
+// Copyright (c) 2016, 2017, 2018 Fabian Wenzelmann
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -335,6 +335,41 @@ func (solver *NaiveSolver) Solve(tbox *NormalizedTBox) {
 									changed = true
 								}
 								// no default case, we simply do nothing
+							}
+						}
+					}
+				}
+			}
+		}
+		// now try rule CR10 and CR11
+		var i uint
+		for ; i < uint(len(tbox.RIs)); i++ {
+			ri := tbox.RIs[i]
+			if ri.R2 == NoRole {
+				// rule CR10
+				r, s := ri.R1, ri.S
+				// iterate over each pair in R(r)
+				rr := solver.R[uint(r)]
+				rs := solver.R[uint(s)]
+				for pair, _ := range rr.m {
+					if rs.AddID(pair.First, pair.Second) {
+						changed = true
+					}
+				}
+			} else {
+				// rule CR11
+				r1, r2, r3 := ri.R1, ri.R2, ri.S
+				rr1 := solver.R[uint(r1)]
+				rr2 := solver.R[uint(r2)]
+				rr3 := solver.R[uint(r3)]
+				// iterate over each pair (C1, D1) in R(r1)
+				for pair1, _ := range rr1.m {
+					// iterate over each pair (C2, D2) in R(r2) and check if D1 = C2
+					for pair2, _ := range rr2.m {
+						if pair1.Second == pair2.First {
+							// add (C1, D2) to R(r3)
+							if rr3.AddID(pair1.First, pair2.Second) {
+								changed = true
 							}
 						}
 					}
