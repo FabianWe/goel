@@ -128,9 +128,9 @@ func CheckCR5(c, d Concept, sd *BCSet, sr *BCPairSet) bool {
 	return sd.Contains(Bottom) && sr.Contains(c, d)
 }
 
-func CheckCR6(a NominalConcept, c, d Concept, sc, sd *BCSet, search *GraphSearcher, components *ELBaseComponents) bool {
-	return sc.Contains(a) && sd.Contains(a) && search.Search(c.NormalizedID(components), d.NormalizedID(components))
-}
+// func CheckCR6(a NominalConcept, c, d Concept, sc, sd *BCSet, search *GraphSearcher, components *ELBaseComponents) bool {
+// 	return sc.Contains(a) && sd.Contains(a) && search.Search(c.NormalizedID(components), d.NormalizedID(components))
+// }
 
 func CheckCR10(sr BCPairSet, c, d Concept) bool {
 	return sr.Contains(c, d)
@@ -146,20 +146,25 @@ type NaiveSolver struct {
 	S     []*BCSet
 	R     []*BCPairSet
 	graph ConceptGraph
+	// set in init
+	searcher     *GraphSearcher
+	searchMethod ReachabilitySearch
 }
 
-func NewNaiveSolver(graph ConceptGraph) *NaiveSolver {
+func NewNaiveSolver(graph ConceptGraph, search ReachabilitySearch) *NaiveSolver {
 	return &NaiveSolver{
-		S:     nil,
-		R:     nil,
-		graph: graph,
+		S:            nil,
+		R:            nil,
+		graph:        graph,
+		searcher:     nil,
+		searchMethod: search,
 	}
 }
 
 func (solver *NaiveSolver) init(c *ELBaseComponents) {
 	// initialize stuff, we do that concurrently
 	var wg sync.WaitGroup
-	wg.Add(3)
+	wg.Add(4)
 	// we use + 1 here because we want to use the normalized id directly, so
 	// the bottom concept must be taken into consideration
 	numBCD := c.NumBCD() + 1
@@ -190,6 +195,10 @@ func (solver *NaiveSolver) init(c *ELBaseComponents) {
 		for ; i < c.Roles; i++ {
 			solver.R[i] = NewBCPairSet(c, 10)
 		}
+		wg.Done()
+	}()
+	go func() {
+		solver.searcher = NewGraphSearcher(solver.searchMethod, c)
 		wg.Done()
 	}()
 	wg.Wait()
@@ -282,19 +291,51 @@ func (solver *NaiveSolver) Solve(tbox *NormalizedTBox) {
 			}
 		}
 		// now try rule CR6
+		// TODO think this case through again!
 		// iterate over each nominal
 		var nextNominal uint = 0
 		// bottom concept has a place in S, but is not a part of it (see init)
 		// thus we wish to remove the first element from solver.S
-		s := solver.S[1:]
 		for ; nextNominal < tbox.Components.Nominals; nextNominal++ {
 			nominal := NewNominalConcept(nextNominal)
 			// iterate over each S(C) and S(D)
-			for i, sc := range s {
+			// to do so we iterate over the id of each concept
+			var i uint = 1
+			// we start the search with i = 1 and iterate over all possible concept
+			// ids
+			for ; i < uint(len(solver.S)); i++ {
+				sc := solver.S[i]
 				if sc.Contains(nominal) {
-					for _, sd := range s[i+1:] {
+					var j uint = i + 1
+					for ; j < uint(len(solver.S)); j++ {
+						sd := solver.S[j]
 						if sd.Contains(nominal) {
-							// now extend
+							// check if C ↝ D
+							// we also have to check if D ↝ C because we just check
+							// all pairs (i, j) where j > i.
+							// Thus we could have that i is not connected to j
+							// but j is connected to i. In this case we must apply the rule!
+							searchRes := solver.searcher.BidrectionalSearch(solver.graph, i, j)
+							switch searchRes {
+							case BidrectionalBoth:
+								// update both
+								if sc.Union(sd) {
+									changed = true
+								}
+								if sd.Union(sc) {
+									changed = true
+								}
+							case BidrectionalFirst:
+								// update only first
+								if sc.Union(sd) {
+									changed = true
+								}
+							case BidrectionalSecond:
+								if sd.Union(sc) {
+									changed = true
+								}
+								// no default case, we simply do nothing
+							}
 						}
 					}
 				}

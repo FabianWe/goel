@@ -22,8 +22,6 @@
 
 package goel
 
-import "fmt"
-
 type ConceptGraph interface {
 	Init(numConcepts uint)
 	AddEdge(source, target uint)
@@ -47,7 +45,6 @@ func (g *SetGraph) Init(numConcepts uint) {
 }
 
 func (g *SetGraph) AddEdge(source, target uint) {
-	fmt.Println("DONE")
 	g.graph[source][target] = struct{}{}
 }
 
@@ -83,34 +80,17 @@ func (g *SliceGraph) Succ(vertex uint, ch chan<- uint) {
 
 type ReachabilitySearch func(g ConceptGraph, goal uint, start ...uint) bool
 
-type GraphSearcher struct {
-	g        ConceptGraph
-	search   ReachabilitySearch
-	nominals []uint
-}
-
-func NewGraphSearcher(g ConceptGraph, search ReachabilitySearch, nominals []uint) *GraphSearcher {
-	internalNominals := make([]uint, len(nominals)+1)
-	copy(internalNominals[1:], nominals)
-	return &GraphSearcher{
-		g:        g,
-		search:   search,
-		nominals: internalNominals,
-	}
-}
-
-func (searcher *GraphSearcher) Search(additionalStart, goal uint) bool {
-	searcher.nominals[0] = additionalStart
-	return searcher.search(searcher.g, goal, searcher.nominals...)
-}
-
+// TODO could easily be turned into a more concurrent version
 func BFS(g ConceptGraph, goal uint, start ...uint) bool {
 	visited := make(map[uint]struct{}, len(start))
 	for _, value := range start {
 		visited[value] = struct{}{}
 	}
-	queue := make([]uint, len(start))
-	copy(queue, start)
+	// queue := make([]uint, len(start))
+	// copy(queue, start)
+	// TODO where is the best place to create copy? document this as well!
+	// is a copy required or is it safe not to use a copy?
+	queue := start
 	for len(queue) > 0 {
 		next := queue[0]
 		queue = queue[1:]
@@ -133,4 +113,61 @@ func BFS(g ConceptGraph, goal uint, start ...uint) bool {
 		}
 	}
 	return false
+}
+
+type GraphSearcher struct {
+	search ReachabilitySearch
+	start  []uint
+}
+
+func NewGraphSearcher(search ReachabilitySearch, bc *ELBaseComponents) *GraphSearcher {
+	start := make([]uint, bc.Nominals+1)
+	var i uint
+	for ; i < bc.Nominals; i++ {
+		nominal := NewNominalConcept(i)
+		start[i+1] = nominal.NormalizedID(bc)
+	}
+	return &GraphSearcher{search, start}
+}
+
+func (searcher *GraphSearcher) Search(g ConceptGraph, additionalStart, goal uint) bool {
+	start := make([]uint, len(searcher.start))
+	copy(start, searcher.start)
+	start[0] = additionalStart
+	return searcher.search(g, goal, start...)
+}
+
+//go:generate stringer -type=BidirectionalSearch
+
+type BidirectionalSearch int
+
+const (
+	BidirectionalFalse BidirectionalSearch = iota
+	BidrectionalFirst
+	BidrectionalSecond
+	BidrectionalBoth
+)
+
+// TODO is this even required? See comment in NaiveSolver rule 6
+func (searcher *GraphSearcher) BidrectionalSearch(g ConceptGraph, c, d uint) BidirectionalSearch {
+	// run two searches concurrently
+	ch := make(chan bool)
+	go func() {
+		ch <- searcher.Search(g, c, d)
+	}()
+	go func() {
+		ch <- searcher.Search(g, d, c)
+	}()
+	first := <-ch
+	second := <-ch
+	switch {
+	case first && second:
+		return BidrectionalBoth
+	case first:
+		return BidrectionalFirst
+	case second:
+		return BidrectionalSecond
+	default:
+		return BidirectionalFalse
+	}
 }

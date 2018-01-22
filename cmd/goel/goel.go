@@ -22,14 +22,13 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"time"
 
 	"gkigit.informatik.uni-freiburg.de/fwenzelmann/goel"
 )
 
 func main() {
-	rand.Seed(time.Now().UTC().UnixNano())
+	// rand.Seed(time.Now().UTC().UnixNano())
 	// builder := goel.RandomELBuilder{NumIndividuals: 10000,
 	// 	NumConceptNames:    10000,
 	// 	NumRoles:           5000,
@@ -56,6 +55,7 @@ func main() {
 	// fmt.Printf("There are %d goroutines running\n", runtime.NumGoroutine())
 	solver := goel.NewNaiveSolver(
 		goel.NewSetGraph(),
+		goel.BFS,
 	)
 	fmt.Println("Solving ...")
 	start = time.Now()
