@@ -285,7 +285,7 @@ func (rm *RuleMap) Init(tbox *NormalizedTBox) {
 		values := rm.sRules[source]
 		_, hasM := values[onValue]
 		if !hasM {
-			values[onValue] = make([]SNotification, 10)
+			values[onValue] = make([]SNotification, 0, 10)
 		}
 		values[onValue] = append(values[onValue], n)
 	}
