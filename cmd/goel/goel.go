@@ -53,7 +53,10 @@ func main() {
 	normalized := normalizer.Normalize(tbox)
 	execTime := time.Since(start)
 	fmt.Printf("... Done after %v\n", execTime)
-	naive(normalized)
+	// naive(normalized)
+	fmt.Println()
+	fmt.Println("==== Concurrent ===")
+	conc(normalized)
 }
 
 func naive(normalized *goel.NormalizedTBox) {
@@ -65,5 +68,18 @@ func naive(normalized *goel.NormalizedTBox) {
 	start := time.Now()
 	solver.Solve(normalized)
 	execTime := time.Since(start)
+	fmt.Printf("... Done after %v\n", execTime)
+}
+
+func conc(normalized *goel.NormalizedTBox) {
+	fmt.Println("Building State ...")
+	start := time.Now()
+	goel.NewSolverState(normalized.Components)
+	execTime := time.Since(start)
+	fmt.Printf("... Done after %v\n", execTime)
+	fmt.Println("Initializing rules ...")
+	rm := goel.NewRuleMap()
+	rm.Init(normalized)
+	execTime = time.Since(start)
 	fmt.Printf("... Done after %v\n", execTime)
 }
