@@ -22,14 +22,13 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/FabianWe/goel"
 )
 
 func main() {
-	rand.Seed(time.Now().UTC().UnixNano())
+	// rand.Seed(time.Now().UTC().UnixNano())
 	// builder := goel.RandomELBuilder{NumIndividuals: 10000,
 	// 	NumConceptNames:    10000,
 	// 	NumRoles:           5000,
@@ -53,7 +52,7 @@ func main() {
 	normalized := normalizer.Normalize(tbox)
 	execTime := time.Since(start)
 	fmt.Printf("... Done after %v\n", execTime)
-	// naive(normalized)
+	naive(normalized)
 	fmt.Println()
 	fmt.Println("==== Concurrent ===")
 	conc(normalized)
@@ -72,14 +71,11 @@ func naive(normalized *goel.NormalizedTBox) {
 }
 
 func conc(normalized *goel.NormalizedTBox) {
-	fmt.Println("Building State ...")
+	fmt.Println("Building state and rules ...")
 	start := time.Now()
-	goel.NewSolverState(normalized.Components)
+	solver := goel.NewConcurrentSolver()
+	solver.Init(normalized)
 	execTime := time.Since(start)
 	fmt.Printf("... Done after %v\n", execTime)
-	fmt.Println("Initializing rules ...")
-	rm := goel.NewRuleMap()
-	rm.Init(normalized)
-	execTime = time.Since(start)
-	fmt.Printf("... Done after %v\n", execTime)
+	time.Sleep(5 * time.Second)
 }
