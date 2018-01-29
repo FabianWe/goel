@@ -23,7 +23,7 @@
 package tests
 
 import "testing"
-import "gkigit.informatik.uni-freiburg.de/fwenzelmann/goel"
+import "github.com/FabianWe/goel"
 
 var g1 *goel.SliceGraph = &goel.SliceGraph{[][]uint{[]uint{1, 2}, []uint{4}, []uint{3}, nil, nil}}
 var g2 *goel.SliceGraph = &goel.SliceGraph{[][]uint{

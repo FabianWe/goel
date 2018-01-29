@@ -47,9 +47,20 @@ func (s *BCSet) Contains(c Concept) bool {
 	return has
 }
 
+func (s *BCSet) ContainsID(c uint) bool {
+	_, has := s.m[c]
+	return has
+}
+
 func (s *BCSet) Add(c Concept) bool {
 	oldLen := len(s.m)
 	s.m[c.NormalizedID(s.c)] = struct{}{}
+	return oldLen != len(s.m)
+}
+
+func (s *BCSet) AddID(c uint) bool {
+	oldLen := len(s.m)
+	s.m[c] = struct{}{}
 	return oldLen != len(s.m)
 }
 
@@ -79,6 +90,11 @@ func NewBCPairSet(c *ELBaseComponents, initialCapacity uint) *BCPairSet {
 
 func (s *BCPairSet) Contains(c, d Concept) bool {
 	_, has := s.m[bcPair{c.NormalizedID(s.c), d.NormalizedID(s.c)}]
+	return has
+}
+
+func (s *BCPairSet) ContainsID(c, d uint) bool {
+	_, has := s.m[bcPair{c, d}]
 	return has
 }
 

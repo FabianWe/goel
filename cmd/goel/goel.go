@@ -22,13 +22,14 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"time"
 
-	"gkigit.informatik.uni-freiburg.de/fwenzelmann/goel"
+	"github.com/FabianWe/goel"
 )
 
 func main() {
-	// rand.Seed(time.Now().UTC().UnixNano())
+	rand.Seed(time.Now().UTC().UnixNano())
 	// builder := goel.RandomELBuilder{NumIndividuals: 10000,
 	// 	NumConceptNames:    10000,
 	// 	NumRoles:           5000,
@@ -52,23 +53,17 @@ func main() {
 	normalized := normalizer.Normalize(tbox)
 	execTime := time.Since(start)
 	fmt.Printf("... Done after %v\n", execTime)
-	// fmt.Printf("There are %d goroutines running\n", runtime.NumGoroutine())
+	naive(normalized)
+}
+
+func naive(normalized *goel.NormalizedTBox) {
 	solver := goel.NewNaiveSolver(
 		goel.NewSetGraph(),
 		goel.BFS,
 	)
 	fmt.Println("Solving ...")
-	start = time.Now()
+	start := time.Now()
 	solver.Solve(normalized)
-	execTime = time.Since(start)
+	execTime := time.Since(start)
 	fmt.Printf("... Done after %v\n", execTime)
-
-	baseComp := goel.NewELBaseComponents(0,
-		0,
-		1,
-		3)
-	var i uint = 0
-	for ; i < baseComp.NumBCD()+1; i++ {
-		fmt.Println(baseComp.GetConcept(i))
-	}
 }
