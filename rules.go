@@ -335,6 +335,7 @@ func NewRuleMap() *RuleMap {
 }
 
 // TODO 5 and 6 still missing
+// hmmm guess that's not up to date...
 func (rm *RuleMap) Init(tbox *NormalizedTBox) {
 	// we use + 1 here because we want to use the normalized id directly, so
 	// the bottom concept must be taken into consideration
@@ -383,7 +384,7 @@ func (rm *RuleMap) Init(tbox *NormalizedTBox) {
 		rm.rRules[source] = append(rm.rRules[source], n)
 	}
 
-	wg.Add(5)
+	wg.Add(6)
 
 	// Normalized CIs
 	go func() {
@@ -489,6 +490,42 @@ func (rm *RuleMap) Init(tbox *NormalizedTBox) {
 		}
 	}()
 
+	// CR6
+	go func() {
+		defer wg.Done()
+		var nextNominal uint = 0
+		for ; nextNominal < tbox.Components.Nominals; nextNominal++ {
+			nominal := NewNominalConcept(nextNominal)
+			nominalID := nominal.NormalizedID(components)
+			n := NewCR6Notification(nominalID)
+			// add to each C and each r
+
+			var innerWG sync.WaitGroup
+			innerWG.Add(2)
+			go func() {
+				defer innerWG.Done()
+				// iterate over each C
+				var c uint = 1
+				for ; c < numBCD; c++ {
+					// add notification that waits until the new nominal gets added to S(C)
+					addS(c, nominalID, n)
+				}
+			}()
+
+			go func() {
+				defer innerWG.Done()
+				// // iterate over each r
+				// var r uint = 0
+				// for ; r < components.Roles; r++ {
+				// 	// add notification that waits for a change on R(r)
+				// 	addR(r, n)
+				// }
+			}()
+			innerWG.Wait()
+			// fmt.Println("ID is:", nominalID, "waiting for", tbox.Components.Nominals-nextNominal, "more")
+		}
+	}()
+
 	wg.Wait()
 }
 
@@ -501,6 +538,8 @@ type RNotification interface {
 	// Information, that (C, D) was added to R(r)
 	GetRNotification(state StateHandler, r, c, d uint) bool
 }
+
+// TODO check for deadlocks... don't read from something and then lock it.
 
 // uint stands for the D in the rule
 type CR1Notification uint
@@ -687,6 +726,33 @@ func (n *CR5Notification) GetRNotification(state StateHandler, r, c, d uint) boo
 }
 
 // TODO CR6
+type CR6Notification struct {
+	a           uint
+	containedIn map[uint]struct{}
+	mutex       *sync.Mutex
+}
+
+func NewCR6Notification(a uint) *CR6Notification {
+	var mutex sync.Mutex
+	return &CR6Notification{
+		a:           a,
+		containedIn: make(map[uint]struct{}, 10),
+		mutex:       &mutex,
+	}
+}
+
+func (n *CR6Notification) GetSNotification(state StateHandler, c, cPrime uint) bool {
+	// TODO remove once tested
+	if cPrime != n.a {
+		log.Printf("Expected {a} with a = %d, but instead got %d", n.a, cPrime)
+		return false
+	}
+	return false
+}
+
+func (n *CR6Notification) GetRNotification(state StateHandler, r, c, d uint) bool {
+	return false
+}
 
 // uint for the s
 type CR10Notification uint
