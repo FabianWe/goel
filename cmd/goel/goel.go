@@ -57,6 +57,7 @@ func main() {
 	fmt.Println()
 	fmt.Println("==== Rule Based ===")
 	rulebased(normalized)
+	time.Sleep(5 * time.Second)
 }
 
 func naive(normalized *goel.NormalizedTBox) {
@@ -75,7 +76,9 @@ func rulebased(normalized *goel.NormalizedTBox) {
 	fmt.Println("Building state and rules ...")
 	start := time.Now()
 	totalStart := start
-	solver := goel.NewRuleSolver()
+	solver := goel.NewRuleSolver(
+		goel.NewSetGraph(),
+		nil, nil)
 	solver.Init(normalized)
 	execTime := time.Since(start)
 	fmt.Printf("... Done after %v\n", execTime)
