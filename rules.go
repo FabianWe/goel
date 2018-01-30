@@ -110,6 +110,9 @@ type StateHandler interface {
 	// GetGraph returns the graph, if you wish to read / write use the lock methods
 	// first.
 	GetGraph() ConceptGraph
+
+	// GetSearcher returns the searcher to use in the graph.
+	GetSearcher() *ExtendedGraphSearcher
 }
 
 // SolverState is an implementation of StateHandler, for more details see there.
@@ -256,10 +259,26 @@ func (state *SolverState) ContainsRole(r, c, d uint) bool {
 func (state *SolverState) AddRole(r, c, d uint) bool {
 	// we must update the graph as well, both methods may look do to the blocking
 	// mechanisms, so why not do it concurrently
-	// TODO
-	state.rMutex[r].Lock()
-	res := state.R[r].Add(c, d)
-	state.rMutex[r].Unlock()
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	var res bool
+	go func() {
+		state.rMutex[r].Lock()
+		res = state.R[r].Add(c, d)
+		state.rMutex[r].Unlock()
+		wg.Done()
+	}()
+
+	go func() {
+		state.graphMutex.Lock()
+		state.GetGraph().AddEdge(c, d)
+		state.graphMutex.Unlock()
+		wg.Done()
+	}()
+
+	wg.Wait()
+
 	return res
 }
 
@@ -297,6 +316,10 @@ func (state *SolverState) UnlockGraph() {
 
 func (state *SolverState) GetGraph() ConceptGraph {
 	return state.graph
+}
+
+func (state *SolverState) GetSearcher() *ExtendedGraphSearcher {
+	return state.searcher
 }
 
 type RuleMap struct {
