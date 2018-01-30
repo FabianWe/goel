@@ -22,13 +22,14 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/FabianWe/goel"
 )
 
 func main() {
-	// rand.Seed(time.Now().UTC().UnixNano())
+	rand.Seed(time.Now().UTC().UnixNano())
 	// builder := goel.RandomELBuilder{NumIndividuals: 10000,
 	// 	NumConceptNames:    10000,
 	// 	NumRoles:           5000,

@@ -335,18 +335,20 @@ func (solver *NaiveSolver) Solve(tbox *NormalizedTBox) {
 							switch searchRes {
 							case BidrectionalBoth:
 								// update both
+								// TODO could be done simpler because they should be equal
+								// but well...
 								if sc.Union(sd) {
 									changed = true
 								}
 								if sd.Union(sc) {
 									changed = true
 								}
-							case BidrectionalFirst:
+							case BidrectionalDirect:
 								// update only first
 								if sc.Union(sd) {
 									changed = true
 								}
-							case BidrectionalSecond:
+							case BidrectionalReverse:
 								if sd.Union(sc) {
 									changed = true
 								}

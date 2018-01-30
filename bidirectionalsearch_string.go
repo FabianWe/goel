@@ -4,9 +4,9 @@ package goel
 
 import "fmt"
 
-const _BidirectionalSearch_name = "BidirectionalFalseBidrectionalFirstBidrectionalSecondBidrectionalBoth"
+const _BidirectionalSearch_name = "BidirectionalFalseBidrectionalDirectBidrectionalReverseBidrectionalBoth"
 
-var _BidirectionalSearch_index = [...]uint8{0, 18, 35, 53, 69}
+var _BidirectionalSearch_index = [...]uint8{0, 18, 36, 55, 71}
 
 func (i BidirectionalSearch) String() string {
 	if i < 0 || i >= BidirectionalSearch(len(_BidirectionalSearch_index)-1) {

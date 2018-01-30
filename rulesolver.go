@@ -23,7 +23,6 @@
 package goel
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -141,8 +140,6 @@ func (solver *RuleSolver) Solve(tbox *NormalizedTBox) {
 		solver.AddConcept(c, c)
 	}
 	// while there are still pending updates apply those updates
-	// TODO remove counter
-	numNotifications := 0
 L:
 	for {
 		switch {
@@ -156,9 +153,11 @@ L:
 			cRules := solver.RuleMap.sRules[c]
 			notifications := cRules[d]
 			for _, notification := range notifications {
-				numNotifications++
 				notification.GetSNotification(solver, c, d)
 			}
+			// once D has been added to D we can remove all the rules for C concerning D,
+			// we never have to look at them again and we may release some memory
+			delete(solver.RuleMap.sRules[c], d)
 		case len(solver.pendingRUpdates) != 0:
 			n := len(solver.pendingRUpdates)
 			next := solver.pendingRUpdates[n-1]
@@ -172,5 +171,4 @@ L:
 			break L
 		}
 	}
-	fmt.Println("Num Notifications:", numNotifications)
 }
