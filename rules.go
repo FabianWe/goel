@@ -86,7 +86,7 @@ type StateHandler interface {
 	// ContainsRole checks whether (C, D) ∈ R(r).
 	ContainsRole(r, c, d uint) bool
 
-	// AddRole adds (C, D) to R(r).
+	// AddRole adds (C, D) to R(r). It must also update the graph.
 	AddRole(r, c, d uint) bool
 
 	// RoleMapping returns all pairs (C, D) in R(r) for a given C.
@@ -94,6 +94,22 @@ type StateHandler interface {
 
 	// ReverseRoleMapping returns all pairs (C, D) in R(r) for a given D.
 	ReverseRoleMapping(r, d uint, ch chan<- uint)
+
+	// RLockGraph locks the graph for reading.
+	RLockGraph()
+
+	// RUnlockGraph unlocks the graph reading access.
+	RUnlockGraph()
+
+	// LockGraph locks the graph for reading / writing.
+	LockGraph()
+
+	// UnlockGraph unlocks the graph reading / writing access.
+	UnlockGraph()
+
+	// GetGraph returns the graph, if you wish to read / write use the lock methods
+	// first.
+	GetGraph() ConceptGraph
 }
 
 // SolverState is an implementation of StateHandler, for more details see there.
@@ -104,23 +120,38 @@ type SolverState struct {
 
 	sMutex []*sync.RWMutex
 	rMutex []*sync.RWMutex
+
+	graph      ConceptGraph
+	graphMutex *sync.RWMutex
+
+	extendedSearch ExtendedReachabilitySearch
+	search         ReachabilitySearch
+	searcher       *ExtendedGraphSearcher
 }
 
 // NewSolverState returns a new solver state given the base components,
 // thus it initializes S and R and the mutexes used to control r/w access.
-func NewSolverState(c *ELBaseComponents) *SolverState {
+func NewSolverState(c *ELBaseComponents, graph ConceptGraph,
+	extendedSearch ExtendedReachabilitySearch, search ReachabilitySearch) *SolverState {
+	var graphMutex sync.RWMutex
 	res := SolverState{
-		S:      nil,
-		R:      nil,
-		sMutex: nil,
-		rMutex: nil,
+		S:              nil,
+		R:              nil,
+		sMutex:         nil,
+		rMutex:         nil,
+		graph:          graph,
+		graphMutex:     &graphMutex,
+		extendedSearch: extendedSearch,
+		search:         search,
+		searcher:       nil,
 	}
 	// initialize S and R concurrently
 	// we use + 1 here because we want to use the normalized id directly, so
 	// the bottom concept must be taken into consideration
+	// also initialize graph and the graph searcher
 	numBCD := c.NumBCD() + 1
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(4)
 	// initialize S
 	go func() {
 		res.S = make([]*BCSet, numBCD)
@@ -143,6 +174,16 @@ func NewSolverState(c *ELBaseComponents) *SolverState {
 			var m sync.RWMutex
 			res.rMutex[i] = &m
 		}
+		wg.Done()
+	}()
+	// graph
+	go func() {
+		res.graph.Init(numBCD)
+		wg.Done()
+	}()
+	// graph searcher
+	go func() {
+		res.searcher = NewExtendedGraphSearcher(res.extendedSearch, res.search, c)
 		wg.Done()
 	}()
 	wg.Wait()
@@ -213,6 +254,9 @@ func (state *SolverState) ContainsRole(r, c, d uint) bool {
 }
 
 func (state *SolverState) AddRole(r, c, d uint) bool {
+	// we must update the graph as well, both methods may look do to the blocking
+	// mechanisms, so why not do it concurrently
+	// TODO
 	state.rMutex[r].Lock()
 	res := state.R[r].Add(c, d)
 	state.rMutex[r].Unlock()
@@ -233,6 +277,26 @@ func (state *SolverState) ReverseRoleMapping(r, d uint, ch chan<- uint) {
 		ch <- c
 	}
 	close(ch)
+}
+
+func (state *SolverState) RLockGraph() {
+	state.graphMutex.RLock()
+}
+
+func (state *SolverState) RUnlockGraph() {
+	state.graphMutex.RUnlock()
+}
+
+func (state *SolverState) LockGraph() {
+	state.graphMutex.Lock()
+}
+
+func (state *SolverState) UnlockGraph() {
+	state.graphMutex.Unlock()
+}
+
+func (state *SolverState) GetGraph() ConceptGraph {
+	return state.graph
 }
 
 type RuleMap struct {

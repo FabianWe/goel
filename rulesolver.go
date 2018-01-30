@@ -53,13 +53,13 @@ type RuleSolver struct {
 	*SolverState
 	*RuleMap
 
-	graph          ConceptGraph
 	extendedSearch ExtendedReachabilitySearch
 	search         ReachabilitySearch
-	searcher       *ExtendedGraphSearcher
 
 	pendingSUpdates []sUpdate
 	pendingRUpdates []rUpdate
+
+	graph ConceptGraph
 }
 
 func NewRuleSolver(graph ConceptGraph, extendedSearch ExtendedReachabilitySearch,
@@ -73,38 +73,28 @@ func NewRuleSolver(graph ConceptGraph, extendedSearch ExtendedReachabilitySearch
 	return &RuleSolver{
 		SolverState:     nil,
 		RuleMap:         nil,
-		graph:           graph,
 		extendedSearch:  extendedSearch,
 		search:          search,
-		searcher:        nil,
 		pendingSUpdates: nil,
 		pendingRUpdates: nil,
+		graph:           graph,
 	}
 }
 
 func (solver *RuleSolver) Init(tbox *NormalizedTBox) {
 	solver.pendingSUpdates = make([]sUpdate, 0, 10)
 	solver.pendingRUpdates = make([]rUpdate, 0, 10)
-	numBCD := tbox.Components.NumBCD() + 1
 	// initialize the state and the rules
-	// and initialize graph and graph searcher
 	var wg sync.WaitGroup
-	wg.Add(4)
+	wg.Add(2)
 	go func() {
-		solver.SolverState = NewSolverState(tbox.Components)
+		solver.SolverState = NewSolverState(tbox.Components, solver.graph,
+			solver.extendedSearch, solver.search)
 		wg.Done()
 	}()
 	go func() {
 		solver.RuleMap = NewRuleMap()
 		solver.RuleMap.Init(tbox)
-		wg.Done()
-	}()
-	go func() {
-		solver.graph.Init(numBCD)
-		wg.Done()
-	}()
-	go func() {
-		solver.searcher = NewExtendedGraphSearcher(solver.extendedSearch, solver.search, tbox.Components)
 		wg.Done()
 	}()
 	wg.Wait()

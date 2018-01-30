@@ -22,29 +22,27 @@
 
 package goel
 
-import "sync"
-
-type ConcurrentSolver struct {
-	*SolverState
-	*RuleMap
-}
-
-func NewConcurrentSolver() *ConcurrentSolver {
-	return &ConcurrentSolver{nil, nil}
-}
-
-func (solver *ConcurrentSolver) Init(tbox *NormalizedTBox) {
-	// initialize the state and the rules
-	var wg sync.WaitGroup
-	wg.Add(2)
-	go func() {
-		solver.SolverState = NewSolverState(tbox.Components)
-		wg.Done()
-	}()
-	go func() {
-		solver.RuleMap = NewRuleMap()
-		solver.RuleMap.Init(tbox)
-		wg.Done()
-	}()
-	wg.Wait()
-}
+// type ConcurrentSolver struct {
+// 	*SolverState
+// 	*RuleMap
+// }
+//
+// func NewConcurrentSolver() *ConcurrentSolver {
+// 	return &ConcurrentSolver{nil, nil}
+// }
+//
+// func (solver *ConcurrentSolver) Init(tbox *NormalizedTBox) {
+// 	// initialize the state and the rules
+// 	var wg sync.WaitGroup
+// 	wg.Add(2)
+// 	go func() {
+// 		solver.SolverState = NewSolverState(tbox.Components)
+// 		wg.Done()
+// 	}()
+// 	go func() {
+// 		solver.RuleMap = NewRuleMap()
+// 		solver.RuleMap.Init(tbox)
+// 		wg.Done()
+// 	}()
+// 	wg.Wait()
+// }
