@@ -751,6 +751,7 @@ func (n *CR6Notification) GetSNotification(state StateHandler, c, cPrime uint) b
 }
 
 func (n *CR6Notification) GetRNotification(state StateHandler, r, c, d uint) bool {
+	// TODO
 	return false
 }
 

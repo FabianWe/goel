@@ -24,7 +24,7 @@ package goel
 
 type ConceptGraph interface {
 	Init(numConcepts uint)
-	AddEdge(source, target uint)
+	AddEdge(source, target uint) bool
 	Succ(vertex uint, ch chan<- uint)
 }
 
@@ -44,8 +44,11 @@ func (g *SetGraph) Init(numConcepts uint) {
 	}
 }
 
-func (g *SetGraph) AddEdge(source, target uint) {
-	g.graph[source][target] = struct{}{}
+func (g *SetGraph) AddEdge(source, target uint) bool {
+	m := g.graph[source]
+	oldLen := len(m)
+	m[target] = struct{}{}
+	return oldLen != len(m)
 }
 
 func (g *SetGraph) Succ(vertex uint, ch chan<- uint) {
@@ -67,8 +70,16 @@ func (g *SliceGraph) Init(numConcepts uint) {
 	g.Graph = make([][]uint, numConcepts)
 }
 
-func (g *SliceGraph) AddEdge(source, target uint) {
+func (g *SliceGraph) AddEdge(source, target uint) bool {
+	// not nice, but that's the drawback...
+	for _, v := range g.Graph[source] {
+		if v == target {
+			return false
+		}
+	}
+	// now add
 	g.Graph[source] = append(g.Graph[source], target)
+	return true
 }
 
 func (g *SliceGraph) Succ(vertex uint, ch chan<- uint) {
