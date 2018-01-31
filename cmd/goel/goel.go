@@ -23,6 +23,7 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"sync"
 	"time"
 
 	"github.com/FabianWe/goel"
@@ -53,11 +54,11 @@ func main() {
 	normalized := normalizer.Normalize(tbox)
 	execTime := time.Since(start)
 	fmt.Printf("... Done after %v\n", execTime)
-	naive(normalized)
-	fmt.Println()
+	// naive(normalized)
+	// fmt.Println()
 	fmt.Println("==== Rule Based ===")
 	rulebased(normalized)
-	time.Sleep(5 * time.Second)
+	// time.Sleep(5 * time.Second)
 }
 
 func naive(normalized *goel.NormalizedTBox) {
@@ -73,8 +74,27 @@ func naive(normalized *goel.NormalizedTBox) {
 }
 
 func rulebased(normalized *goel.NormalizedTBox) {
-	// fmt.Println("Building state and rules ...")
-	// start := time.Now()
+	fmt.Println("Building state and rules ...")
+	start := time.Now()
+	var wg sync.WaitGroup
+	wg.Add(2)
+	var s *goel.SolverState
+	var rm *goel.RuleMap
+	go func() {
+		s = goel.NewSolverState(
+			normalized.Components,
+			goel.NewSetGraph(),
+			goel.BFSToSet, goel.BFS)
+		wg.Done()
+	}()
+	go func() {
+		rm = goel.NewRuleMap()
+		rm.Init(normalized)
+		wg.Done()
+	}()
+	wg.Wait()
+	execTime := time.Since(start)
+	fmt.Printf("... Done after %v\n", execTime)
 	// totalStart := start
 	// solver := goel.NewRuleSolver(
 	// 	goel.NewSetGraph(),

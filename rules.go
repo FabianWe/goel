@@ -70,11 +70,17 @@ type StateHandler interface {
 
 	// ReverseRoleMapping returns all pairs (C, D) in R(r) for a given D.
 	ReverseRoleMapping(r, d uint, ch chan<- uint)
+
+	// GetComponents returns the number of all objects, s.t. we can use it when
+	// needed.
+	GetComponents() *ELBaseComponents
 }
 
 // SolverState is an implementation of StateHandler, for more details see there.
 // It protects each S(C) and R(r) with a RWMutex.
 type SolverState struct {
+	components *ELBaseComponents
+
 	S []*BCSet
 	R []*Relation
 
@@ -96,6 +102,7 @@ func NewSolverState(c *ELBaseComponents, graph ConceptGraph,
 	extendedSearch ExtendedReachabilitySearch, search ReachabilitySearch) *SolverState {
 	var graphMutex sync.RWMutex
 	res := SolverState{
+		components:     c,
 		S:              nil,
 		R:              nil,
 		sMutex:         nil,
@@ -227,6 +234,10 @@ func (state *SolverState) ReverseRoleMapping(r, d uint, ch chan<- uint) {
 	state.rMutex[r].RUnlock()
 }
 
+func (state *SolverState) GetComponents() *ELBaseComponents {
+	return state.components
+}
+
 type SNotification interface {
 	// Information, that C' was added to S(C)
 	GetSNotification(state StateHandler, c, cPrime uint) bool
@@ -257,13 +268,13 @@ type RNotification interface {
 // and then listens to all S(C) until C' gets added.
 type CR1 uint
 
+func NewCR1(d uint) CR1 {
+	return CR1(d)
+}
+
 func (n CR1) GetSNotification(state StateHandler, c, cPrime uint) bool {
 	// we have to add D (from the rule) to S(C)
 	return state.AddConcept(c, uint(n))
-}
-
-func NewCR1(d uint) CR1 {
-	return CR1(d)
 }
 
 // CR2 implements the rule CR2: for C1 ⊓ C2 ⊑ D:
@@ -374,7 +385,7 @@ func (n *CR4) GetSNotification(state StateHandler, d, dPrime uint) bool {
 // r and applies the rule. That is a rather cumbersome process but it can't be
 // helped.
 //
-// This notification should be added once and then listen on all r and all D
+// This notification should be created once and then listen on all r and all D
 // (for ⊥).
 type CR5 struct{}
 
@@ -385,6 +396,25 @@ func NewCR5() *CR5 {
 func (n *CR5) GetRNotification(state StateHandler, r, c, d uint) bool {
 	// check if ⊥ ∈ S(D) and then try to add ⊥ to c
 	return state.ContainsConcept(d, 0) && state.AddConcept(c, 0)
+}
+
+func (n *CR5) GetSNotification(state StateHandler, d, bot uint) bool {
+	// TODO maybe we could add some concurrency here...
+	if bot != 0 {
+		log.Printf("Error in rule CR5: Expected bottom concept, but got %d", bot)
+		return false
+	}
+	res := false
+	numR := state.GetComponents().Roles
+	var r uint
+	for ; r < numR; r++ {
+		ch := make(chan uint, 1)
+		go state.ReverseRoleMapping(r, d, ch)
+		for c := range ch {
+			res = state.AddConcept(c, 0) || res
+		}
+	}
+	return res
 }
 
 // TODO CR6
@@ -455,4 +485,211 @@ func (n *CR11) GetRNotification(state StateHandler, r, c, d uint) bool {
 			n.R1, n.R2, r)
 		return false
 	}
+}
+
+// RuleMap is used to store all rules in a way in which we can easily determin
+// which rules are to be notified about a certain change.
+//
+// There are two types of notifications: SNotification which handles updates
+// of the form "C' was added to S(C)" and RNotification which handles updates
+// of the form "(C, D) was added to R(r)".
+//
+// SNotifications (or better to say rules they represent) are always of the
+// form that they listen for the change made to any C and wait until a certain
+// value is added to that C.
+//
+// For example consider rule CR1: If C' ∈ S(C), C' ⊑ D then S(C) = S(C) ∪ {D}
+// That means: We only wait for an update with the value C' (that's the only
+// thing that can trigger this rule). Thus when we add C' to some S(C) we
+// lookup which notifications are interested in this update (CR1 being one
+// of them) and inform them about this update.
+// We implement this by a map that maps C' → list of notifications.
+// This means: When C' is added to some C inform all notifications in map[C'].
+//
+// Rules waiting for some R(r) are organized a bit diffent: They don't want to
+// be informed about a certain (C, D) being added, but want to be informed about
+// all (C, D) that are added.
+//
+// Most of the rules want to listen only on a certain r, for example rule
+// CR4 says that if we have ∃r.D' ⊑ E we have to listen to all elements added
+// to R(r) for that specific r.
+// Rule CR5 on the other hand waits on updates on all roles.
+// Thus we have a map that maps r → list of notifications. This list holds
+// all notifications that are interested in r. It also contains an entry
+// for NoRole (which is used to describe an id that is not really a role)
+// and stores all notifcations interested in updates on all R(r) (should only
+// be CR5).
+//
+// A RuleMap is initialized with a given normalized TBox and creates all
+// notifications and adds them. Thus before usage the Init method must be
+// called with that TBox.
+// If other rules are required and should be added it should be noted that
+// it is not safe for concurrent writing acces.
+//
+// If it is really required see the worker methods (should not be needed if
+// you just want to initialize it with a given TBox).
+type RuleMap struct {
+	SRules map[uint][]SNotification
+	RRules map[uint][]RNotification
+}
+
+func NewRuleMap() *RuleMap {
+	return &RuleMap{make(map[uint][]SNotification), make(map[uint][]RNotification)}
+}
+
+type AddSNotification struct {
+	value        uint
+	notification SNotification
+}
+
+func NewAddSNotification(value uint, notification SNotification) AddSNotification {
+	return AddSNotification{value, notification}
+}
+
+type AddRNotification struct {
+	role         uint
+	notification RNotification
+}
+
+func NewAddRNotification(role uint, notification RNotification) AddRNotification {
+	return AddRNotification{role, notification}
+}
+
+// AddSWorker is a little helper method that is used to concurrently add
+// new entries to SRules.
+// Start a gourotine for that message, write all notifications to the channel
+// ch, close the channel once you're done and wait on the done channel until
+// all updates certainly happened.
+func (rm *RuleMap) AddSWorker(ch <-chan AddSNotification, done chan<- bool) {
+	for add := range ch {
+		rm.SRules[add.value] = append(rm.SRules[add.value], add.notification)
+	}
+	done <- true
+}
+
+// AddRWorker works similar as AddSWorker, only for RNotifications.
+func (rm *RuleMap) AddRWorker(ch <-chan AddRNotification, done chan<- bool) {
+	for add := range ch {
+		rm.RRules[add.role] = append(rm.RRules[add.role], add.notification)
+	}
+	done <- true
+}
+
+// TODO add missing rule(s?)! CR5 / CR6!
+func (rm *RuleMap) Init(tbox *NormalizedTBox) {
+	components := tbox.Components
+	// we start both workers s.t. we can concurrently add new notifications,
+	// then we build the rules
+	sChan := make(chan AddSNotification, 1)
+	rChan := make(chan AddRNotification, 1)
+	done := make(chan bool)
+
+	// start go routines
+	go rm.AddSWorker(sChan, done)
+	go rm.AddRWorker(rChan, done)
+
+	var wg sync.WaitGroup
+	wg.Add(5)
+
+	// start a goroutine for all initialisation steps
+
+	// Normalized CIs
+	go func() {
+		defer wg.Done()
+		for _, ci := range tbox.CIs {
+			if ci.C2 == nil {
+				// rule CR1
+				cPrime := ci.C1.NormalizedID(components)
+				d := ci.D.NormalizedID(components)
+				// add rule
+				cr1 := NewCR1(d)
+				add := NewAddSNotification(cPrime, cr1)
+				sChan <- add
+			} else {
+				c1 := ci.C1.NormalizedID(components)
+				c2 := ci.C2.NormalizedID(components)
+				d := ci.D.NormalizedID(components)
+				// create rule
+				cr2 := NewCR2(c1, c2, d)
+				// add for both c1 and c2
+				add1 := NewAddSNotification(c1, cr2)
+				add2 := NewAddSNotification(c2, cr2)
+				sChan <- add1
+				sChan <- add2
+			}
+		}
+	}()
+
+	// NormalizedCIRightEx
+	go func() {
+		defer wg.Done()
+		for _, ex := range tbox.CIRight {
+			cPrime := ex.C1.NormalizedID(components)
+			r := uint(ex.R)
+			d := ex.C2.NormalizedID(components)
+			cr3 := NewCR3(r, d)
+			add := NewAddSNotification(cPrime, cr3)
+			sChan <- add
+		}
+	}()
+
+	// NormalizedCILeftEx
+	go func() {
+		defer wg.Done()
+		for _, ex := range tbox.CILeft {
+			r := uint(ex.R)
+			dPrime := ex.C1.NormalizedID(components)
+			e := ex.D.NormalizedID(components)
+			cr4 := NewCR4(r, dPrime, e)
+			adds := NewAddSNotification(dPrime, cr4)
+			addr := NewAddRNotification(r, cr4)
+			sChan <- adds
+			rChan <- addr
+		}
+	}()
+
+	// NormalizedRI
+	go func() {
+		defer wg.Done()
+		for _, ri := range tbox.RIs {
+			if ri.R2 == NoRole {
+				// CR10
+				r := uint(ri.R1)
+				s := uint(ri.S)
+				cr10 := NewCR10(s)
+				add := NewAddRNotification(r, cr10)
+				rChan <- add
+			} else {
+				// CR11
+				r1 := uint(ri.R1)
+				r2 := uint(ri.R2)
+				r3 := uint(ri.S)
+				cr11 := NewCR11(r1, r2, r3)
+				first := NewAddRNotification(r1, cr11)
+				second := NewAddRNotification(r2, cr11)
+				rChan <- first
+				rChan <- second
+			}
+		}
+	}()
+
+	// add CR5
+	go func() {
+		defer wg.Done()
+		cr5 := NewCR5()
+		// add listener for ⊥
+		cr5s := NewAddSNotification(0, cr5)
+		cr5r := NewAddRNotification(uint(NoRole), cr5)
+		sChan <- cr5s
+		rChan <- cr5r
+	}()
+
+	// wait until everything has been added to the channels
+	wg.Wait()
+	// so both workers can stop
+	close(sChan)
+	close(rChan)
+	// wait until all elements have been added by the workers
+	<-done
+	<-done
 }
