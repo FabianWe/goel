@@ -82,9 +82,7 @@ func rulebased(normalized *goel.NormalizedTBox) {
 	var rm *goel.RuleMap
 	go func() {
 		s = goel.NewSolverState(
-			normalized.Components,
-			goel.NewSetGraph(),
-			goel.BFSToSet, goel.BFS)
+			normalized.Components)
 		wg.Done()
 	}()
 	go func() {

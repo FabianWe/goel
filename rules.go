@@ -44,6 +44,7 @@ import (
 // State handlers must be safe to use concurrently from multiple go routines.
 // That is also true for methods that iterate over objects: No write operations
 // may happen during that time.
+// TODO update documentation regarding graph stuff
 type StateHandler interface {
 	// ContainsConcept checks whether D ∈ S(C).
 	ContainsConcept(c, d uint) bool
@@ -63,7 +64,7 @@ type StateHandler interface {
 	// if an update in the graph occurred.
 	// TODO This is not really nice, we probably need something else later...
 	// and is ignored in the rules now.
-	AddRole(r, c, d uint) (bool, bool)
+	AddRole(r, c, d uint) bool
 
 	// RoleMapping returns all pairs (C, D) in R(r) for a given C.
 	RoleMapping(r, c uint, ch chan<- uint)
@@ -86,39 +87,24 @@ type SolverState struct {
 
 	sMutex []*sync.RWMutex
 	rMutex []*sync.RWMutex
-
-	// TODO integrate graph in a nice way...
-	graph      ConceptGraph
-	graphMutex *sync.RWMutex
-
-	extendedSearch ExtendedReachabilitySearch
-	search         ReachabilitySearch
-	searcher       *ExtendedGraphSearcher
 }
 
 // NewSolverState returns a new solver state given the base components,
 // thus it initializes S and R and the mutexes used to control r/w access.
-func NewSolverState(c *ELBaseComponents, graph ConceptGraph,
-	extendedSearch ExtendedReachabilitySearch, search ReachabilitySearch) *SolverState {
-	var graphMutex sync.RWMutex
+func NewSolverState(c *ELBaseComponents) *SolverState {
 	res := SolverState{
-		components:     c,
-		S:              nil,
-		R:              nil,
-		sMutex:         nil,
-		rMutex:         nil,
-		graph:          graph,
-		graphMutex:     &graphMutex,
-		extendedSearch: extendedSearch,
-		search:         search,
-		searcher:       nil,
+		components: c,
+		S:          nil,
+		R:          nil,
+		sMutex:     nil,
+		rMutex:     nil,
 	}
 	// initialize S and R concurrently
 	// we use + 1 here because we want to use the normalized id directly, so
 	// the bottom concept must be taken into consideration
 	numBCD := c.NumBCD() + 1
 	var wg sync.WaitGroup
-	wg.Add(4)
+	wg.Add(2)
 	// initialize S
 	go func() {
 		res.S = make([]*BCSet, numBCD)
@@ -141,16 +127,6 @@ func NewSolverState(c *ELBaseComponents, graph ConceptGraph,
 			var m sync.RWMutex
 			res.rMutex[i] = &m
 		}
-		wg.Done()
-	}()
-	// graph
-	go func() {
-		res.graph.Init(numBCD)
-		wg.Done()
-	}()
-	// graph searcher
-	go func() {
-		res.searcher = NewExtendedGraphSearcher(res.extendedSearch, res.search, c)
 		wg.Done()
 	}()
 	wg.Wait()
@@ -188,30 +164,11 @@ func (state *SolverState) ContainsRole(r, c, d uint) bool {
 	return res
 }
 
-func (state *SolverState) AddRole(r, c, d uint) (bool, bool) {
-	// we must update the graph as well, both methods may look do to the blocking
-	// mechanisms, so why not do it concurrently
-	var wg sync.WaitGroup
-	wg.Add(2)
-
-	var relationChanged, graphChanged bool
-	go func() {
-		state.rMutex[r].Lock()
-		relationChanged = state.R[r].Add(c, d)
-		state.rMutex[r].Unlock()
-		wg.Done()
-	}()
-
-	go func() {
-		state.graphMutex.Lock()
-		graphChanged = state.graph.AddEdge(c, d)
-		state.graphMutex.Unlock()
-		wg.Done()
-	}()
-
-	wg.Wait()
-
-	return relationChanged, graphChanged
+func (state *SolverState) AddRole(r, c, d uint) bool {
+	state.rMutex[r].Lock()
+	relationChanged := state.R[r].Add(c, d)
+	state.rMutex[r].Unlock()
+	return relationChanged
 }
 
 func (state *SolverState) RoleMapping(r, c uint, ch chan<- uint) {
@@ -328,8 +285,7 @@ func NewCR3(r, d uint) *CR3 {
 }
 
 func (n *CR3) GetSNotification(state StateHandler, c, cPrime uint) bool {
-	res, _ := state.AddRole(n.R, c, n.D)
-	return res
+	return state.AddRole(n.R, c, n.D)
 }
 
 // CR4 implements the rule CR4: for ∃r.D' ⊑ E:
@@ -435,8 +391,7 @@ func NewCR10(s uint) CR10 {
 }
 
 func (n CR10) GetRNotification(state StateHandler, r, c, d uint) bool {
-	res, _ := state.AddRole(uint(n), c, d)
-	return res
+	return state.AddRole(uint(n), c, d)
 }
 
 // CR11 implements the rule CR11: for r1 o r2 ⊑ r3:
@@ -462,8 +417,7 @@ func (n *CR11) GetRNotification(state StateHandler, r, c, d uint) bool {
 		go state.RoleMapping(n.R2, d, ch)
 		result := false
 		for e := range ch {
-			add, _ := state.AddRole(n.R3, c, e)
-			result = add || result
+			result = state.AddRole(n.R3, c, e) || result
 		}
 		return result
 	case n.R2:
@@ -475,8 +429,7 @@ func (n *CR11) GetRNotification(state StateHandler, r, c, d uint) bool {
 		go state.ReverseRoleMapping(n.R1, d, ch)
 		result := false
 		for c := range ch {
-			add, _ := state.AddRole(n.R3, c, e)
-			result = add || result
+			result = state.AddRole(n.R3, c, e) || result
 		}
 		return result
 	default:
