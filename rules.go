@@ -44,7 +44,30 @@ import (
 // State handlers must be safe to use concurrently from multiple go routines.
 // That is also true for methods that iterate over objects: No write operations
 // may happen during that time.
-// TODO update documentation regarding graph stuff
+//
+// Note that the rule CR6 is rather nasty. If the graph changes we must get
+// a notification for all C, D that are now connected (meaning that C ↝ D) but
+// where not connected before.
+// However it is rather difficult to decide for which C, D that now is true.
+// (Partially) dynamic graph algorithmus would be required for this, see for
+// example "A fully dynamic reachability algorithm for directed graphs with an
+// almost linear update time" (Roditty, Zwick, 2004) or "Improved dynamic
+// reachability algorithms for directed graphs" (Roditty, Zwick, 2002).
+//
+// However I think this is out of the scope of this project (at least for now).
+// Therefor we have different ways to implement this. Therefor we have
+// extensions of this interface to provide the required operations.
+// This is not an ideal solution, but until there is an efficient (and final)
+// implementation I think it's best to keep it that way.
+//
+// Here is a quick summary of the ideas I came up with:
+// (1) Check only if an edge was inserted in the graph, in this case check
+//     all {a}, C, D for the conditions of rule CR6.
+// (2) Really compute all C, D for which the condition changed and then update
+//     only those. This requires either a complicated graph algorithm or
+//     the storage of the transitive closure, which may require a log of memory.
+//
+// TODO report current state.
 type StateHandler interface {
 	// ContainsConcept checks whether D ∈ S(C).
 	ContainsConcept(c, d uint) bool
@@ -189,6 +212,15 @@ func (state *SolverState) ReverseRoleMapping(r, d uint, ch chan<- uint) {
 	}
 	close(ch)
 	state.rMutex[r].RUnlock()
+}
+
+func (state *SolverState) SubsetConcepts(c, d uint) bool {
+	state.sMutex[c].RLock()
+	state.sMutex[d].RLock()
+	res := state.S[c].IsSubset(state.S[d])
+	state.sMutex[c].RUnlock()
+	state.sMutex[d].RUnlock()
+	return res
 }
 
 func (state *SolverState) GetComponents() *ELBaseComponents {
