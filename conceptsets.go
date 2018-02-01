@@ -82,6 +82,14 @@ func (s *BCSet) Equals(other *BCSet) bool {
 	return len(s.m) == len(other.m) && s.IsSubset(other)
 }
 
+func (s *BCSet) Copy() *BCSet {
+	res := NewBCSet(s.c, uint(len(s.m)))
+	for v, _ := range s.m {
+		res.m[v] = struct{}{}
+	}
+	return res
+}
+
 type bcPair struct {
 	First, Second uint
 }

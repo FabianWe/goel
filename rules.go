@@ -62,11 +62,26 @@ import (
 //
 // Here is a quick summary of the ideas I came up with:
 // (1) Check only if an edge was inserted in the graph, in this case check
-//     all {a}, C, D for the conditions of rule CR6.
-// (2) Really compute all C, D for which the condition changed and then update
-//     only those. This requires either a complicated graph algorithm or
-//     the storage of the transitive closure, which may require a log of memory.
+//  all {a}, C, D for the conditions of rule CR6.
 //
+// (2) Really compute all C, D for which the condition changed and then update
+//  only those. This requires either a complicated graph algorithm or
+// the storage of the transitive closure, which may require a log of memory.
+//
+// Also this rule is different in the case of the "update guard". The other
+// rules always add a certain element we're waiting for. That is for example
+// CR1 waits for C' ∈ S(C) and then adds it to S(D), C' was already in S(D)
+// or it will be added now.
+// In CR6 however we have the condition S(D) ⊊ S(C). That means: If the left
+// hand side is true we get a notification (either {a} added somewhere or
+// the graph has changed). But This condition could be true and later new
+// elements are added to S(D) and then this rule can still be applied.
+// So we would need another rule that waits until something is added to
+// S(D) (whenever any add happens) and then recheck the condition.
+//
+// Or we could add another rule that waits on changes for S(D) and then
+// automatically applies S(C) = S(C) ∪ S(D).
+// TODO document what we do about this problem.
 // TODO report current state.
 type StateHandler interface {
 	// ContainsConcept checks whether D ∈ S(C).
@@ -677,4 +692,138 @@ func (rm *RuleMap) Init(tbox *NormalizedTBox) {
 	// wait until all elements have been added by the workers
 	<-done
 	<-done
+}
+
+// AllChangesState extends the StateHandler interface as mentioned in the
+// comment there.
+// This is the version in which the graph only checks if an edge was added.
+// It has additional methods for updating the graph (add an edge between C and
+// D), check reachability of two concepts and test if S(C) ⊆ S(D).
+//
+// A default implementation is given in AllChangesSolverState.
+// TODO add name of CR6 here.
+type AllChangesState interface {
+	StateHandler
+
+	SubsetConcepts(c, d uint) bool
+	UpdateGraph(c, d uint) bool
+	IsReachable(c, d uint) bool
+	BidrectionalSearch(c, d uint) BidirectionalSearch
+}
+
+type AllChangesSolverState struct {
+	*SolverState
+
+	Graph      ConceptGraph
+	Searcher   *GraphSearcher
+	graphMutex *sync.RWMutex
+}
+
+func NewAllChangesSolverState(c *ELBaseComponents, g ConceptGraph, search ReachabilitySearch) *AllChangesSolverState {
+	var graphMutex sync.RWMutex
+	// initialize solver state, graph and searcher
+	res := AllChangesSolverState{
+		SolverState: nil,
+		Graph:       g,
+		Searcher:    nil,
+		graphMutex:  &graphMutex,
+	}
+	// initalize SolverState, graph and searcher concurrently
+	var wg sync.WaitGroup
+	wg.Add(3)
+	go func() {
+		defer wg.Done()
+		res.SolverState = NewSolverState(c)
+	}()
+	go func() {
+		defer wg.Done()
+		// we use + 1 here because we want to use the normalized id directly, so
+		// the bottom concept must be taken into consideration
+		numBCD := c.NumBCD() + 1
+		res.Graph.Init(numBCD)
+	}()
+	go func() {
+		defer wg.Done()
+		res.Searcher = NewGraphSearcher(search, c)
+	}()
+
+	wg.Wait()
+	return &res
+}
+
+func (state *AllChangesSolverState) UpdateGraph(c, d uint) bool {
+	state.graphMutex.Lock()
+	res := state.Graph.AddEdge(c, d)
+	state.graphMutex.Unlock()
+	return res
+}
+
+func (state *AllChangesSolverState) IsReachable(c, d uint) bool {
+	state.graphMutex.RLock()
+	res := state.Searcher.Search(state.Graph, c, d)
+	state.graphMutex.RUnlock()
+	return res
+}
+
+func (state *AllChangesSolverState) BidrectionalSearch(c, d uint) BidirectionalSearch {
+	state.graphMutex.RLock()
+	res := state.Searcher.BidrectionalSearch(state.Graph, c, d)
+	state.graphMutex.RUnlock()
+	return res
+}
+
+type AllGraphChangeHandler interface {
+	GetGraphNotification(state AllChangesState) bool
+}
+
+// TODO I'm so totally not sure if this is correct.
+type AllChangesCR6 struct{}
+
+func NewAllChangesCR6() AllChangesCR6 {
+	return AllChangesCR6{}
+}
+
+func (n AllChangesCR6) GetGraphNotification(state AllChangesState) bool {
+	return false
+}
+
+func (n AllChangesCR6) GetSNotification(state AllChangesState, c, cPrime uint) bool {
+	// that's the easy case, first check if a nominal was added
+	concept := state.GetComponents().GetConcept(cPrime)
+	// try to convert to nominal concept
+	_, ok := concept.(NominalConcept)
+	if !ok {
+		// we're not interested in the update
+		return false
+	}
+	// now we're interested, iterate over all S(D)
+	var d uint = 1
+	numBCD := state.GetComponents().NumBCD() + 1
+	result := false
+	for ; d < numBCD; d++ {
+		if c == d {
+			continue
+		}
+		if state.ContainsConcept(d, cPrime) {
+			// now {a} ∈ S(C) ∩ S(D), check if S(D) ⊊ S(C)
+			// TODO is it that easy when we do things concurrently?!
+			// do we have to check that property as well? i.e. we have to get informed
+			// if one becomes the subset of another?!
+			// that would be too bad.
+			// I think not, but I have to think about it again.
+			if !state.SubsetConcepts(d, c) {
+				// now check if C ↝ D
+				if state.IsReachable(c, d) {
+					// yes, update S(C)
+					result = state.UnionConcepts(c, d) || result
+				}
+			}
+		}
+	}
+	return result
+}
+
+type AllChangesSNotification interface {
+	// Information, that C' was added to S(C)
+	GetSNotification(state AllChangesState, c, cPrime uint) bool
 }

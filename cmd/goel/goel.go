@@ -78,11 +78,14 @@ func rulebased(normalized *goel.NormalizedTBox) {
 	start := time.Now()
 	var wg sync.WaitGroup
 	wg.Add(2)
-	var s *goel.SolverState
+	var s *goel.AllChangesSolverState
 	var rm *goel.RuleMap
 	go func() {
-		s = goel.NewSolverState(
-			normalized.Components)
+		s = goel.NewAllChangesSolverState(
+			normalized.Components,
+			goel.NewSetGraph(),
+			goel.BFS,
+		)
 		wg.Done()
 	}()
 	go func() {
