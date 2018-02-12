@@ -97,6 +97,8 @@ type ReachabilitySearch func(g ConceptGraph, goal uint, start ...uint) bool
 
 // TODO could easily be turned into a more concurrent version
 // TODO think about the extended approach again...
+// TODO maybe stop a node from being expanded if it has been expanded before?
+// that is also true in the extended search.
 func BFS(g ConceptGraph, goal uint, start ...uint) bool {
 	// visited stores entries which have already been visited
 	// but as an addition to the "normal" BFS we don't simply store which
@@ -174,9 +176,7 @@ func NewGraphSearcher(search ReachabilitySearch, bc *ELBaseComponents) *GraphSea
 	return &GraphSearcher{search, start}
 }
 
-func (searcher *GraphSearcher) Search(g ConceptGraph, additionalStart, goal uint) bool {
-	start := make([]uint, len(searcher.start))
-	copy(start, searcher.start)
+func prepareSearchStart(start []uint, additionalStart uint) []uint {
 	// do duplicate check, that is check if additionalStart is already present
 	// in start
 	// since start is started we can simply compare it to the first and last
@@ -199,6 +199,13 @@ func (searcher *GraphSearcher) Search(g ConceptGraph, additionalStart, goal uint
 			start[0] = additionalStart
 		}
 	}
+	return start
+}
+
+func (searcher *GraphSearcher) Search(g ConceptGraph, additionalStart, goal uint) bool {
+	start := make([]uint, len(searcher.start))
+	copy(start, searcher.start)
+	start = prepareSearchStart(start, additionalStart)
 	return searcher.search(g, goal, start...)
 }
 
@@ -235,4 +242,77 @@ func (searcher *GraphSearcher) BidrectionalSearch(g ConceptGraph, c, d uint) Bid
 	default:
 		return BidirectionalFalse
 	}
+}
+
+// Extended Search
+type ExtendedReachabilitySearch func(g ConceptGraph, goals map[uint]struct{}, start ...uint) map[uint]struct{}
+
+// TODO think about this again.
+func BFSToSet(g ConceptGraph, goals map[uint]struct{}, start ...uint) map[uint]struct{} {
+	// same trick as in BFS
+	visited := make(map[uint]bool, len(start))
+	result := make(map[uint]struct{}, len(goals))
+	// very much the same as BFS, but we don't stop once a goal has been found
+	// but continue until all reachable states from goals are found
+	for _, value := range start {
+		visited[value] = true
+	}
+	// TODO again, what is the best place to copy?
+	queue := start
+	for len(queue) > 0 {
+		next := queue[0]
+		queue = queue[1:]
+		// next is a goal we add the goal, but again the same precautions as in
+		// BFS.
+		if _, isGoal := goals[next]; isGoal {
+			visitedVal, wasVisited := visited[next]
+			if wasVisited {
+				if !visitedVal {
+					// add element
+					result[next] = struct{}{}
+				}
+			} else {
+				// add
+				result[next] = struct{}{}
+			}
+		}
+		// first check if we can already stop (this is the case if we found all
+		// goals)
+		if len(result) == len(goals) {
+			return result
+		}
+		// expand node
+		ch := make(chan uint, 1)
+		go g.Succ(next, ch)
+		for v := range ch {
+			if wasStart, wasVisited := visited[v]; !wasVisited || wasStart {
+				visited[v] = true
+				queue = append(queue, v)
+			}
+		}
+	}
+	return result
+}
+
+type ExtendedGraphSearcher struct {
+	extendedSearch ExtendedReachabilitySearch
+	start          []uint
+}
+
+func NewExtendedGraphSearcher(extendedSearch ExtendedReachabilitySearch,
+	bc *ELBaseComponents) *ExtendedGraphSearcher {
+	start := make([]uint, bc.Nominals+1)
+	var i uint
+	for ; i < bc.Nominals; i++ {
+		nominal := NewNominalConcept(i)
+		start[i+1] = nominal.NormalizedID(bc)
+	}
+	return &ExtendedGraphSearcher{extendedSearch, start}
+}
+
+func (searcher *ExtendedGraphSearcher) Search(g ConceptGraph, goals map[uint]struct{}, additionalStart uint) map[uint]struct{} {
+	start := make([]uint, len(searcher.start))
+	copy(start, searcher.start)
+	start = prepareSearchStart(start, additionalStart)
+	return searcher.extendedSearch(g, goals, start...)
 }

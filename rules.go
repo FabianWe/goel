@@ -800,14 +800,14 @@ type AllChangesSNotification interface {
 // we always have to iterate over all S(D) and test where {a} is contained.
 // This way finding all C, D with {a} ∈ S(C) ⊓ S(D) is easy.
 type AllChangesCR6 struct {
-	aMap map[uint][]uint
+	aMap map[uint]map[uint]struct{}
 	// TODO is this required? Think about it...
 	aMutex *sync.RWMutex
 }
 
 func NewAllChangesCR6() AllChangesCR6 {
 	var m sync.RWMutex
-	return AllChangesCR6{aMap: make(map[uint][]uint, 10), aMutex: &m}
+	return AllChangesCR6{aMap: make(map[uint]map[uint]struct{}, 10), aMutex: &m}
 }
 
 func (n AllChangesCR6) GetGraphNotification(state AllChangesState) bool {
