@@ -72,15 +72,14 @@ import (
 // rules always add a certain element we're waiting for. That is for example
 // CR1 waits for C' ∈ S(C) and then adds it to S(D), C' was already in S(D)
 // or it will be added now.
-// In CR6 however we have the condition S(D) ⊊ S(C). That means: If the left
-// hand side is true we get a notification (either {a} added somewhere or
-// the graph has changed). But This condition could be true and later new
-// elements are added to S(D) and then this rule can still be applied.
-// So we would need another rule that waits until something is added to
-// S(D) (whenever any add happens) and then recheck the condition.
+// In CR6 however we have the condition S(D) ⊊ S(C). That means:
+// If either {a} added somewhere or the graph has changed we get a notification
+// for that, but whenever an element gets added to S(C) afterwards we must add
+// it to S(D) as well.
 //
-// Or we could add another rule that waits on changes for S(D) and then
-// automatically applies S(C) = S(C) ∪ S(D).
+// There are different ways to handle this, so the solvers for more details on
+// that.
+//
 // TODO document what we do about this problem.
 // TODO report current state.
 type StateHandler interface {
@@ -520,6 +519,9 @@ func (n *CR11) GetRNotification(state StateHandler, r, c, d uint) bool {
 // and stores all notifcations interested in updates on all R(r) (should only
 // be CR5).
 //
+// Thus when we receive information that (C, D) was added to R(r) we inform
+// all notifications in map[r] and map[NoRole].
+//
 // A RuleMap is initialized with a given normalized TBox and creates all
 // notifications and adds them. Thus before usage the Init method must be
 // called with that TBox.
@@ -776,6 +778,20 @@ type AllGraphChangeHandler interface {
 	GetGraphNotification(state AllChangesState) bool
 }
 
+// AllChangesSNotification is a special handler type for rule CR6.
+// We're interested in updates on all {a} for all S(C) and S(D). Thus
+// storing this in the proposed pattern for SNotifications would require much
+// memory.
+// So we do the following: Wait until some set S(C) gets updated with C'.
+// If C' is not of the form {a} don't do anything.
+// If it is of the form perform the test and apply the rule if required.
+// Note that here we use the extendted AllChangesState interface, not
+// just SolverState.
+type AllChangesSNotification interface {
+	// Information, that C' was added to S(C)
+	GetSNotification(state AllChangesState, c, cPrime uint) bool
+}
+
 // TODO I'm so totally not sure if this is correct.
 type AllChangesCR6 struct{}
 
@@ -787,6 +803,9 @@ func (n AllChangesCR6) GetGraphNotification(state AllChangesState) bool {
 	return false
 }
 
+// TODO: Improvement: When {a} gets added this method is called for both
+// (C, {a}) and (D, {a}), only check for c < d and then do a bidirectional
+// search?
 func (n AllChangesCR6) GetSNotification(state AllChangesState, c, cPrime uint) bool {
 	// that's the easy case, first check if a nominal was added
 	concept := state.GetComponents().GetConcept(cPrime)
@@ -806,11 +825,6 @@ func (n AllChangesCR6) GetSNotification(state AllChangesState, c, cPrime uint) b
 		}
 		if state.ContainsConcept(d, cPrime) {
 			// now {a} ∈ S(C) ∩ S(D), check if S(D) ⊊ S(C)
-			// TODO is it that easy when we do things concurrently?!
-			// do we have to check that property as well? i.e. we have to get informed
-			// if one becomes the subset of another?!
-			// that would be too bad.
-			// I think not, but I have to think about it again.
 			if !state.SubsetConcepts(d, c) {
 				// now check if C ↝ D
 				if state.IsReachable(c, d) {
@@ -821,9 +835,4 @@ func (n AllChangesCR6) GetSNotification(state AllChangesState, c, cPrime uint) b
 		}
 	}
 	return result
-}
-
-type AllChangesSNotification interface {
-	// Information, that C' was added to S(C)
-	GetSNotification(state AllChangesState, c, cPrime uint) bool
 }
