@@ -712,7 +712,7 @@ type AllChangesState interface {
 	// TODO add search method(s) here.
 	ExtendedSearch(goals map[uint]struct{}, additionalStart uint) map[uint]struct{}
 	// TODO describe requirements
-	AddSubsetRule(c, d uint)
+	AddSubsetRule(c, d uint, ch <-chan bool)
 }
 
 type AllChangesSolverState struct {
@@ -755,12 +755,20 @@ func NewAllChangesSolverState(c *ELBaseComponents, g ConceptGraph, search Extend
 	return &res
 }
 
-func (state *AllChangesSolverState) UpdateGraph(c, d uint) bool {
-	state.graphMutex.Lock()
-	res := state.Graph.AddEdge(c, d)
-	state.graphMutex.Unlock()
+func (state *AllChangesSolverState) ExtendedSearch(goals map[uint]struct{},
+	additionalStart uint) map[uint]struct{} {
+	state.graphMutex.RLock()
+	res := state.Searcher.Search(state.Graph, goals, additionalStart)
+	state.graphMutex.RUnlock()
 	return res
 }
+
+// func (state *AllChangesSolverState) UpdateGraph(c, d uint) bool {
+// 	state.graphMutex.Lock()
+// 	res := state.Graph.AddEdge(c, d)
+// 	state.graphMutex.Unlock()
+// 	return res
+// }
 
 // func (state *AllChangesSolverState) IsReachable(c, d uint) bool {
 // 	state.graphMutex.RLock()
@@ -824,8 +832,11 @@ func (n *AllChangesCR6) applyRule(state AllChangesState, goals map[uint]struct{}
 		// now we found a connection between C and D, that is now we have
 		// C ↝ D
 		// so now we can just union both concepts and add a new rule
-		state.AddSubsetRule(c, d)
+		// TODO is size 1 okay? should be
+		done := make(chan bool, 1)
+		state.AddSubsetRule(c, d, done)
 		result = state.UnionConcepts(c, d) || result
+		done <- true
 	}
 	return result
 }
