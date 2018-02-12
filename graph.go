@@ -96,41 +96,64 @@ func (g *SliceGraph) Succ(vertex uint, ch chan<- uint) {
 type ReachabilitySearch func(g ConceptGraph, goal uint, start ...uint) bool
 
 // TODO could easily be turned into a more concurrent version
-// TODO I think this is wrong. Because if we have an isolated node {a}
-// this method will return true for some other node C in the graph.
-// The problem is that everything in start ins considered reachable.
-// Or is this even required by the algorithm? Read the proof again!
-// This is also way GraphSearcher is such a nice wrapper, it will simply
-// check this.
+// TODO think about the extended approach again...
 func BFS(g ConceptGraph, goal uint, start ...uint) bool {
-	visited := make(map[uint]struct{}, len(start))
+	// visited stores entries which have already been visited
+	// but as an addition to the "normal" BFS we don't simply store which
+	// elements have been visited but also whether they were added here because
+	// they're a start node or because the node appeared during an expansion.
+	//
+	// That is: was the node added during the start (in which case we will
+	// map the node to true) or in some later run (then we map to false).
+	// This way we have the following: If there is an entry for a node we can
+	// easily check if it was "visited" because it's a start node or if it was
+	// visited because it was added during some expansion.
+	visited := make(map[uint]bool, len(start))
+	// map each start node to true
 	for _, value := range start {
-		visited[value] = struct{}{}
+		visited[value] = true
 	}
-	// queue := make([]uint, len(start))
-	// copy(queue, start)
-	// TODO where is the best place to create copy? document this as well!
-	// is a copy required or is it safe not to use a copy?
 	queue := start
 	for len(queue) > 0 {
 		next := queue[0]
 		queue = queue[1:]
 		if next == goal {
-			return true
+			// the standard BFS would stop here, but we want to know if this node
+			// really was added during and an expansion before
+			visitedVal, wasVisited := visited[next]
+			if wasVisited {
+				// node was visited before, now if this node was visited because it
+				// encountered during an expansion we're done (during an expansion
+				// meaning that the value is false).
+				if !visitedVal {
+					return true
+				}
+				// no else case here required, node was reached but just because it
+				// was in visited from the start
+				// we have to expand the node.
+			} else {
+				// if the node was not present in the visited map we can safely assume
+				// that it was not one of the start nodes
+				return true
+			}
 		}
-		// expand the node
+		// we haven't reached the goal yet, so expand the node
 		ch := make(chan uint, 1)
 		go g.Succ(next, ch)
 		for v := range ch {
-			if _, in := visited[v]; !in {
-				visited[v] = struct{}{}
+			// Now things become a bit more complicated than in the normal version.
+			// We want to add a node to the queue even if it was already visited
+			// before but this was only because the node was a start node.
+			// In this case we simply add it again.
+			// So we want to add v to the queue again if:
+			// (1) It was not visited before
+			// (2) It was visited before but only because it was a start node
+			if wasStart, wasVisited := visited[v]; !wasVisited || wasStart {
+				// add node and mark as visited during an expansion
+				visited[v] = true
 				queue = append(queue, v)
-				// note that we don't check here if we reached the goal
-				// this is also important because otherwise ch might stay open
-				// because succ closes the channel!
-				// of course we could check if we added goal to the queue and
-				// after all iterations are done return already true though
 			}
+
 		}
 	}
 	return false
