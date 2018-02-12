@@ -20,7 +20,9 @@
 
 package goel
 
-import "sync"
+import (
+	"sync"
+)
 
 // SUpdate is a type that stores the information that D has been added to S(C).
 // It is usually used in a queue that stores all updates that still must be
@@ -322,4 +324,54 @@ func (rm *AllChangesRuleMap) newSubsetRule(c, d uint) bool {
 	oldLen := len(m)
 	m[c] = struct{}{}
 	return oldLen != len(m)
+}
+
+type AllChangesSolver struct {
+	*AllChangesSolverState
+	*AllChangesRuleMap
+
+	pendingSupdates []*SUpdate
+	pendingRUpdates []*RUpdate
+	graphChanged    bool
+
+	// reequired for init later
+	graph ConceptGraph
+
+	search ExtendedReachabilitySearch
+}
+
+func NewAllChangesSolver(graph ConceptGraph, search ExtendedReachabilitySearch) *AllChangesSolver {
+	if search == nil {
+		search = BFSToSet
+	}
+	return &AllChangesSolver{
+		AllChangesSolverState: nil,
+		AllChangesRuleMap:     nil,
+		pendingSupdates:       nil,
+		pendingRUpdates:       nil,
+		graphChanged:          false,
+		graph:                 graph,
+		search:                search,
+	}
+}
+
+func (solver *AllChangesSolver) Init(tbox *NormalizedTBox) {
+	// create pending slices and reset graph changed
+	solver.pendingSupdates = make([]*SUpdate, 0, 10)
+	solver.pendingRUpdates = make([]*RUpdate, 0, 10)
+	solver.graphChanged = false
+	// inditialize state and rules (concurrently)
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		solver.AllChangesSolverState = NewAllChangesSolverState(tbox.Components,
+			solver.graph, solver.search)
+		wg.Done()
+	}()
+	go func() {
+		solver.AllChangesRuleMap = NewAllChangesRuleMap()
+		solver.AllChangesRuleMap.Init(tbox)
+		wg.Done()
+	}()
+	wg.Wait()
 }
