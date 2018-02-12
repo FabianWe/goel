@@ -174,12 +174,31 @@ func NewGraphSearcher(search ReachabilitySearch, bc *ELBaseComponents) *GraphSea
 	return &GraphSearcher{search, start}
 }
 
-// TODO add duplicate check, i.e. check if additionalStart is a nominal, this
-// should only require some lookups in the start slice
 func (searcher *GraphSearcher) Search(g ConceptGraph, additionalStart, goal uint) bool {
 	start := make([]uint, len(searcher.start))
 	copy(start, searcher.start)
-	start[0] = additionalStart
+	// do duplicate check, that is check if additionalStart is already present
+	// in start
+	// since start is started we can simply compare it to the first and last
+	// value: if it is in that range we don't need to add the additional start.
+	// first do some boundary checking, if there are no nominals we might not
+	// be able to access the first element in the array.
+	if len(start) == 1 {
+		// just the additional value is present in start, so that's okay,
+		// no duplicate found
+		start[0] = additionalStart
+	} else {
+		// now there is at least nominal, so now check the range
+		fstNominal, lastNominal := start[1], start[len(start)-1]
+		if additionalStart >= fstNominal && additionalStart <= lastNominal {
+			// duplicate detected
+			// don't add this element, simply remove first element from start slice
+			start = start[1:]
+		} else {
+			// no duplicate
+			start[0] = additionalStart
+		}
+	}
 	return searcher.search(g, goal, start...)
 }
 

@@ -44,6 +44,7 @@ func (s *BCSet) ContainsID(c uint) bool {
 	return has
 }
 
+// TODO sometimes we get null here... check again where it is used.
 func (s *BCSet) Add(c Concept) bool {
 	oldLen := len(s.m)
 	s.m[c.NormalizedID(s.c)] = struct{}{}
