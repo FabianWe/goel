@@ -577,7 +577,6 @@ func (rm *RuleMap) AddRWorker(ch <-chan AddRNotification, done chan<- bool) {
 	done <- true
 }
 
-// TODO add missing rule(s?)! CR5 / CR6!
 func (rm *RuleMap) Init(tbox *NormalizedTBox) {
 	components := tbox.Components
 	// we start both workers s.t. we can concurrently add new notifications,

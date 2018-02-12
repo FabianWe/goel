@@ -138,7 +138,7 @@ func (state *AllChangesSolverState) ExtendedSearch(goals map[uint]struct{},
 // 	return res
 // }
 
-type AllGraphChangeHandler interface {
+type AllGraphChangeNotification interface {
 	GetGraphNotification(state AllChangesState) bool
 }
 
@@ -248,4 +248,78 @@ func (n *AllChangesCR6) GetSNotification(state AllChangesState, c, cPrime uint) 
 	}
 	containedIn[cPrime] = struct{}{}
 	return result
+}
+
+// AllChangesRuleMap is an extension of RuleMap. It has some extended
+// functionality: It stores the subset mapping as required by rule CR6
+// and methods to add new elements to it / perform the update on a given state.
+// These functions are safe for concurrent use (protected by a mutex, so better
+// understand what happens to avoid deadlocks; sorry).
+// And also holds an instance of AllChangesCR6 to perform this update when
+// required.
+type AllChangesRuleMap struct {
+	*RuleMap
+
+	// additional mapping that stores which subset relations must be maintained,
+	// that is rule CR6 forces us to take care that (if a certain condition
+	// is true) S(C) must always be a subset of S(D).
+	// So whenever C' gets added to S(D) we must add it to S(C) as well.
+	// This maps stores for each D all C for which an update on S(D) triggers an
+	// update on S(C).
+	subsetMap map[uint]map[uint]struct{}
+
+	// a mutex used to control access on subsetMap
+	// for simplicity we don't use a mutex for each concept C in the map but
+	// just one that controls the whole map
+	subsetMutex *sync.RWMutex
+
+	// An instance of CR6 to be executed whenever S(C) changes (for any C)
+	// or the graph is changed, no interfaces here, they're just there for
+	// clarification
+	cr6 *AllChangesCR6
+}
+
+func NewAllChangesRuleMap() *AllChangesRuleMap {
+	var m sync.RWMutex
+	subsetMap := make(map[uint]map[uint]struct{})
+	cr6 := NewAllChangesCR6()
+	return &AllChangesRuleMap{
+		RuleMap:     NewRuleMap(),
+		subsetMap:   subsetMap,
+		subsetMutex: &m,
+		cr6:         cr6,
+	}
+}
+
+func (rm *AllChangesRuleMap) Init(tbox *NormalizedTBox) {
+	rm.RuleMap.Init(tbox)
+}
+
+func (rm *AllChangesRuleMap) ApplySubsetNotification(state *AllChangesSolverState, d, cPrime uint) bool {
+	// lock mutex
+	rm.subsetMutex.RLock()
+	defer rm.subsetMutex.RUnlock()
+	// iterate over each c in map[D]
+	updates := rm.subsetMap[d]
+	result := false
+	for c, _ := range updates {
+		// add C' to S(C)
+		result = state.AddConcept(c, cPrime) || result
+	}
+	return result
+}
+
+func (rm *AllChangesRuleMap) newSubsetRule(c, d uint) bool {
+	// lock mutex
+	rm.subsetMutex.Lock()
+	defer rm.subsetMutex.Unlock()
+	// get map for d
+	m := rm.subsetMap[d]
+	if len(m) == 0 {
+		m = make(map[uint]struct{})
+		rm.subsetMap[d] = m
+	}
+	oldLen := len(m)
+	m[c] = struct{}{}
+	return oldLen != len(m)
 }
