@@ -707,9 +707,12 @@ func (rm *RuleMap) Init(tbox *NormalizedTBox) {
 type AllChangesState interface {
 	StateHandler
 
-	SubsetConcepts(c, d uint) bool
-	UpdateGraph(c, d uint) bool
-	// TODO add search method here.
+	// SubsetConcepts(c, d uint) bool
+	// UpdateGraph(c, d uint) bool
+	// TODO add search method(s) here.
+	ExtendedSearch(goals map[uint]struct{}, additionalStart uint) map[uint]struct{}
+	// TODO describe requirements
+	AddSubsetRule(c, d uint)
 }
 
 type AllChangesSolverState struct {
@@ -799,54 +802,85 @@ type AllChangesSNotification interface {
 // we always have to iterate over all S(D) and test where {a} is contained.
 // This way finding all C, D with {a} ∈ S(C) ⊓ S(D) is easy.
 type AllChangesCR6 struct {
+	// TODO use slice here, is much nicer, but well it also works this way...
 	aMap map[uint]map[uint]struct{}
 	// TODO is this required? Think about it...
-	aMutex *sync.RWMutex
+	aMutex *sync.Mutex
 }
 
-func NewAllChangesCR6() AllChangesCR6 {
-	var m sync.RWMutex
-	return AllChangesCR6{aMap: make(map[uint]map[uint]struct{}, 10), aMutex: &m}
+func NewAllChangesCR6() *AllChangesCR6 {
+	var m sync.Mutex
+	return &AllChangesCR6{aMap: make(map[uint]map[uint]struct{}, 10), aMutex: &m}
 }
 
-func (n AllChangesCR6) GetGraphNotification(state AllChangesState) bool {
-	return false
-}
-
-func (n AllChangesCR6) GetSNotification(state AllChangesState, c, cPrime uint) bool {
-	// first check if a nominal was added
-	concept := state.GetComponents().GetConcept(cPrime)
-	// try to convert to nominal concept
-	_, ok := concept.(NominalConcept)
-	if !ok {
-		// we're not interested in the update
-		return false
-	}
-	// now we're interested, we have to iterate over all S(D) that already
-	// contain the element (since it must be in the intersection).
-	// Then we can directly perform a search to check if C ↝ D. We can simplify
-	// this serach by just searching from C and all {a} to everything that is
-	// reachable from there (until all items we're looking for have been found).
-
-	// now we're interested, iterate over all S(D)
-	var d uint = 1
-	numBCD := state.GetComponents().NumBCD() + 1
+func (n *AllChangesCR6) applyRule(state AllChangesState, goals map[uint]struct{}, c uint) bool {
+	connected := state.ExtendedSearch(goals, c)
 	result := false
-	for ; d < numBCD; d++ {
+	for d, _ := range connected {
+		// no need to do anyhting if c == d
 		if c == d {
 			continue
 		}
-		if state.ContainsConcept(d, cPrime) {
-			// now {a} ∈ S(C) ∩ S(D), check if S(D) ⊊ S(C)
-			if !state.SubsetConcepts(d, c) {
-				// TODO fix again, and fix the whole method
-				// now check if C ↝ D
-				// if state.IsReachable(c, d) {
-				// 	// yes, update S(C)
-				// 	result = state.UnionConcepts(c, d) || result
-				// }
-			}
+		// now we found a connection between C and D, that is now we have
+		// C ↝ D
+		// so now we can just union both concepts and add a new rule
+		state.AddSubsetRule(c, d)
+		result = state.UnionConcepts(c, d) || result
+	}
+	return result
+}
+
+func (n *AllChangesCR6) GetGraphNotification(state AllChangesState) bool {
+	// if the graph has changed we iterate over all pairs and revaulate
+	// the condition, that is we add new rules etc.
+	// maybe there are nicer ways but we'll do the following:
+	// iterate over each {a} and then perform the extended search for each C
+	// that contains {a}.
+
+	// lock mutex
+	n.aMutex.Lock()
+	defer n.aMutex.Unlock()
+
+	result := false
+	for _, containedIn := range n.aMap {
+		for c, _ := range containedIn {
+			result = n.applyRule(state, containedIn, c) || result
 		}
 	}
+	return result
+}
+
+func (n *AllChangesCR6) GetSNotification(state AllChangesState, c, cPrime uint) bool {
+	// first check if a nominal was added, otherwise just ignore the update
+	concept := state.GetComponents().GetConcept(cPrime)
+	// try to convert to nominal concept
+	if _, ok := concept.(NominalConcept); !ok {
+		// not interested in update
+		return false
+	}
+	// now we're interested in the update
+	// in order to do so we must iterate over all elements where {a} is contained
+	// (this is all elements in the intersection)
+	// and perform a reachability search.
+	// to make it concurrency safe we completely lock the mutex
+	// TODO is there a nicer way? This should work anyway...
+	n.aMutex.Lock()
+	defer n.aMutex.Unlock()
+	// now we only have to perform a search from C to all D with {a} ∈ S(D):
+	// This is the only new information we have, we don't have to worry about the
+	// "old" elements in the set, a connection between them is not affected by
+	// the information that {a} was added to S(C): We've already performed a
+	// search for those elements, if the graph changes we will reconsider
+	// so first get all D in which {a} is contained
+	// we can use the extended search method for that, it will give us all pairs
+	// that are connected when starting the search with C
+	result := n.applyRule(state, n.aMap[cPrime], c)
+	// now we must add c to the map of {a}
+	containedIn := n.aMap[cPrime]
+	if len(containedIn) == 0 {
+		containedIn = make(map[uint]struct{}, 10)
+		n.aMap[cPrime] = containedIn
+	}
+	containedIn[cPrime] = struct{}{}
 	return result
 }
