@@ -89,6 +89,10 @@ func (g *SliceGraph) Succ(vertex uint, ch chan<- uint) {
 	close(ch)
 }
 
+// TODO: It's important that the search can easily assume that start is
+// unique, i.e. no duplicates.
+// That is required for the reachability search that requires path lengths
+// >= 1.
 type ReachabilitySearch func(g ConceptGraph, goal uint, start ...uint) bool
 
 // TODO could easily be turned into a more concurrent version
@@ -96,6 +100,8 @@ type ReachabilitySearch func(g ConceptGraph, goal uint, start ...uint) bool
 // this method will return true for some other node C in the graph.
 // The problem is that everything in start ins considered reachable.
 // Or is this even required by the algorithm? Read the proof again!
+// This is also way GraphSearcher is such a nice wrapper, it will simply
+// check this.
 func BFS(g ConceptGraph, goal uint, start ...uint) bool {
 	visited := make(map[uint]struct{}, len(start))
 	for _, value := range start {
@@ -145,6 +151,8 @@ func NewGraphSearcher(search ReachabilitySearch, bc *ELBaseComponents) *GraphSea
 	return &GraphSearcher{search, start}
 }
 
+// TODO add duplicate check, i.e. check if additionalStart is a nominal, this
+// should only require some lookups in the start slice
 func (searcher *GraphSearcher) Search(g ConceptGraph, additionalStart, goal uint) bool {
 	start := make([]uint, len(searcher.start))
 	copy(start, searcher.start)
