@@ -84,7 +84,7 @@ func rulebased(normalized *goel.NormalizedTBox) {
 		s = goel.NewAllChangesSolverState(
 			normalized.Components,
 			goel.NewSetGraph(),
-			goel.BFS,
+			goel.BFSToSet,
 		)
 		wg.Done()
 	}()

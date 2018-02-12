@@ -709,19 +709,18 @@ type AllChangesState interface {
 
 	SubsetConcepts(c, d uint) bool
 	UpdateGraph(c, d uint) bool
-	IsReachable(c, d uint) bool
-	BidrectionalSearch(c, d uint) BidirectionalSearch
+	// TODO add search method here.
 }
 
 type AllChangesSolverState struct {
 	*SolverState
 
 	Graph      ConceptGraph
-	Searcher   *GraphSearcher
+	Searcher   *ExtendedGraphSearcher
 	graphMutex *sync.RWMutex
 }
 
-func NewAllChangesSolverState(c *ELBaseComponents, g ConceptGraph, search ReachabilitySearch) *AllChangesSolverState {
+func NewAllChangesSolverState(c *ELBaseComponents, g ConceptGraph, search ExtendedReachabilitySearch) *AllChangesSolverState {
 	var graphMutex sync.RWMutex
 	// initialize solver state, graph and searcher
 	res := AllChangesSolverState{
@@ -746,7 +745,7 @@ func NewAllChangesSolverState(c *ELBaseComponents, g ConceptGraph, search Reacha
 	}()
 	go func() {
 		defer wg.Done()
-		res.Searcher = NewGraphSearcher(search, c)
+		res.Searcher = NewExtendedGraphSearcher(search, c)
 	}()
 
 	wg.Wait()
@@ -760,19 +759,19 @@ func (state *AllChangesSolverState) UpdateGraph(c, d uint) bool {
 	return res
 }
 
-func (state *AllChangesSolverState) IsReachable(c, d uint) bool {
-	state.graphMutex.RLock()
-	res := state.Searcher.Search(state.Graph, c, d)
-	state.graphMutex.RUnlock()
-	return res
-}
-
-func (state *AllChangesSolverState) BidrectionalSearch(c, d uint) BidirectionalSearch {
-	state.graphMutex.RLock()
-	res := state.Searcher.BidrectionalSearch(state.Graph, c, d)
-	state.graphMutex.RUnlock()
-	return res
-}
+// func (state *AllChangesSolverState) IsReachable(c, d uint) bool {
+// 	state.graphMutex.RLock()
+// 	res := state.Searcher.Search(state.Graph, c, d)
+// 	state.graphMutex.RUnlock()
+// 	return res
+// }
+//
+// func (state *AllChangesSolverState) BidrectionalSearch(c, d uint) BidirectionalSearch {
+// 	state.graphMutex.RLock()
+// 	res := state.Searcher.BidrectionalSearch(state.Graph, c, d)
+// 	state.graphMutex.RUnlock()
+// 	return res
+// }
 
 type AllGraphChangeHandler interface {
 	GetGraphNotification(state AllChangesState) bool
@@ -840,11 +839,12 @@ func (n AllChangesCR6) GetSNotification(state AllChangesState, c, cPrime uint) b
 		if state.ContainsConcept(d, cPrime) {
 			// now {a} ∈ S(C) ∩ S(D), check if S(D) ⊊ S(C)
 			if !state.SubsetConcepts(d, c) {
+				// TODO fix again, and fix the whole method
 				// now check if C ↝ D
-				if state.IsReachable(c, d) {
-					// yes, update S(C)
-					result = state.UnionConcepts(c, d) || result
-				}
+				// if state.IsReachable(c, d) {
+				// 	// yes, update S(C)
+				// 	result = state.UnionConcepts(c, d) || result
+				// }
 			}
 		}
 	}
