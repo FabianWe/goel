@@ -783,31 +783,39 @@ type AllGraphChangeHandler interface {
 // storing this in the proposed pattern for SNotifications would require much
 // memory.
 // So we do the following: Wait until some set S(C) gets updated with C'.
-// If C' is not of the form {a} don't do anything.
+// If C' is not of the form {a} do nothing.
 // If it is of the form perform the test and apply the rule if required.
 // Note that here we use the extendted AllChangesState interface, not
 // just SolverState.
+// So this interface is used to show the difference between SNotification
+// and to use the extended state interface.
 type AllChangesSNotification interface {
 	// Information, that C' was added to S(C)
 	GetSNotification(state AllChangesState, c, cPrime uint) bool
 }
 
 // TODO I'm so totally not sure if this is correct.
-type AllChangesCR6 struct{}
+// We add a map here that maps for each {a} to a list of all C with {a} ∈ S(C).
+// This requires a bit more memory but I think(!) that it's worth it. Otherwise
+// we always have to iterate over all S(D) and test where {a} is contained.
+// This way finding all C, D with {a} ∈ S(C) ⊓ S(D) is easy.
+type AllChangesCR6 struct {
+	aMap map[uint][]uint
+	// TODO is this required? Think about it...
+	aMutex *sync.RWMutex
+}
 
 func NewAllChangesCR6() AllChangesCR6 {
-	return AllChangesCR6{}
+	var m sync.RWMutex
+	return AllChangesCR6{aMap: make(map[uint][]uint, 10), aMutex: &m}
 }
 
 func (n AllChangesCR6) GetGraphNotification(state AllChangesState) bool {
 	return false
 }
 
-// TODO: Improvement: When {a} gets added this method is called for both
-// (C, {a}) and (D, {a}), only check for c < d and then do a bidirectional
-// search?
 func (n AllChangesCR6) GetSNotification(state AllChangesState, c, cPrime uint) bool {
-	// that's the easy case, first check if a nominal was added
+	// first check if a nominal was added
 	concept := state.GetComponents().GetConcept(cPrime)
 	// try to convert to nominal concept
 	_, ok := concept.(NominalConcept)
@@ -815,6 +823,12 @@ func (n AllChangesCR6) GetSNotification(state AllChangesState, c, cPrime uint) b
 		// we're not interested in the update
 		return false
 	}
+	// now we're interested, we have to iterate over all S(D) that already
+	// contain the element (since it must be in the intersection).
+	// Then we can directly perform a search to check if C ↝ D. We can simplify
+	// this serach by just searching from C and all {a} to everything that is
+	// reachable from there (until all items we're looking for have been found).
+
 	// now we're interested, iterate over all S(D)
 	var d uint = 1
 	numBCD := state.GetComponents().NumBCD() + 1
