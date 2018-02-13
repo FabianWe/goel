@@ -104,10 +104,11 @@ type StateHandler interface {
 	AddRole(r, c, d uint) bool
 
 	// RoleMapping returns all pairs (C, D) in R(r) for a given C.
-	RoleMapping(r, c uint, ch chan<- uint)
+	// TODO document: must return a new slice
+	RoleMapping(r, c uint) []uint
 
 	// ReverseRoleMapping returns all pairs (C, D) in R(r) for a given D.
-	ReverseRoleMapping(r, d uint, ch chan<- uint)
+	ReverseRoleMapping(r, d uint) []uint
 
 	// GetComponents returns the number of all objects, s.t. we can use it when
 	// needed.
@@ -214,24 +215,35 @@ func (state *SolverState) AddRole(r, c, d uint) bool {
 	return relationChanged
 }
 
-func (state *SolverState) RoleMapping(r, c uint, ch chan<- uint) {
+func (state *SolverState) RoleMapping(r, c uint) []uint {
 	state.rMutex[r].RLock()
+
 	m := state.R[r].mapping[c]
+	res := make([]uint, len(m))
+
+	var i uint
 	for d, _ := range m {
-		ch <- d
+		res[i] = d
+		i++
 	}
-	close(ch)
 	state.rMutex[r].RUnlock()
+
+	return res
 }
 
-func (state *SolverState) ReverseRoleMapping(r, d uint, ch chan<- uint) {
+func (state *SolverState) ReverseRoleMapping(r, d uint) []uint {
 	state.rMutex[r].RLock()
+
 	m := state.R[r].reverseMapping[d]
+	res := make([]uint, len(m))
+
+	var i uint
 	for c, _ := range m {
-		ch <- c
+		res[i] = c
+		i++
 	}
-	close(ch)
 	state.rMutex[r].RUnlock()
+	return res
 }
 
 func (state *SolverState) SubsetConcepts(c, d uint) bool {
@@ -370,12 +382,11 @@ func (n *CR4) GetRNotification(state StateHandler, r, c, d uint) bool {
 func (n *CR4) GetSNotification(state StateHandler, d, dPrime uint) bool {
 	// TODO maybe again some debug messages...
 	// iterate over each (C, D) ∈ R(r)
-	ch := make(chan uint, 1)
-	go state.ReverseRoleMapping(n.R, d, ch)
+	candidates := state.ReverseRoleMapping(n.R, d)
 	// iterate over each c
 	// TODO union could be nicer here in order to avoid too many locks... test it
 	res := false
-	for c := range ch {
+	for _, c := range candidates {
 		res = state.AddConcept(c, n.E) || res
 	}
 	return res
@@ -416,9 +427,8 @@ func (n *CR5) GetSNotification(state StateHandler, d, bot uint) bool {
 	numR := state.GetComponents().Roles
 	var r uint
 	for ; r < numR; r++ {
-		ch := make(chan uint, 1)
-		go state.ReverseRoleMapping(r, d, ch)
-		for c := range ch {
+		candidates := state.ReverseRoleMapping(r, d)
+		for _, c := range candidates {
 			res = state.AddConcept(c, 0) || res
 		}
 	}
@@ -465,10 +475,9 @@ func NewCR11(r1, r2, r3 uint) *CR11 {
 func (n *CR11) GetRNotification(state StateHandler, r, c, d uint) bool {
 	switch r {
 	case n.R1:
-		ch := make(chan uint, 1)
-		go state.RoleMapping(n.R2, d, ch)
+		candidates := state.RoleMapping(n.R2, d)
 		result := false
-		for e := range ch {
+		for _, e := range candidates {
 			result = state.AddRole(n.R3, c, e) || result
 		}
 		return result
@@ -477,10 +486,9 @@ func (n *CR11) GetRNotification(state StateHandler, r, c, d uint) bool {
 		// in this case the names in the rule are (D, E) for R(r2)
 		e := d
 		d = c
-		ch := make(chan uint, 1)
-		go state.ReverseRoleMapping(n.R1, d, ch)
+		candidates := state.ReverseRoleMapping(n.R1, d)
 		result := false
-		for c := range ch {
+		for _, c := range candidates {
 			result = state.AddRole(n.R3, c, e) || result
 		}
 		return result
