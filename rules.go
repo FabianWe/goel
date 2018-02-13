@@ -188,6 +188,10 @@ func (state *SolverState) AddConcept(c, d uint) bool {
 
 // S(C) = S(C) + S(D)
 func (state *SolverState) UnionConcepts(c, d uint) bool {
+	if c == d {
+		// prevent deadlock from locking the mutex twice
+		return false
+	}
 	state.sMutex[c].Lock()
 	state.sMutex[d].RLock()
 	res := state.S[c].Union(state.S[d])
@@ -421,8 +425,6 @@ func (n *CR5) GetSNotification(state StateHandler, d, bot uint) bool {
 	return res
 }
 
-// TODO CR6
-
 // CR10 implements the rule CR10: for r ⊑ s:
 // If (C, D) ∈ R(r) then add (C, D) to R(s).
 //
@@ -458,6 +460,8 @@ func NewCR11(r1, r2, r3 uint) *CR11 {
 	return &CR11{r1, r2, r3}
 }
 
+// TODO concurrency deadlock issue here I guess: We lock for reading but
+// we also want to write...
 func (n *CR11) GetRNotification(state StateHandler, r, c, d uint) bool {
 	switch r {
 	case n.R1:
