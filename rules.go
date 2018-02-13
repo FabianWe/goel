@@ -189,8 +189,10 @@ func (state *SolverState) AddConcept(c, d uint) bool {
 // S(C) = S(C) + S(D)
 func (state *SolverState) UnionConcepts(c, d uint) bool {
 	state.sMutex[c].Lock()
+	state.sMutex[d].RLock()
 	res := state.S[c].Union(state.S[d])
 	state.sMutex[c].Unlock()
+	state.sMutex[d].RUnlock()
 	return res
 }
 

@@ -79,18 +79,4 @@ func rulebased(normalized *goel.NormalizedTBox) {
 	solver.Init(normalized)
 	execTime := time.Since(start)
 	fmt.Printf("... Done after %v\n", execTime)
-	// totalStart := start
-	// solver := goel.NewRuleSolver(
-	// 	goel.NewSetGraph(),
-	// 	nil, nil)
-	// solver.Init(normalized)
-	// execTime := time.Since(start)
-	// fmt.Printf("... Done after %v\n", execTime)
-	// fmt.Println("Solving ...")
-	// start = time.Now()
-	// solver.Solve(normalized)
-	// execTime = time.Since(start)
-	// fmt.Printf("... Done after %v\n", execTime)
-	// totalTime := time.Since(totalStart)
-	// fmt.Printf("Total time: %v\n", totalTime)
 }

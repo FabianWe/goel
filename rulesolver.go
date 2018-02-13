@@ -68,7 +68,7 @@ type AllChangesState interface {
 	// TODO add search method(s) here.
 	ExtendedSearch(goals map[uint]struct{}, additionalStart uint) map[uint]struct{}
 	// TODO describe requirements
-	AddSubsetRule(c, d uint, ch <-chan bool)
+	AddSubsetRule(c, d uint, ch <-chan bool) bool
 }
 
 type AllChangesSolverState struct {
@@ -374,4 +374,77 @@ func (solver *AllChangesSolver) Init(tbox *NormalizedTBox) {
 		wg.Done()
 	}()
 	wg.Wait()
+}
+
+func (solver *AllChangesSolver) AddConcept(c, d uint) bool {
+	res := solver.AllChangesSolverState.AddConcept(c, d)
+	// TODO right place?! I guess so
+	if res {
+		// add pending update
+		update := NewSUpdate(c, d)
+		solver.pendingSupdates = append(solver.pendingSupdates, update)
+	}
+	return res
+}
+
+func (solver *AllChangesSolver) UnionConcepts(c, d uint) bool {
+	// we don't want to iterate over each concept twice (once in the set union
+	// and once here) so we simply do this by hand... Bit of code duplication
+	// but I guess that's okay
+
+	// first we want to avoid some deadlocks (if c == d nothing happens but we
+	// can't read / write at the same time)
+	if c == d {
+		return false
+	}
+	solver.sMutex[c].Lock()
+	solver.sMutex[d].RLock()
+	sc := solver.S[c].m
+	sd := solver.S[d].m
+	added := false
+	for v, _ := range sd {
+		// add to S(C)
+		oldLen := len(sc)
+		sc[v] = struct{}{}
+		if oldLen != len(sc) {
+			// change took place, add pending update
+			added = true
+			// TODO again: right place?
+			update := NewSUpdate(c, v)
+			solver.pendingSupdates = append(solver.pendingSupdates, update)
+		}
+	}
+	solver.sMutex[c].Unlock()
+	solver.sMutex[d].RUnlock()
+	return added
+}
+
+func (solver *AllChangesSolver) AddRole(r, c, d uint) bool {
+	// in this case we have to update both: the relation r as well as the graph
+	// and we have to add a pending update: one if R(r) has changed and one if
+	// the graph has changed
+	// first try to add to relation
+	res := solver.AllChangesSolverState.AddRole(r, c, d)
+	if res {
+		// update graph as well and issue a pending update
+		update := NewRUpdate(r, c, d)
+		solver.pendingRUpdates = append(solver.pendingRUpdates, update)
+		// change graph
+		solver.graphMutex.Lock()
+		defer solver.graphMutex.Unlock()
+		graphUpdate := solver.Graph.AddEdge(c, d)
+		// if update changed something notify about the update
+		if graphUpdate {
+			solver.graphChanged = true
+		}
+	}
+	return res
+}
+
+func (solver *AllChangesSolver) AddSubsetRule(c, d uint, ch <-chan bool) bool {
+	// no concurrency here, so nothing to worry about, just add the new rule
+	res := solver.newSubsetRule(c, d)
+	// just wait for the channel, not really required but well
+	<-ch
+	return res
 }
