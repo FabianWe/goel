@@ -95,6 +95,7 @@ func (g *SliceGraph) Succ(vertex uint, ch chan<- uint) {
 // >= 1.
 type ReachabilitySearch func(g ConceptGraph, goal uint, start ...uint) bool
 
+// TODO there seems to be an infinite loop somewhere...
 // TODO could easily be turned into a more concurrent version
 // TODO think about the extended approach again...
 // TODO maybe stop a node from being expanded if it has been expanded before?
@@ -152,7 +153,7 @@ func BFS(g ConceptGraph, goal uint, start ...uint) bool {
 			// (2) It was visited before but only because it was a start node
 			if wasStart, wasVisited := visited[v]; !wasVisited || wasStart {
 				// add node and mark as visited during an expansion
-				visited[v] = true
+				visited[v] = false
 				queue = append(queue, v)
 			}
 
@@ -286,7 +287,7 @@ func BFSToSet(g ConceptGraph, goals map[uint]struct{}, start ...uint) map[uint]s
 		go g.Succ(next, ch)
 		for v := range ch {
 			if wasStart, wasVisited := visited[v]; !wasVisited || wasStart {
-				visited[v] = true
+				visited[v] = false
 				queue = append(queue, v)
 			}
 		}

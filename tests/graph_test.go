@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2016, 2017 Fabian Wenzelmann
+// Copyright (c) 2016, 2017, 2018 Fabian Wenzelmann
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -46,7 +46,7 @@ func TestConnectedG1(t *testing.T) {
 	}{
 		{3, []uint{0}, true},
 		{3, []uint{1}, false},
-		{4, []uint{4}, true},
+		{4, []uint{4}, false},
 	}
 	for _, test := range tests {
 		actual := goel.BFS(g1, test.goal, test.start...)
