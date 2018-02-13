@@ -247,7 +247,7 @@ func (searcher *GraphSearcher) BidrectionalSearch(g ConceptGraph, c, d uint) Bid
 // Extended Search
 type ExtendedReachabilitySearch func(g ConceptGraph, goals map[uint]struct{}, start ...uint) map[uint]struct{}
 
-// TODO think about this again.
+// TODO think about this again and seems rather slow... but why? hmmm...
 func BFSToSet(g ConceptGraph, goals map[uint]struct{}, start ...uint) map[uint]struct{} {
 	// same trick as in BFS
 	visited := make(map[uint]bool, len(start))

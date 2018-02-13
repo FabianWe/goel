@@ -21,6 +21,7 @@
 package goel
 
 import (
+	"fmt"
 	"sync"
 )
 
@@ -63,7 +64,7 @@ func NewRUpdate(r, c, d uint) *RUpdate {
 type AllChangesState interface {
 	StateHandler
 
-	// SubsetConcepts(c, d uint) bool
+	SubsetConcepts(c, d uint) bool
 	// UpdateGraph(c, d uint) bool
 	// TODO add search method(s) here.
 	ExtendedSearch(goals map[uint]struct{}, additionalStart uint) map[uint]struct{}
@@ -178,7 +179,21 @@ func NewAllChangesCR6() *AllChangesCR6 {
 }
 
 func (n *AllChangesCR6) applyRule(state AllChangesState, goals map[uint]struct{}, c uint) bool {
-	connected := state.ExtendedSearch(goals, c)
+	// before doing a search on the graph reduce the number of goals by checking
+	// the subset property this might help us to speed up the search
+	// TODO check how much this helps
+	// whoa, seems to help a lot... but again verify this
+	// TODO is this correct even in a concurrent version?
+	filtered := make(map[uint]struct{}, len(goals))
+	for d, _ := range goals {
+		if !state.SubsetConcepts(d, c) {
+			filtered[d] = struct{}{}
+		}
+	}
+	if len(filtered) == 0 {
+		return false
+	}
+	connected := state.ExtendedSearch(filtered, c)
 	result := false
 	for d, _ := range connected {
 		// no need to do anyhting if c == d
@@ -447,4 +462,73 @@ func (solver *AllChangesSolver) AddSubsetRule(c, d uint, ch <-chan bool) bool {
 	// just wait for the channel, not really required but well
 	<-ch
 	return res
+}
+
+func (solver *AllChangesSolver) Solve(tbox *NormalizedTBox) {
+	// TODO call init here, made this easier for testing during debuging.
+	// add all initial setup steps, that is for each C add ⊤ and C to S(C):
+	// ⊤ add only ⊤, for all other C add ⊤ and C
+	components := tbox.Components
+	solver.AddConcept(1, 1)
+	var c uint = 2
+	// we use + 1 here because we want to use the normalized id directly, so
+	// the bottom concept must be taken into consideration
+	numBCD := components.NumBCD() + 1
+	for ; c < numBCD; c++ {
+		solver.AddConcept(c, 1)
+		solver.AddConcept(c, c)
+	}
+	// while there are still pending updates apply those updates
+L:
+	for {
+		switch {
+		case len(solver.pendingSupdates) != 0:
+			// get next s update and apply it
+			n := len(solver.pendingSupdates)
+			next := solver.pendingSupdates[n-1]
+			// maybe help the garbage collection a bit if slice grows bigger and
+			// bigger
+			solver.pendingSupdates[n-1] = nil
+			solver.pendingSupdates = solver.pendingSupdates[:n-1]
+			// do notifications for that update
+			c, d := next.C, next.D
+			// first lookup all rules that are interested in an update
+			// on S(D)
+			notifications := solver.SRules[d]
+			// now iterate over each notification and apply it
+			for _, notification := range notifications {
+				notification.GetSNotification(solver, c, d)
+			}
+			// once the add is done we never have to worry about those rules again,
+			// we will never apply them here again, so we can delete the entry
+			// TODO may not be so wise, so I don't do it (if somehow we have to use
+			// the rules again)
+			// now also do a notification for CR6
+			solver.cr6.GetSNotification(solver, c, d)
+		case len(solver.pendingRUpdates) != 0:
+			// get next r update and apply it
+			n := len(solver.pendingRUpdates)
+			next := solver.pendingRUpdates[n-1]
+			solver.pendingRUpdates[n-1] = nil
+			solver.pendingRUpdates = solver.pendingRUpdates[:n-1]
+			// do notifications for the update
+			r, c, d := next.R, next.C, next.D
+			// first all notifications waiting for r
+			notifications := solver.RRules[r]
+			for _, notification := range notifications {
+				notification.GetRNotification(solver, r, c, d)
+			}
+			// now inform CR5 (or however else is waiting on an update on all roles)
+			notifications = solver.RRules[uint(NoRole)]
+			for _, notification := range notifications {
+				notification.GetRNotification(solver, r, c, d)
+			}
+		case solver.graphChanged:
+			fmt.Println("CALL")
+			solver.cr6.GetGraphNotification(solver)
+			solver.graphChanged = false
+		default:
+			break L
+		}
+	}
 }
