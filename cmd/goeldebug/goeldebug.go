@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
@@ -27,7 +26,7 @@ func runTests() {
 		MaxCDSize:          10,
 		MaxNumPredicates:   100,
 		MaxNumFeatures:     100}
-	duration := 5 * time.Hour
+	duration := 2 * time.Hour
 	start := time.Now()
 	for {
 		expired := time.Since(start)
@@ -51,16 +50,14 @@ func testInstance(builder *goel.RandomELBuilder) {
 		if r := recover(); r != nil {
 			errors++
 			fmt.Println("====================================")
-			fileName := fmt.Sprintf("debug/error%d.json", errors)
+			fileName := fmt.Sprintf("debug/error%d.txt", errors)
 			log.Println("Test failed, writing test to file", fileName)
 			file, fErr := os.Create(fileName)
 			if fErr != nil {
 				log.Println("Writing file failed", fErr)
 			}
-			enc := json.NewEncoder(file)
-			encErr := enc.Encode(tbox)
-			if encErr != nil {
-				log.Println("Encoding failed", encErr)
+			if writeErr := normalized.Write(file); writeErr != nil {
+				log.Println("Writing file failed", writeErr)
 			}
 			log.Println("TBox BCC-Components:", tbox.Components.NumBCD())
 			log.Println("Normalized TBox BCC-Components:", normalized.Components.NumBCD())

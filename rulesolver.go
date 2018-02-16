@@ -21,7 +21,6 @@
 package goel
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -524,7 +523,6 @@ L:
 				notification.GetRNotification(solver, r, c, d)
 			}
 		case solver.graphChanged:
-			fmt.Println("CALL")
 			solver.cr6.GetGraphNotification(solver)
 			solver.graphChanged = false
 		default:

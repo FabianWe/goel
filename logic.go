@@ -23,7 +23,11 @@
 package goel
 
 import (
+	"bufio"
+	"errors"
 	"fmt"
+	"io"
+	"strconv"
 	"strings"
 )
 
@@ -67,6 +71,27 @@ func (c *ELBaseComponents) GetConcept(normalizedID uint) Concept {
 	case normalizedID < 2+c.Nominals+c.CDExtensions+c.Names:
 		return NewNamedConcept(normalizedID - 2 - c.Nominals - c.CDExtensions)
 	}
+}
+
+func (c *ELBaseComponents) Write(w io.Writer) error {
+	_, err := fmt.Fprintf(w, "%d,%d,%d,%d", c.Nominals, c.CDExtensions, c.Names, c.Roles)
+	return err
+}
+
+func ParseELBaseComponents(line string) (*ELBaseComponents, error) {
+	split := strings.Split(line, ",")
+	if len(split) != 4 {
+		return nil, fmt.Errorf("Can't parse components from string, requires form \"int,int,int,int\", got %s", line)
+	}
+	values := make([]uint, 4)
+	for i, str := range split {
+		asInt, convErr := strconv.Atoi(str)
+		if convErr != nil {
+			return nil, convErr
+		}
+		values[i] = uint(asInt)
+	}
+	return NewELBaseComponents(values[0], values[1], values[2], values[3]), nil
 }
 
 // Concept is the interface for all Concept defintions.
@@ -376,6 +401,56 @@ func (ci *NormalizedCI) String() string {
 	}
 }
 
+func writeTriple(w io.Writer, first, second, third int) error {
+	_, err := fmt.Fprintf(w, "%d,%d,%d", first, second, third)
+	return err
+}
+
+func parseTriple(line string) (first, second, third int, err error) {
+	split := strings.Split(line, ",")
+	if len(split) != 3 {
+		err = fmt.Errorf("Can't parse components from string, requires form \"int,int,int\", got %s", line)
+		return
+	}
+	values := make([]int, 3)
+	for i, str := range split {
+		asInt, convErr := strconv.Atoi(str)
+		if convErr != nil {
+			err = convErr
+			return
+		}
+		values[i] = asInt
+	}
+	first, second, third = values[0], values[1], values[2]
+	return
+}
+
+func (ci *NormalizedCI) Write(w io.Writer, c *ELBaseComponents) error {
+	var first, second, third int
+	first = int(ci.C1.NormalizedID(c))
+	third = int(ci.D.NormalizedID(c))
+	if ci.C2 == nil {
+		second = -1
+	} else {
+		second = int(ci.C2.NormalizedID(c))
+	}
+	return writeTriple(w, first, second, third)
+}
+
+func ParseNormalizedCI(line string, c *ELBaseComponents) (*NormalizedCI, error) {
+	first, second, third, err := parseTriple(line)
+	if err != nil {
+		return nil, err
+	}
+	var c1, c2, d Concept
+	c1 = c.GetConcept(uint(first))
+	d = c.GetConcept(uint(third))
+	if second >= 0 {
+		c2 = c.GetConcept(uint(second))
+	}
+	return NewNormalizedCI(c1, c2, d), nil
+}
+
 // NormalizedCIRightEx is a normalized CI where the existential quantifier is on
 // the right-hand side, i.e. of the form C1 ⊑ ∃r.C2.
 // C1 and C2 must be in BC(T) and D must be in BC(T) or ⊥.
@@ -391,6 +466,20 @@ func NewNormalizedCIRightEx(c1 Concept, r Role, c2 Concept) *NormalizedCIRightEx
 
 func (ci *NormalizedCIRightEx) String() string {
 	return fmt.Sprintf("%v ⊑ ∃ %s.%v", ci.C1, ci.R.String(), ci.C2)
+}
+
+func (ci *NormalizedCIRightEx) Write(w io.Writer, c *ELBaseComponents) error {
+	return writeTriple(w, int(ci.C1.NormalizedID(c)),
+		int(ci.R), int(ci.C2.NormalizedID(c)))
+}
+
+func ParseNormalizedCIRightEx(line string, c *ELBaseComponents) (*NormalizedCIRightEx, error) {
+	first, second, third, err := parseTriple(line)
+	if err != nil {
+		return nil, err
+	}
+	return NewNormalizedCIRightEx(c.GetConcept(uint(first)),
+		NewRole(uint(second)), c.GetConcept(uint(third))), nil
 }
 
 // NormalizedCILeftEx is a normalized CI where the existential quantifier is on
@@ -410,6 +499,18 @@ func (ci *NormalizedCILeftEx) String() string {
 	return fmt.Sprintf("∃ %s.%v ⊑ %v", ci.R.String(), ci.C1, ci.D)
 }
 
+func (ci *NormalizedCILeftEx) Write(w io.Writer, c *ELBaseComponents) error {
+	return writeTriple(w, int(ci.R), int(ci.C1.NormalizedID(c)), int(ci.D.NormalizedID(c)))
+}
+
+func ParseNormalizedCILeftEx(line string, c *ELBaseComponents) (*NormalizedCILeftEx, error) {
+	first, second, third, err := parseTriple(line)
+	if err != nil {
+		return nil, err
+	}
+	return NewNormalizedCILeftEx(NewRole(uint(first)), c.GetConcept(uint(second)), c.GetConcept(uint(third))), nil
+}
+
 // NormalizedRI is a normalized RI of the form r1 o r2 ⊑ s or r1 ⊑ s.
 // For the second form R2 is set to NoRole.
 type NormalizedRI struct {
@@ -426,6 +527,34 @@ func NewNormalizedRISingle(r1, s Role) *NormalizedRI {
 	return NewNormalizedRI(r1, NoRole, s)
 }
 
+func (ci *NormalizedRI) Write(w io.Writer) error {
+	var first, second, third int
+	first = int(ci.R1)
+	third = int(ci.S)
+	if ci.R2 == NoRole {
+		second = -1
+	} else {
+		second = int(ci.R2)
+	}
+	return writeTriple(w, first, second, third)
+}
+
+func ParseNormalizedRI(line string) (*NormalizedRI, error) {
+	first, second, third, err := parseTriple(line)
+	if err != nil {
+		return nil, err
+	}
+	var r1, r2, s Role
+	r1 = NewRole(uint(first))
+	s = NewRole(uint(third))
+	if second < 0 {
+		r2 = NoRole
+	} else {
+		r2 = NewRole(uint(second))
+	}
+	return NewNormalizedRI(r1, r2, s), nil
+}
+
 // NormalizedTBox is a TBox containing only normalized CIs.
 type NormalizedTBox struct {
 	Components *ELBaseComponents
@@ -433,6 +562,175 @@ type NormalizedTBox struct {
 	CILeft     []*NormalizedCILeftEx
 	CIRight    []*NormalizedCIRightEx
 	RIs        []*NormalizedRI
+}
+
+func (tbox *NormalizedTBox) Write(w io.Writer) error {
+	// first write components + newline
+	if err := tbox.Components.Write(w); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintln(w, ""); err != nil {
+		return err
+	}
+	// now write length of CI, CILeft, CIRight and RI
+	if _, err := fmt.Fprintf(w, "%d,%d,%d,%d\n", len(tbox.CIs), len(tbox.CILeft),
+		len(tbox.CIRight), len(tbox.RIs)); err != nil {
+		return err
+	}
+	// now write everything
+	for _, ci := range tbox.CIs {
+		if err := ci.Write(w, tbox.Components); err != nil {
+			return err
+		}
+		if _, err := fmt.Fprintln(w, ""); err != nil {
+			return err
+		}
+	}
+	for _, ci := range tbox.CILeft {
+		if err := ci.Write(w, tbox.Components); err != nil {
+			return err
+		}
+		if _, err := fmt.Fprintln(w, ""); err != nil {
+			return err
+		}
+	}
+	for _, ci := range tbox.CIRight {
+		if err := ci.Write(w, tbox.Components); err != nil {
+			return err
+		}
+		if _, err := fmt.Fprintln(w, ""); err != nil {
+			return err
+		}
+	}
+	for _, ri := range tbox.RIs {
+		if err := ri.Write(w); err != nil {
+			return err
+		}
+		if _, err := fmt.Fprintln(w, ""); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func scannerAdvanceLine(s *bufio.Scanner) (string, error) {
+	if !s.Scan() {
+		if err := s.Err(); err != nil {
+			return "", err
+		} else {
+			// reached EOF
+			return "", errors.New("Too few input lines while reading Normalized TBox")
+		}
+	}
+	return s.Text(), nil
+}
+
+func initNormalizedTbox(line string) (*NormalizedTBox, error) {
+	split := strings.Split(line, ",")
+	if len(split) != 4 {
+		return nil, errors.New("Normalized TBox size line must contain for integers")
+	}
+	// parse integers
+	values := make([]int, 4)
+	for i, str := range split {
+		// try to parse as int
+		asInt, convErr := strconv.Atoi(str)
+		if convErr != nil {
+			return nil, convErr
+		}
+		values[i] = asInt
+	}
+	// now initialize the slices
+	cis := make([]*NormalizedCI, values[0])
+	ciLeft := make([]*NormalizedCILeftEx, values[1])
+	ciRight := make([]*NormalizedCIRightEx, values[2])
+	ris := make([]*NormalizedRI, values[3])
+	// CIs        []*NormalizedCI
+	// CILeft     []*NormalizedCILeftEx
+	// CIRight    []*NormalizedCIRightEx
+	// RIs        []*NormalizedRI
+	return &NormalizedTBox{
+		Components: nil,
+		CIs:        cis,
+		CILeft:     ciLeft,
+		CIRight:    ciRight,
+		RIs:        ris,
+	}, nil
+}
+
+func ParseNormalizedTBox(r io.Reader) (*NormalizedTBox, error) {
+	// create scanner to read input
+	s := bufio.NewScanner(r)
+	// first parse the components line
+	var components *ELBaseComponents
+	if line, err := scannerAdvanceLine(s); err != nil {
+		return nil, err
+	} else {
+		// try to parse the components
+		var compErr error
+		components, compErr = ParseELBaseComponents(line)
+		if compErr != nil {
+			return nil, compErr
+		}
+	}
+	// now try to parse the length of the tbox and create the slices
+	var res *NormalizedTBox
+	if line, initLineErr := scannerAdvanceLine(s); initLineErr != nil {
+		return nil, initLineErr
+	} else {
+		var initErr error
+		res, initErr = initNormalizedTbox(line)
+		if initErr != nil {
+			return nil, initErr
+		}
+	}
+	res.Components = components
+	// now parse the actual content
+	for i := 0; i < len(res.CIs); i++ {
+		if line, lineErr := scannerAdvanceLine(s); lineErr != nil {
+			return nil, lineErr
+		} else {
+			if ci, ciParseErr := ParseNormalizedCI(line, components); ciParseErr != nil {
+				return nil, ciParseErr
+			} else {
+				res.CIs[i] = ci
+			}
+		}
+	}
+	for i := 0; i < len(res.CILeft); i++ {
+		if line, lineErr := scannerAdvanceLine(s); lineErr != nil {
+			return nil, lineErr
+		} else {
+			if ci, ciParseErr := ParseNormalizedCILeftEx(line, components); ciParseErr != nil {
+				return nil, ciParseErr
+			} else {
+				res.CILeft[i] = ci
+			}
+		}
+	}
+	for i := 0; i < len(res.CIRight); i++ {
+		if line, lineErr := scannerAdvanceLine(s); lineErr != nil {
+			return nil, lineErr
+		} else {
+			if ci, ciParseErr := ParseNormalizedCIRightEx(line, components); ciParseErr != nil {
+				return nil, ciParseErr
+			} else {
+				res.CIRight[i] = ci
+			}
+		}
+	}
+	for i := 0; i < len(res.RIs); i++ {
+		if line, lineErr := scannerAdvanceLine(s); lineErr != nil {
+			return nil, lineErr
+		} else {
+			if ri, riParseErr := ParseNormalizedRI(line); riParseErr != nil {
+				return nil, riParseErr
+			} else {
+				res.RIs[i] = ri
+			}
+		}
+	}
+	return res, nil
 }
 
 //// ABox ////

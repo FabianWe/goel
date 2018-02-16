@@ -470,8 +470,6 @@ func NewCR11(r1, r2, r3 uint) *CR11 {
 	return &CR11{r1, r2, r3}
 }
 
-// TODO concurrency deadlock issue here I guess: We lock for reading but
-// we also want to write...
 func (n *CR11) GetRNotification(state StateHandler, r, c, d uint) bool {
 	switch r {
 	case n.R1:
