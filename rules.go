@@ -218,7 +218,7 @@ func (state *SolverState) AddRole(r, c, d uint) bool {
 func (state *SolverState) RoleMapping(r, c uint) []uint {
 	state.rMutex[r].RLock()
 
-	m := state.R[r].mapping[c]
+	m := state.R[r].Mapping[c]
 	res := make([]uint, len(m))
 
 	var i uint
@@ -234,7 +234,7 @@ func (state *SolverState) RoleMapping(r, c uint) []uint {
 func (state *SolverState) ReverseRoleMapping(r, d uint) []uint {
 	state.rMutex[r].RLock()
 
-	m := state.R[r].reverseMapping[d]
+	m := state.R[r].ReverseMapping[d]
 	res := make([]uint, len(m))
 
 	var i uint

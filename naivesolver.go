@@ -205,7 +205,7 @@ func (solver *NaiveSolver) Solve(tbox *NormalizedTBox) {
 			sr := solver.R[uint(gci.R)]
 			// iterate each pair (C, D) in R(r), then only check if D'
 			// is in S(D)
-			for p, _ := range sr.m {
+			for p, _ := range sr.M {
 				sd := solver.S[p.Second]
 				if sd.Contains(gci.C1) {
 					// add
@@ -219,7 +219,7 @@ func (solver *NaiveSolver) Solve(tbox *NormalizedTBox) {
 		// now try rule CR5
 		for _, sr := range solver.R {
 			// iterate over each pair (C, D) in R(r) and test if ⊥ is in S(D)
-			for p, _ := range sr.m {
+			for p, _ := range sr.M {
 				sd := solver.S[p.Second]
 				if sd.Contains(Bottom) {
 					sc := solver.S[p.First]
@@ -292,7 +292,7 @@ func (solver *NaiveSolver) Solve(tbox *NormalizedTBox) {
 				// iterate over each pair in R(r)
 				rr := solver.R[uint(r)]
 				rs := solver.R[uint(s)]
-				for pair, _ := range rr.m {
+				for pair, _ := range rr.M {
 					if rs.AddID(pair.First, pair.Second) {
 						changed = true
 					}
@@ -304,9 +304,9 @@ func (solver *NaiveSolver) Solve(tbox *NormalizedTBox) {
 				rr2 := solver.R[uint(r2)]
 				rr3 := solver.R[uint(r3)]
 				// iterate over each pair (C1, D1) in R(r1)
-				for pair1, _ := range rr1.m {
+				for pair1, _ := range rr1.M {
 					// iterate over each pair (C2, D2) in R(r2) and check if D1 = C2
-					for pair2, _ := range rr2.m {
+					for pair2, _ := range rr2.M {
 						if pair1.Second == pair2.First {
 							// add (C1, D2) to R(r3)
 							if rr3.AddID(pair1.First, pair2.Second) {

@@ -96,37 +96,37 @@ type bcPair struct {
 }
 
 type BCPairSet struct {
-	m map[bcPair]struct{}
+	M map[bcPair]struct{}
 	c *ELBaseComponents
 }
 
 func NewBCPairSet(c *ELBaseComponents, initialCapacity uint) *BCPairSet {
 	return &BCPairSet{
-		m: make(map[bcPair]struct{}, initialCapacity),
+		M: make(map[bcPair]struct{}, initialCapacity),
 		c: c,
 	}
 }
 
 func (s *BCPairSet) Contains(c, d Concept) bool {
-	_, has := s.m[bcPair{c.NormalizedID(s.c), d.NormalizedID(s.c)}]
+	_, has := s.M[bcPair{c.NormalizedID(s.c), d.NormalizedID(s.c)}]
 	return has
 }
 
 func (s *BCPairSet) ContainsID(c, d uint) bool {
-	_, has := s.m[bcPair{c, d}]
+	_, has := s.M[bcPair{c, d}]
 	return has
 }
 
 func (s *BCPairSet) Add(c, d Concept) bool {
-	oldLen := len(s.m)
+	oldLen := len(s.M)
 	p := bcPair{c.NormalizedID(s.c), d.NormalizedID(s.c)}
-	s.m[p] = struct{}{}
-	return oldLen != len(s.m)
+	s.M[p] = struct{}{}
+	return oldLen != len(s.M)
 }
 
 func (s *BCPairSet) AddID(c, d uint) bool {
-	oldLen := len(s.m)
+	oldLen := len(s.M)
 	p := bcPair{c, d}
-	s.m[p] = struct{}{}
-	return oldLen != len(s.m)
+	s.M[p] = struct{}{}
+	return oldLen != len(s.M)
 }

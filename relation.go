@@ -25,14 +25,14 @@ package goel
 import "log"
 
 type Relation struct {
-	mapping        map[uint]map[uint]struct{}
-	reverseMapping map[uint]map[uint]struct{}
+	Mapping        map[uint]map[uint]struct{}
+	ReverseMapping map[uint]map[uint]struct{}
 }
 
 func NewRelation(initialCapacity uint) *Relation {
 	return &Relation{
-		mapping:        make(map[uint]map[uint]struct{}, initialCapacity),
-		reverseMapping: make(map[uint]map[uint]struct{}, initialCapacity),
+		Mapping:        make(map[uint]map[uint]struct{}, initialCapacity),
+		ReverseMapping: make(map[uint]map[uint]struct{}, initialCapacity),
 	}
 }
 
@@ -50,8 +50,8 @@ func addToRelation(m map[uint]map[uint]struct{}, first, second uint) bool {
 
 func (r *Relation) Add(c, d uint) bool {
 	// TODO simplify when tested.
-	first := addToRelation(r.mapping, c, d)
-	second := addToRelation(r.reverseMapping, d, c)
+	first := addToRelation(r.Mapping, c, d)
+	second := addToRelation(r.ReverseMapping, d, c)
 	if first != second {
 		log.Printf("Unexpected Relation behaviour while adding %d --> %d: Mappings not consistent",
 			c, d)
@@ -61,7 +61,7 @@ func (r *Relation) Add(c, d uint) bool {
 }
 
 func (r *Relation) Contains(c, d uint) bool {
-	inner, hasInner := r.mapping[c]
+	inner, hasInner := r.Mapping[c]
 	if !hasInner {
 		return false
 	}
