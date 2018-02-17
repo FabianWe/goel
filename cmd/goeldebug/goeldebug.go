@@ -18,6 +18,18 @@ func main() {
 var errors uint
 var success uint
 
+func foo() {
+	f, openErr := os.Open("debug/error1.txt")
+	if openErr != nil {
+		panic(openErr)
+	}
+	box, readErr := goel.ParseNormalizedTBox(f)
+	if readErr != nil {
+		panic(readErr)
+	}
+	runTest(box)
+}
+
 func runTests() {
 	builder := goel.RandomELBuilder{NumIndividuals: 10000,
 		NumConceptNames:    100,
@@ -26,7 +38,7 @@ func runTests() {
 		MaxCDSize:          10,
 		MaxNumPredicates:   100,
 		MaxNumFeatures:     100}
-	duration := 2 * time.Hour
+	duration := 5 * time.Hour
 	start := time.Now()
 	for {
 		expired := time.Since(start)

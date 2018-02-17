@@ -148,6 +148,8 @@ func (solver *NaiveSolver) updateR(r Role, c, d Concept, bc *ELBaseComponents) b
 	return false
 }
 
+// TODO seems some iterations are just... stupid.
+// check again!
 func (solver *NaiveSolver) Solve(tbox *NormalizedTBox) {
 	solver.init(tbox.Components)
 	changed := true
@@ -181,13 +183,16 @@ func (solver *NaiveSolver) Solve(tbox *NormalizedTBox) {
 			}
 		}
 		// now try rule CR3
-		for c, gci := range tbox.CIRight {
-			for _, sc := range solver.S[1:] {
+		for _, gci := range tbox.CIRight {
+			for c, sc := range solver.S[1:] {
 				if CheckCR3(gci, sc) {
 					// add
 					r := gci.R
-					conceptC, conceptD := tbox.Components.GetConcept(uint(c)), gci.C2
+					conceptC, conceptD := tbox.Components.GetConcept(uint(c+1)), gci.C2
 					if solver.updateR(r, conceptC, conceptD, tbox.Components) {
+						if conceptC == Bottom || conceptD == Bottom {
+							fmt.Println(conceptC, conceptD)
+						}
 						changed = true
 					}
 				}
