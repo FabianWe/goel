@@ -23,55 +23,55 @@
 package goel
 
 type BCSet struct {
-	m map[uint]struct{}
+	M map[uint]struct{}
 	c *ELBaseComponents
 }
 
 func NewBCSet(c *ELBaseComponents, initialCapacity uint) *BCSet {
 	return &BCSet{
-		m: make(map[uint]struct{}, initialCapacity),
+		M: make(map[uint]struct{}, initialCapacity),
 		c: c,
 	}
 }
 
 func (s *BCSet) Contains(c Concept) bool {
-	_, has := s.m[c.NormalizedID(s.c)]
+	_, has := s.M[c.NormalizedID(s.c)]
 	return has
 }
 
 func (s *BCSet) ContainsID(c uint) bool {
-	_, has := s.m[c]
+	_, has := s.M[c]
 	return has
 }
 
 // TODO sometimes we get null here... check again where it is used.
 func (s *BCSet) Add(c Concept) bool {
-	oldLen := len(s.m)
-	s.m[c.NormalizedID(s.c)] = struct{}{}
-	return oldLen != len(s.m)
+	oldLen := len(s.M)
+	s.M[c.NormalizedID(s.c)] = struct{}{}
+	return oldLen != len(s.M)
 }
 
 func (s *BCSet) AddID(c uint) bool {
-	oldLen := len(s.m)
-	s.m[c] = struct{}{}
-	return oldLen != len(s.m)
+	oldLen := len(s.M)
+	s.M[c] = struct{}{}
+	return oldLen != len(s.M)
 }
 
 func (s *BCSet) Union(other *BCSet) bool {
-	oldLen := len(s.m)
-	for v, _ := range other.m {
-		s.m[v] = struct{}{}
+	oldLen := len(s.M)
+	for v, _ := range other.M {
+		s.M[v] = struct{}{}
 	}
-	return oldLen != len(s.m)
+	return oldLen != len(s.M)
 }
 
 // IsSubset tests if s ⊆ other.
 func (s *BCSet) IsSubset(other *BCSet) bool {
-	if len(s.m) > len(other.m) {
+	if len(s.M) > len(other.M) {
 		return false
 	}
-	for v, _ := range s.m {
-		if _, hasD := other.m[v]; !hasD {
+	for v, _ := range s.M {
+		if _, hasD := other.M[v]; !hasD {
 			return false
 		}
 	}
@@ -80,13 +80,13 @@ func (s *BCSet) IsSubset(other *BCSet) bool {
 
 // Equals checks if s = other.
 func (s *BCSet) Equals(other *BCSet) bool {
-	return len(s.m) == len(other.m) && s.IsSubset(other)
+	return len(s.M) == len(other.M) && s.IsSubset(other)
 }
 
 func (s *BCSet) Copy() *BCSet {
-	res := NewBCSet(s.c, uint(len(s.m)))
-	for v, _ := range s.m {
-		res.m[v] = struct{}{}
+	res := NewBCSet(s.c, uint(len(s.M)))
+	for v, _ := range s.M {
+		res.M[v] = struct{}{}
 	}
 	return res
 }

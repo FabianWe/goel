@@ -413,8 +413,8 @@ func (solver *AllChangesSolver) UnionConcepts(c, d uint) bool {
 	}
 	solver.sMutex[c].Lock()
 	solver.sMutex[d].RLock()
-	sc := solver.S[c].m
-	sd := solver.S[d].m
+	sc := solver.S[c].M
+	sd := solver.S[d].M
 	added := false
 	for v, _ := range sd {
 		// add to S(C)

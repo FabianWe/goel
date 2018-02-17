@@ -17,6 +17,7 @@ func main() {
 
 var errors uint
 var success uint
+var unequal uint
 
 func foo() {
 	f, openErr := os.Open("debug/error1.txt")
@@ -65,8 +66,10 @@ func testInstance(builder *goel.RandomELBuilder) {
 			fileName := fmt.Sprintf("debug/error%d.txt", errors)
 			log.Println("Test failed, writing test to file", fileName)
 			file, fErr := os.Create(fileName)
+			defer file.Close()
 			if fErr != nil {
 				log.Println("Writing file failed", fErr)
+				return
 			}
 			if writeErr := normalized.Write(file); writeErr != nil {
 				log.Println("Writing file failed", writeErr)
@@ -79,22 +82,38 @@ func testInstance(builder *goel.RandomELBuilder) {
 	}()
 	s1, r1 := runTest(normalized)
 	s2, r2 := runRuleBased(normalized)
-	done := make(chan bool, 2)
+	res := make(chan bool, 2)
 	// compare s and r
 	go func() {
-		if !compareS(s1, s2) {
+		cRes := compareS(s1, s2)
+		if !cRes {
 			log.Println("Compare of s1 and s2 failed")
 		}
-		done <- true
+		res <- cRes
 	}()
 	go func() {
-		if !compareR(r1, r2) {
+		cRes := compareR(r1, r2)
+		if !cRes {
 			log.Println("Compare of r1 and r2 failed")
 		}
-		done <- true
+		res <- cRes
 	}()
-	<-done
-	<-done
+	res1 := <-res
+	res2 := <-res
+	if !(res1 && res2) {
+		unequal++
+		fileName := fmt.Sprintf("debug/compare%d.txt", unequal)
+		log.Println("Writing failed comp result to file", fileName)
+		file, fErr := os.Create(fileName)
+		defer file.Close()
+		if fErr != nil {
+			log.Println("Writing file failed", fErr)
+			return
+		}
+		if writeErr := normalized.Write(file); writeErr != nil {
+			log.Println("Writing file failed", writeErr)
+		}
+	}
 }
 
 // TODO not nice, just there until it is defined in a more common way
@@ -109,10 +128,25 @@ func compareS(s1, s2 []*goel.BCSet) bool {
 		next2 := s2[i]
 		res := make(chan bool, 2)
 		go func() {
-			res <- next1.IsSubset(next2)
+			// for output don't use subset but iterate each entry
+			for entry, _ := range next1.M {
+				if !next2.ContainsID(entry) {
+					fmt.Printf("Missing in s2: %d not in S(%d)\n", entry, i)
+					res <- false
+					return
+				}
+			}
+			res <- true
 		}()
 		go func() {
-			res <- next2.IsSubset(next1)
+			for entry, _ := range next2.M {
+				if !next1.ContainsID(entry) {
+					fmt.Printf("Missing entry in s1: %d not in S(%d)\n", entry, i)
+					res <- false
+					return
+				}
+			}
+			res <- true
 		}()
 		res1 := <-res
 		res2 := <-res
@@ -137,6 +171,7 @@ func compareR(r1 []*goel.BCPairSet, r2 []*goel.Relation) bool {
 		go func() {
 			for p, _ := range next1.M {
 				if !next2.Contains(p.First, p.Second) {
+					fmt.Printf("Missing in r2: (%d, %d)", p.First, p.Second)
 					res <- false
 					return
 				}
@@ -148,6 +183,7 @@ func compareR(r1 []*goel.BCPairSet, r2 []*goel.Relation) bool {
 			for c, cMap := range next2.Mapping {
 				for d, _ := range cMap {
 					if !next1.ContainsID(c, d) {
+						fmt.Printf("Missing in r1: (%d, %d)\n", c, d)
 						res <- false
 						return
 					}
@@ -157,7 +193,7 @@ func compareR(r1 []*goel.BCPairSet, r2 []*goel.Relation) bool {
 		}()
 		res1 := <-res
 		res2 := <-res
-		if !res1 && res2 {
+		if !(res1 && res2) {
 			return false
 		}
 	}
