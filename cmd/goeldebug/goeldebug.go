@@ -12,7 +12,7 @@ import (
 
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
-	runTests()
+	foo()
 }
 
 var errors uint
@@ -20,7 +20,7 @@ var success uint
 var unequal uint
 
 func foo() {
-	f, openErr := os.Open("debug/error1.txt")
+	f, openErr := os.Open("debug/compare1.txt")
 	if openErr != nil {
 		panic(openErr)
 	}
@@ -28,13 +28,20 @@ func foo() {
 	if readErr != nil {
 		panic(readErr)
 	}
-	runTest(box)
+	bar(box)
 }
 
 func runTests() {
-	builder := goel.RandomELBuilder{NumIndividuals: 10000,
-		NumConceptNames:    100,
-		NumRoles:           100,
+	// builder := goel.RandomELBuilder{NumIndividuals: 10000,
+	// 	NumConceptNames:    100,
+	// 	NumRoles:           100,
+	// 	NumConcreteDomains: 0,
+	// 	MaxCDSize:          10,
+	// 	MaxNumPredicates:   100,
+	// 	MaxNumFeatures:     100}
+	builder := goel.RandomELBuilder{NumIndividuals: 3,
+		NumConceptNames:    3,
+		NumRoles:           3,
 		NumConcreteDomains: 0,
 		MaxCDSize:          10,
 		MaxNumPredicates:   100,
@@ -53,9 +60,48 @@ func runTests() {
 	}
 }
 
+func findD(sets []*goel.BCSet) {
+	for i, s := range sets[1:] {
+		if s.ContainsID(2) {
+			fmt.Println("Found 2 in", i+1)
+		}
+	}
+}
+
+func bar(tbox *goel.NormalizedTBox) {
+	s1, r1 := runTest(tbox)
+	s2, r2 := runRuleBased(tbox)
+	fmt.Println("2 for s1")
+	findD(s1)
+	fmt.Println("2 for s2")
+	findD(s2)
+	res := make(chan bool, 2)
+	// compare s and r
+	go func() {
+		cRes := compareS(s1, s2)
+		if !cRes {
+			log.Println("Compare of s1 and s2 failed")
+		}
+		res <- cRes
+	}()
+	go func() {
+		cRes := compareR(r1, r2)
+		if !cRes {
+			log.Println("Compare of r1 and r2 failed")
+		}
+		res <- cRes
+	}()
+	res1 := <-res
+	res2 := <-res
+	if !(res1 && res2) {
+		fmt.Println("FAIL")
+	}
+}
+
 func testInstance(builder *goel.RandomELBuilder) {
 
-	_, tbox := builder.GenerateRandomTBox(0, 1000, 1000, 10, 100, 100)
+	// _, tbox := builder.GenerateRandomTBox(0, 1000, 1000, 10, 100, 100)
+	_, tbox := builder.GenerateRandomTBox(0, 2, 2, 10, 2, 2)
 	normalizer := goel.NewDefaultNormalFormBUilder(100)
 	normalized := normalizer.Normalize(tbox)
 
@@ -113,6 +159,7 @@ func testInstance(builder *goel.RandomELBuilder) {
 		if writeErr := normalized.Write(file); writeErr != nil {
 			log.Println("Writing file failed", writeErr)
 		}
+		os.Exit(0)
 	}
 }
 

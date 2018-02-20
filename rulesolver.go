@@ -21,12 +21,14 @@
 package goel
 
 import (
+	"fmt"
 	"sync"
 )
 
 // SUpdate is a type that stores the information that D has been added to S(C).
 // It is usually used in a queue that stores all updates that still must be
 // executed (notifications for that update must be issued).
+// TODO Is there a mix-up with C / D?
 type SUpdate struct {
 	C, D uint
 }
@@ -114,6 +116,7 @@ func NewAllChangesSolverState(c *ELBaseComponents, g ConceptGraph, search Extend
 func (state *AllChangesSolverState) ExtendedSearch(goals map[uint]struct{},
 	additionalStart uint) map[uint]struct{} {
 	state.graphMutex.RLock()
+	fmt.Println(state.Graph)
 	res := state.Searcher.Search(state.Graph, goals, additionalStart)
 	state.graphMutex.RUnlock()
 	return res
@@ -193,6 +196,9 @@ func (n *AllChangesCR6) applyRule(state AllChangesState, goals map[uint]struct{}
 		return false
 	}
 	connected := state.ExtendedSearch(filtered, c)
+	fmt.Println("Searching to", filtered, "from", c)
+	fmt.Println("Connected:", connected)
+	fmt.Println(state.ExtendedSearch(map[uint]struct{}{}, 2))
 	result := false
 	for d, _ := range connected {
 		// no need to do anyhting if c == d
@@ -221,7 +227,6 @@ func (n *AllChangesCR6) GetGraphNotification(state AllChangesState) bool {
 	// lock mutex
 	n.aMutex.Lock()
 	defer n.aMutex.Unlock()
-
 	result := false
 	for _, containedIn := range n.aMap {
 		for c, _ := range containedIn {
@@ -262,7 +267,7 @@ func (n *AllChangesCR6) GetSNotification(state AllChangesState, c, cPrime uint) 
 		containedIn = make(map[uint]struct{}, 10)
 		n.aMap[cPrime] = containedIn
 	}
-	containedIn[cPrime] = struct{}{}
+	containedIn[c] = struct{}{}
 	return result
 }
 
@@ -493,6 +498,8 @@ L:
 			c, d := next.C, next.D
 			// first lookup all rules that are interested in an update
 			// on S(D)
+			// TODO here is a mixup?
+			// or is just the documentation wrong?
 			notifications := solver.SRules[d]
 			// now iterate over each notification and apply it
 			for _, notification := range notifications {

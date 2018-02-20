@@ -22,6 +22,11 @@
 
 package goel
 
+import (
+	"fmt"
+	"strings"
+)
+
 type ConceptGraph interface {
 	Init(numConcepts uint)
 	AddEdge(source, target uint) bool
@@ -34,6 +39,14 @@ type SetGraph struct {
 
 func NewSetGraph() *SetGraph {
 	return &SetGraph{graph: nil}
+}
+
+func (g *SetGraph) String() string {
+	strs := make([]string, len(g.graph))
+	for i, s := range g.graph {
+		strs[i] = fmt.Sprintf("%d ↦ %s", i, StringUintSet(s))
+	}
+	return fmt.Sprintf("{ %s }", strings.Join(strs, ",\n"))
 }
 
 func (g *SetGraph) Init(numConcepts uint) {
@@ -207,6 +220,7 @@ func (searcher *GraphSearcher) Search(g ConceptGraph, additionalStart, goal uint
 	start := make([]uint, len(searcher.start))
 	copy(start, searcher.start)
 	start = prepareSearchStart(start, additionalStart)
+	fmt.Println("Search from", start, "to", goal)
 	return searcher.search(g, goal, start...)
 }
 
@@ -263,7 +277,7 @@ func BFSToSet(g ConceptGraph, goals map[uint]struct{}, start ...uint) map[uint]s
 	for len(queue) > 0 {
 		next := queue[0]
 		queue = queue[1:]
-		// next is a goal we add the goal, but again the same precautions as in
+		// if next is a goal we add the goal, but again the same precautions as in
 		// BFS.
 		if _, isGoal := goals[next]; isGoal {
 			visitedVal, wasVisited := visited[next]

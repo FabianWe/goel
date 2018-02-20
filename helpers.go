@@ -22,7 +22,11 @@
 
 package goel
 
-import "sync"
+import (
+	"fmt"
+	"strings"
+	"sync"
+)
 
 // IntMax returns the maximum of a and b.
 func IntMax(a, b int) int {
@@ -86,4 +90,17 @@ func (dist *IntDistributor) Next() uint {
 	next := dist.next
 	dist.next++
 	return next
+}
+
+// StringUintSet returns a set representation of a set of uints, escpecially
+// useful during debugging.
+func StringUintSet(vals map[uint]struct{}) string {
+	strs := make([]string, len(vals))
+	i := 0
+	for val, _ := range vals {
+		strs[i] = fmt.Sprintf("%d", val)
+		i++
+	}
+	s := strings.Join(strs, ", ")
+	return fmt.Sprintf("{%s}", s)
 }

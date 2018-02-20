@@ -190,9 +190,6 @@ func (solver *NaiveSolver) Solve(tbox *NormalizedTBox) {
 					r := gci.R
 					conceptC, conceptD := tbox.Components.GetConcept(uint(c+1)), gci.C2
 					if solver.updateR(r, conceptC, conceptD, tbox.Components) {
-						if conceptC == Bottom || conceptD == Bottom {
-							fmt.Println(conceptC, conceptD)
-						}
 						changed = true
 					}
 				}
@@ -249,12 +246,16 @@ func (solver *NaiveSolver) Solve(tbox *NormalizedTBox) {
 					for ; j < uint(len(solver.S)); j++ {
 						sd := solver.S[j]
 						if sd.Contains(nominal) {
+							fmt.Printf("Found {%d} in %d and %d\n", nominal.NormalizedID(tbox.Components), i, j)
 							// check if C ↝ D
 							// we also have to check if D ↝ C because we just check
 							// all pairs (i, j) where j > i.
 							// Thus we could have that i is not connected to j
 							// but j is connected to i. In this case we must apply the rule!
 							searchRes := solver.searcher.BidrectionalSearch(solver.graph, i, j)
+							fmt.Println(solver.graph)
+							fmt.Printf("Nodes connected (naive): %d ↝ %d\n", i, j)
+							fmt.Println("Connection type:", searchRes)
 							switch searchRes {
 							case BidrectionalBoth:
 								// update both
