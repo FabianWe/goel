@@ -24,7 +24,9 @@ package goel
 
 import (
 	"fmt"
+	"log"
 	"strings"
+	"sync"
 )
 
 type ConceptGraph interface {
@@ -265,8 +267,11 @@ type ExtendedReachabilitySearch func(g ConceptGraph, goals map[uint]struct{}, st
 // TODO think about this again and seems rather slow... but why? hmmm...
 func BFSToSet(g ConceptGraph, goals map[uint]struct{}, start ...uint) map[uint]struct{} {
 	// same trick as in BFS
-	visited := make(map[uint]bool, len(start))
 	result := make(map[uint]struct{}, len(goals))
+	if len(goals) == 0 {
+		return result
+	}
+	visited := make(map[uint]bool, len(start))
 	// very much the same as BFS, but we don't stop once a goal has been found
 	// but continue until all reachable states from goals are found
 	for _, value := range start {
@@ -330,4 +335,119 @@ func (searcher *ExtendedGraphSearcher) Search(g ConceptGraph, goals map[uint]str
 	copy(start, searcher.start)
 	start = prepareSearchStart(start, additionalStart)
 	return searcher.extendedSearch(g, goals, start...)
+}
+
+func (searcher *ExtendedGraphSearcher) BidrectionalSearch(g ConceptGraph, oldElements map[uint]struct{}, newElement uint) map[uint]BidirectionalSearch {
+	res := make(map[uint]BidirectionalSearch, len(oldElements))
+	// first we do an extended search from [{a} for each {a}] (that is what is
+	// stored in start) to {k1, ..., kn, k}
+	// This way we can easily determine if k was already reached (no searches
+	// from ki -> k required, simply add them) and for which ki we already have
+	// k -> ki (only to all others a search is required)
+	// we use a channel to synchronize all the update of entries in the result
+	// dict and a wait group to wait until all operations are done
+	// once all elements have been added to the channel we close the done channel
+	// but first create a copy of the old elements and add k to it
+	firstGoals := make(map[uint]struct{}, len(oldElements)+1)
+	firstGoals[newElement] = struct{}{}
+	// copy old entries
+	for oldValue, _ := range oldElements {
+		firstGoals[oldValue] = struct{}{}
+	}
+	// now run the first search, that is simply from the old start
+	start := make([]uint, len(searcher.start))
+	copy(start, searcher.start)
+	start = start[1:]
+	alreadyReached := searcher.extendedSearch(g, firstGoals, start...)
+	// now initialize wait group and channel and start a function that waits
+	// on updates on that channel
+	type searchRes struct {
+		value uint
+		res   BidirectionalSearch
+	}
+
+	ch := make(chan searchRes, 1)
+	done := make(chan bool, 1)
+	// start a listener, we define an internal update function as well
+
+	// this function assumes that BidirectionalFalse is never added to res
+	updateEntry := func(value uint, sRes BidirectionalSearch) {
+		if oldEntry, hasEntry := res[value]; hasEntry {
+			if oldEntry != sRes {
+				res[value] = BidrectionalBoth
+			}
+		} else {
+			res[value] = sRes
+		}
+	}
+
+	go func() {
+		for entry := range ch {
+			updateEntry(entry.value, entry.res)
+		}
+		done <- true
+	}()
+
+	// this set stores all ki for which we cannot yet determine if k -> ki
+	searchRequired := make(map[uint]struct{})
+
+	// for each ki we add 1 to the wait group, thus len(oldElements) is added
+	var wg sync.WaitGroup
+	wg.Add(len(oldElements))
+
+	_, kReached := alreadyReached[newElement]
+	// a goal set that contains only k
+	kGoalSet := map[uint]struct{}{newElement: struct{}{}}
+
+	for ki, _ := range oldElements {
+		// check k -> ki
+		if _, kiReached := alreadyReached[ki]; kiReached {
+			// if it is already reached just add it
+			ch <- searchRes{ki, BidrectionalDirect}
+		} else {
+			// a search to ki is required
+			searchRequired[ki] = struct{}{}
+		}
+		go func(ki uint) {
+			defer wg.Done()
+			// now check for ki -> k, this may require a search and therefor runs
+			// in a goroutine s.t. may searches can run concurrently
+			// we use wg to sync.
+			if kReached {
+				// just add it, no search required
+				ch <- searchRes{ki, BidrectionalReverse}
+			} else {
+				// perform a search [ki] -> {k}
+				kiRes := searcher.extendedSearch(g, kGoalSet, ki)
+				// check if k was found
+				if len(kiRes) > 0 {
+					// TODO once tested
+					if len(kiRes) != 1 {
+						log.Println("Weird search result!")
+					}
+					// search was a success, add element
+					ch <- searchRes{ki, BidrectionalReverse}
+				}
+			}
+		}(ki)
+	}
+	// now wait for all searches that might be running
+	wg.Wait()
+	// close the channel
+	close(ch)
+	// now wait until all adds have happened
+	<-done
+	// no more searches required
+	if len(searchRequired) == 0 {
+		return res
+	}
+	// now searchRequired contains all ki to witch a search must be performed
+	// check which elements are reachable now
+	reachableNow := searcher.extendedSearch(g, searchRequired, newElement)
+	for ki, _ := range reachableNow {
+		// just update entry
+		updateEntry(ki, BidrectionalDirect)
+	}
+	// now we're done
+	return res
 }

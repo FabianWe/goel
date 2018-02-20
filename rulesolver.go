@@ -186,6 +186,11 @@ func (n *AllChangesCR6) applyRule(state AllChangesState, goals map[uint]struct{}
 	// TODO check how much this helps
 	// whoa, seems to help a lot... but again verify this
 	// TODO is this correct even in a concurrent version?
+
+	// TODO filtered is wrong here!
+	// the problem is that we do a bidrectional search and therefor we can't
+	// just simply rule them out this way
+	// should be correct to check if either !Subset(C, D) or !Subset(D, C) though
 	filtered := make(map[uint]struct{}, len(goals))
 	for d, _ := range goals {
 		if !state.SubsetConcepts(d, c) {
