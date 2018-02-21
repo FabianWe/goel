@@ -21,7 +21,6 @@
 package goel
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -118,8 +117,6 @@ func NewAllChangesSolverState(c *ELBaseComponents, g ConceptGraph, search Extend
 func (state *AllChangesSolverState) ExtendedSearch(goals map[uint]struct{},
 	additionalStart uint) map[uint]struct{} {
 	state.graphMutex.RLock()
-	// TODO remove print
-	// fmt.Println(state.Graph)
 	res := state.Searcher.Search(state.Graph, goals, additionalStart)
 	state.graphMutex.RUnlock()
 	return res
@@ -128,8 +125,6 @@ func (state *AllChangesSolverState) ExtendedSearch(goals map[uint]struct{},
 func (state *AllChangesSolverState) BidrectionalSearch(oldElements map[uint]struct{},
 	newElement uint) map[uint]BidirectionalSearch {
 	state.graphMutex.RLock()
-	// TODO remove print
-	// fmt.Println(state.Graph)
 	res := state.Searcher.BidrectionalSearch(state.Graph, oldElements, newElement)
 	state.graphMutex.RUnlock()
 	return res
@@ -205,10 +200,7 @@ func (n *AllChangesCR6) applyRuleBidirectional(state AllChangesState, goals map[
 	if len(filtered) == 0 {
 		return false
 	}
-	// fmt.Println("Searching bidirectional to and from", StringUintSet(filtered), "and", c)
 	connected := state.BidrectionalSearch(filtered, c)
-	// TODO remove prints
-	// fmt.Println("Connected", connected)
 
 	result := false
 	for d, connType := range connected {
@@ -224,7 +216,6 @@ func (n *AllChangesCR6) applyRuleBidirectional(state AllChangesState, goals map[
 		case BidrectionalReverse:
 			done := make(chan bool, 1)
 			state.AddSubsetRule(d, c, done)
-			// fmt.Printf("Union of: S(%d) = S(%d) U S(%d)\n", d, d, c)
 			result = state.UnionConcepts(d, c) || result
 			done <- true
 		case BidrectionalBoth:
@@ -257,9 +248,6 @@ func (n *AllChangesCR6) applyRuleDirectOnly(state AllChangesState, goals map[uin
 		return false
 	}
 	connected := state.ExtendedSearch(filtered, c)
-	// TODO remove prints
-	// fmt.Println("Searching to", filtered, "from", c)
-	// fmt.Println("Connected:", connected)
 	result := false
 	for d, _ := range connected {
 		// no need to do anyhting if c == d
@@ -508,9 +496,6 @@ func (solver *AllChangesSolver) AddRole(r, c, d uint) bool {
 	// and we have to add a pending update: one if R(r) has changed and one if
 	// the graph has changed
 	// first try to add to relation
-	if r == 0 && c == 10 && d == 13 {
-		fmt.Println("ADDED!!!")
-	}
 	res := solver.AllChangesSolverState.AddRole(r, c, d)
 	if res {
 		// update graph as well and issue a pending update

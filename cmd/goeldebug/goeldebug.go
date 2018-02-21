@@ -13,7 +13,7 @@ import (
 
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
-	foo()
+	runTests()
 }
 
 var errors uint
@@ -36,20 +36,20 @@ func foo() {
 }
 
 func runTests() {
-	// builder := goel.RandomELBuilder{NumIndividuals: 10000,
-	// 	NumConceptNames:    100,
-	// 	NumRoles:           100,
-	// 	NumConcreteDomains: 0,
-	// 	MaxCDSize:          10,
-	// 	MaxNumPredicates:   100,
-	// 	MaxNumFeatures:     100}
-	builder := goel.RandomELBuilder{NumIndividuals: 3,
-		NumConceptNames:    3,
-		NumRoles:           3,
+	builder := goel.RandomELBuilder{NumIndividuals: 1000,
+		NumConceptNames:    100,
+		NumRoles:           100,
 		NumConcreteDomains: 0,
 		MaxCDSize:          10,
 		MaxNumPredicates:   100,
 		MaxNumFeatures:     100}
+	// builder := goel.RandomELBuilder{NumIndividuals: 3,
+	// 	NumConceptNames:    3,
+	// 	NumRoles:           3,
+	// 	NumConcreteDomains: 0,
+	// 	MaxCDSize:          10,
+	// 	MaxNumPredicates:   100,
+	// 	MaxNumFeatures:     100}
 	duration := 5 * time.Hour
 	start := time.Now()
 	for {
@@ -125,7 +125,7 @@ func bar(tbox *goel.NormalizedTBox) {
 func testInstance(builder *goel.RandomELBuilder) {
 
 	// _, tbox := builder.GenerateRandomTBox(0, 1000, 1000, 10, 100, 100)
-	_, tbox := builder.GenerateRandomTBox(0, 2, 2, 10, 2, 2)
+	_, tbox := builder.GenerateRandomTBox(0, 50, 50, 5, 100, 50)
 	normalizer := goel.NewDefaultNormalFormBUilder(100)
 	normalized := normalizer.Normalize(tbox)
 

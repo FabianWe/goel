@@ -23,7 +23,6 @@
 package goel
 
 import (
-	"fmt"
 	"log"
 	"sync"
 )
@@ -352,9 +351,6 @@ func NewCR3(r, d uint) *CR3 {
 }
 
 func (n *CR3) GetSNotification(state StateHandler, c, cPrime uint) bool {
-	if n.R == 0 && c == 10 && n.D == 13 {
-		fmt.Println("ADDED IN CR3")
-	}
 	return state.AddRole(n.R, c, n.D)
 }
 
@@ -457,9 +453,6 @@ func NewCR10(s uint) CR10 {
 }
 
 func (n CR10) GetRNotification(state StateHandler, r, c, d uint) bool {
-	if uint(n) == 0 && c == 10 && d == 13 {
-		fmt.Println("ADDED IN CR10")
-	}
 	return state.AddRole(uint(n), c, d)
 }
 
@@ -485,9 +478,6 @@ func (n *CR11) GetRNotification(state StateHandler, r, c, d uint) bool {
 	if r == n.R1 {
 		candidates := state.RoleMapping(n.R2, d)
 		for _, e := range candidates {
-			if n.R3 == 0 && c == 10 && e == 13 {
-				fmt.Println("ADDED IN CR11")
-			}
 			result = state.AddRole(n.R3, c, e) || result
 		}
 	}
@@ -499,9 +489,6 @@ func (n *CR11) GetRNotification(state StateHandler, r, c, d uint) bool {
 		d = c
 		candidates := state.ReverseRoleMapping(n.R1, d)
 		for _, c := range candidates {
-			if n.R3 == 0 && c == 10 && e == 13 {
-				fmt.Println("ADDED IN CR11")
-			}
 			result = state.AddRole(n.R3, c, e) || result
 		}
 	}
