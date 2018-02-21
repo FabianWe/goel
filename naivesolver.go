@@ -102,7 +102,7 @@ func (solver *NaiveSolver) init(c *ELBaseComponents) {
 	// we use + 1 here because we want to use the normalized id directly, so
 	// the bottom concept must be taken into consideration
 	numBCD := c.NumBCD() + 1
-	fmt.Printf("Got %d BCD elements and %d roles\n", numBCD, c.Roles)
+	// fmt.Printf("Got %d BCD elements and %d roles\n", numBCD, c.Roles)
 	go func() {
 		solver.graph.Init(numBCD)
 		wg.Done()
@@ -190,7 +190,7 @@ func (solver *NaiveSolver) Solve(tbox *NormalizedTBox) {
 					r := gci.R
 					conceptC, conceptD := tbox.Components.GetConcept(uint(c+1)), gci.C2
 					if solver.updateR(r, conceptC, conceptD, tbox.Components) {
-						if uint(r) == 9 && conceptC.NormalizedID(tbox.Components) == 12 && conceptD.NormalizedID(tbox.Components) == 4 {
+						if uint(r) == 0 && conceptC.NormalizedID(tbox.Components) == 10 && conceptD.NormalizedID(tbox.Components) == 13 {
 							fmt.Println("ADDED IN CR3")
 						}
 						changed = true
@@ -299,7 +299,7 @@ func (solver *NaiveSolver) Solve(tbox *NormalizedTBox) {
 				rs := solver.R[uint(s)]
 				for pair, _ := range rr.M {
 					if rs.AddID(pair.First, pair.Second) {
-						if uint(s) == 9 && pair.First == 12 && pair.Second == 4 {
+						if uint(s) == 0 && pair.First == 10 && pair.Second == 13 {
 							fmt.Println("ADDED IN CR10")
 						}
 						changed = true
@@ -318,7 +318,7 @@ func (solver *NaiveSolver) Solve(tbox *NormalizedTBox) {
 						if pair1.Second == pair2.First {
 							// add (C1, D2) to R(r3)
 							if rr3.AddID(pair1.First, pair2.Second) {
-								if uint(r3) == 9 && pair1.First == 12 && pair2.Second == 4 {
+								if uint(r3) == 0 && pair1.First == 10 && pair2.Second == 13 {
 									fmt.Println("ADDED IN CR11 because of rule", ri)
 								}
 								changed = true

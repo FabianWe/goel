@@ -29,7 +29,10 @@ func foo() {
 	if readErr != nil {
 		panic(readErr)
 	}
-	bar(box)
+	for i := 0; i < 1; i++ {
+		bar(box)
+	}
+	fmt.Println(strings.Repeat("=", 20))
 }
 
 func runTests() {
@@ -87,8 +90,9 @@ func findR(r1 []*goel.BCPairSet, r2 []*goel.Relation, c, d uint) {
 
 func bar(tbox *goel.NormalizedTBox) {
 	s1, r1 := runTest(tbox)
+	fmt.Println(strings.Repeat("@", 20))
 	s2, r2 := runRuleBased(tbox)
-	findR(r1, r2, 12, 4)
+	findR(r1, r2, 10, 13)
 	// fmt.Println("7 for s1")
 	// findD(s1)
 	// fmt.Println("7 for s2")
@@ -193,31 +197,23 @@ func compareS(s1, s2 []*goel.BCSet) bool {
 	for i := 1; i < n; i++ {
 		next1 := s1[i]
 		next2 := s2[i]
-		res := make(chan bool, 2)
-		go func() {
-			// for output don't use subset but iterate each entry
-			for entry, _ := range next1.M {
-				if !next2.ContainsID(entry) {
-					fmt.Printf("Missing in s2: %d not in S(%d)\n", entry, i)
-					res <- false
-					return
-				}
+		firstRes, secondRes := true, true
+		for entry, _ := range next1.M {
+			if !next2.ContainsID(entry) {
+				fmt.Printf("Missing in s2: %d not in S(%d)\n", entry, i)
+				firstRes = false
+				break
 			}
-			res <- true
-		}()
-		go func() {
-			for entry, _ := range next2.M {
-				if !next1.ContainsID(entry) {
-					fmt.Printf("Missing entry in s1: %d not in S(%d)\n", entry, i)
-					res <- false
-					return
-				}
+		}
+
+		for entry, _ := range next2.M {
+			if !next1.ContainsID(entry) {
+				fmt.Printf("Missing entry in s1: %d not in S(%d)\n", entry, i)
+				secondRes = false
+				break
 			}
-			res <- true
-		}()
-		res1 := <-res
-		res2 := <-res
-		if !(res1 && res2) {
+		}
+		if !(firstRes && secondRes) {
 			return false
 		}
 	}
@@ -233,34 +229,27 @@ func compareR(r1 []*goel.BCPairSet, r2 []*goel.Relation) bool {
 	for i := 0; i < n; i++ {
 		next1 := r1[i]
 		next2 := r2[i]
-		res := make(chan bool, 2)
+		firstRes, secondRes := true, true
 		// iterate over each pair in r1 and check if it is contained in r2
-		go func() {
-			for p, _ := range next1.M {
-				if !next2.Contains(p.First, p.Second) {
-					fmt.Printf("Missing in r2: (%d, %d)\n", p.First, p.Second)
-					res <- false
-					return
-				}
+		for p, _ := range next1.M {
+			if !next2.Contains(p.First, p.Second) {
+				fmt.Printf("Missing in r2: r(%d): (%d, %d)\n", i, p.First, p.Second)
+				firstRes = false
+				break
 			}
-			res <- true
-		}()
+		}
+
 		// itearte over each entry in r2 and check if it is in r1
-		go func() {
-			for c, cMap := range next2.Mapping {
-				for d, _ := range cMap {
-					if !next1.ContainsID(c, d) {
-						fmt.Printf("Missing in r1: (%d, %d)\n", c, d)
-						res <- false
-						return
-					}
+		for c, cMap := range next2.Mapping {
+			for d, _ := range cMap {
+				if !next1.ContainsID(c, d) {
+					fmt.Printf("Missing in r1: r(%d): (%d, %d)\n", i, c, d)
+					secondRes = false
+					break
 				}
 			}
-			res <- true
-		}()
-		res1 := <-res
-		res2 := <-res
-		if !(res1 && res2) {
+		}
+		if !(firstRes && secondRes) {
 			return false
 		}
 	}

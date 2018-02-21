@@ -23,6 +23,7 @@
 package goel
 
 import (
+	"fmt"
 	"log"
 	"sync"
 )
@@ -316,6 +317,8 @@ func NewCR2(c1, c2, d uint) *CR2 {
 }
 
 func (n *CR2) GetSNotification(state StateHandler, c, cPrime uint) bool {
+	// BIG TODO: is the switch here correct? or is it the same fail as with the
+	// switch in the rule applications.
 	// do a lookup for the other value, if both are found try to apply rule
 	otherFound := false
 	switch cPrime {
@@ -349,6 +352,9 @@ func NewCR3(r, d uint) *CR3 {
 }
 
 func (n *CR3) GetSNotification(state StateHandler, c, cPrime uint) bool {
+	if n.R == 0 && c == 10 && n.D == 13 {
+		fmt.Println("ADDED IN CR3")
+	}
 	return state.AddRole(n.R, c, n.D)
 }
 
@@ -451,6 +457,9 @@ func NewCR10(s uint) CR10 {
 }
 
 func (n CR10) GetRNotification(state StateHandler, r, c, d uint) bool {
+	if uint(n) == 0 && c == 10 && d == 13 {
+		fmt.Println("ADDED IN CR10")
+	}
 	return state.AddRole(uint(n), c, d)
 }
 
@@ -471,31 +480,32 @@ func NewCR11(r1, r2, r3 uint) *CR11 {
 }
 
 func (n *CR11) GetRNotification(state StateHandler, r, c, d uint) bool {
-	switch r {
-	case n.R1:
+	result := false
+
+	if r == n.R1 {
 		candidates := state.RoleMapping(n.R2, d)
-		result := false
 		for _, e := range candidates {
+			if n.R3 == 0 && c == 10 && e == 13 {
+				fmt.Println("ADDED IN CR11")
+			}
 			result = state.AddRole(n.R3, c, e) || result
 		}
-		return result
-	case n.R2:
+	}
+
+	if r == n.R2 {
 		// first some renaming to keep it more readable...
 		// in this case the names in the rule are (D, E) for R(r2)
 		e := d
 		d = c
 		candidates := state.ReverseRoleMapping(n.R1, d)
-		result := false
 		for _, c := range candidates {
+			if n.R3 == 0 && c == 10 && e == 13 {
+				fmt.Println("ADDED IN CR11")
+			}
 			result = state.AddRole(n.R3, c, e) || result
 		}
-		return result
-	default:
-		// TODO remove once tested
-		log.Printf("Invalid notification for rule CR11: Only waiting for changes on %d and %d, got %d",
-			n.R1, n.R2, r)
-		return false
 	}
+	return result
 }
 
 // RuleMap is used to store all rules in a way in which we can easily determin
@@ -641,8 +651,8 @@ func (rm *RuleMap) Init(tbox *NormalizedTBox) {
 			r := uint(ex.R)
 			d := ex.C2.NormalizedID(components)
 			cr3 := NewCR3(r, d)
-			add := NewAddSNotification(cPrime, cr3)
-			sChan <- add
+			adds := NewAddSNotification(cPrime, cr3)
+			sChan <- adds
 		}
 	}()
 

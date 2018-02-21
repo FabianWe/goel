@@ -372,7 +372,7 @@ func (searcher *ExtendedGraphSearcher) BidrectionalSearch(g ConceptGraph, oldEle
 	}
 
 	ch := make(chan searchRes, 1)
-	done := make(chan bool, 1)
+	done := make(chan bool)
 	// start a listener, we define an internal update function as well
 
 	// this function assumes that BidirectionalFalse is never added to res

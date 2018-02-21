@@ -21,6 +21,7 @@
 package goel
 
 import (
+	"fmt"
 	"sync"
 )
 
@@ -377,7 +378,7 @@ func (rm *AllChangesRuleMap) Init(tbox *NormalizedTBox) {
 	rm.RuleMap.Init(tbox)
 }
 
-func (rm *AllChangesRuleMap) ApplySubsetNotification(state *AllChangesSolverState, d, cPrime uint) bool {
+func (rm *AllChangesRuleMap) ApplySubsetNotification(state AllChangesState, d, cPrime uint) bool {
 	// lock mutex
 	rm.subsetMutex.RLock()
 	defer rm.subsetMutex.RUnlock()
@@ -507,6 +508,9 @@ func (solver *AllChangesSolver) AddRole(r, c, d uint) bool {
 	// and we have to add a pending update: one if R(r) has changed and one if
 	// the graph has changed
 	// first try to add to relation
+	if r == 0 && c == 10 && d == 13 {
+		fmt.Println("ADDED!!!")
+	}
 	res := solver.AllChangesSolverState.AddRole(r, c, d)
 	if res {
 		// update graph as well and issue a pending update
@@ -532,6 +536,9 @@ func (solver *AllChangesSolver) AddSubsetRule(c, d uint, ch <-chan bool) bool {
 	// we're not really interested in the ch channel because nothing runs
 	// concurrently
 	// usually we should wait here, but we can completely ignore the channel
+	go func() {
+		<-ch
+	}()
 	return res
 }
 
@@ -580,7 +587,11 @@ L:
 			solver.cr6.GetSNotification(solver, c, d)
 			// apply subset notifications for cr6
 			// TODO correct? also looks very ugly...
-			solver.AllChangesRuleMap.ApplySubsetNotification(solver.AllChangesSolverState, c, d)
+			// TODO this might not be correct!
+			// The problem is that we don't call all our update methods here!
+			// we call them on AllChangesSolverState and this will not create
+			// all events correctly!
+			solver.AllChangesRuleMap.ApplySubsetNotification(solver, c, d)
 		case len(solver.pendingRUpdates) != 0:
 			// get next r update and apply it
 			n := len(solver.pendingRUpdates)
