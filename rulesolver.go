@@ -21,7 +21,6 @@
 package goel
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -119,7 +118,7 @@ func (state *AllChangesSolverState) ExtendedSearch(goals map[uint]struct{},
 	additionalStart uint) map[uint]struct{} {
 	state.graphMutex.RLock()
 	// TODO remove print
-	fmt.Println(state.Graph)
+	// fmt.Println(state.Graph)
 	res := state.Searcher.Search(state.Graph, goals, additionalStart)
 	state.graphMutex.RUnlock()
 	return res
@@ -129,7 +128,7 @@ func (state *AllChangesSolverState) BidrectionalSearch(oldElements map[uint]stru
 	newElement uint) map[uint]BidirectionalSearch {
 	state.graphMutex.RLock()
 	// TODO remove print
-	fmt.Println(state.Graph)
+	// fmt.Println(state.Graph)
 	res := state.Searcher.BidrectionalSearch(state.Graph, oldElements, newElement)
 	state.graphMutex.RUnlock()
 	return res
@@ -205,10 +204,10 @@ func (n *AllChangesCR6) applyRuleBidirectional(state AllChangesState, goals map[
 	if len(filtered) == 0 {
 		return false
 	}
+	// fmt.Println("Searching bidirectional to and from", StringUintSet(filtered), "and", c)
 	connected := state.BidrectionalSearch(filtered, c)
 	// TODO remove prints
-	fmt.Println("Searching bidirectional to and from", filtered, "and", c)
-	fmt.Println("Connected", connected)
+	// fmt.Println("Connected", connected)
 
 	result := false
 	for d, connType := range connected {
@@ -223,7 +222,8 @@ func (n *AllChangesCR6) applyRuleBidirectional(state AllChangesState, goals map[
 			done <- true
 		case BidrectionalReverse:
 			done := make(chan bool, 1)
-			state.AddSubsetRule(c, d, done)
+			state.AddSubsetRule(d, c, done)
+			// fmt.Printf("Union of: S(%d) = S(%d) U S(%d)\n", d, d, c)
 			result = state.UnionConcepts(d, c) || result
 			done <- true
 		case BidrectionalBoth:
@@ -257,8 +257,8 @@ func (n *AllChangesCR6) applyRuleDirectOnly(state AllChangesState, goals map[uin
 	}
 	connected := state.ExtendedSearch(filtered, c)
 	// TODO remove prints
-	fmt.Println("Searching to", filtered, "from", c)
-	fmt.Println("Connected:", connected)
+	// fmt.Println("Searching to", filtered, "from", c)
+	// fmt.Println("Connected:", connected)
 	result := false
 	for d, _ := range connected {
 		// no need to do anyhting if c == d

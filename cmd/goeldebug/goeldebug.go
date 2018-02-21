@@ -5,6 +5,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/FabianWe/goel"
@@ -12,7 +13,7 @@ import (
 
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
-	foo()
+	runTests()
 }
 
 var errors uint
@@ -62,18 +63,19 @@ func runTests() {
 
 func findD(sets []*goel.BCSet) {
 	for i, s := range sets[1:] {
-		if s.ContainsID(2) {
-			fmt.Println("Found 2 in", i+1)
+		if s.ContainsID(7) {
+			fmt.Println("Found 7 in", i+1)
 		}
 	}
 }
 
 func bar(tbox *goel.NormalizedTBox) {
 	s1, r1 := runTest(tbox)
+	fmt.Println(strings.Repeat("=", 20))
 	s2, r2 := runRuleBased(tbox)
-	fmt.Println("2 for s1")
+	fmt.Println("7 for s1")
 	findD(s1)
-	fmt.Println("2 for s2")
+	fmt.Println("7 for s2")
 	findD(s2)
 	res := make(chan bool, 2)
 	// compare s and r
@@ -95,6 +97,8 @@ func bar(tbox *goel.NormalizedTBox) {
 	res2 := <-res
 	if !(res1 && res2) {
 		fmt.Println("FAIL")
+	} else {
+		fmt.Println("SUCC")
 	}
 }
 

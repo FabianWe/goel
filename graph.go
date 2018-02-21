@@ -222,7 +222,8 @@ func (searcher *GraphSearcher) Search(g ConceptGraph, additionalStart, goal uint
 	start := make([]uint, len(searcher.start))
 	copy(start, searcher.start)
 	start = prepareSearchStart(start, additionalStart)
-	fmt.Println("Search from", start, "to", goal)
+	// TODO remove prints
+	// fmt.Println("Search from", start, "to", goal)
 	return searcher.search(g, goal, start...)
 }
 
@@ -240,15 +241,18 @@ const (
 // TODO is this even required? See comment in NaiveSolver rule 6
 func (searcher *GraphSearcher) BidrectionalSearch(g ConceptGraph, c, d uint) BidirectionalSearch {
 	// run two searches concurrently
-	ch := make(chan bool)
+	var first, second bool
+	var wg sync.WaitGroup
+	wg.Add(2)
 	go func() {
-		ch <- searcher.Search(g, c, d)
+		first = searcher.Search(g, c, d)
+		wg.Done()
 	}()
 	go func() {
-		ch <- searcher.Search(g, d, c)
+		second = searcher.Search(g, d, c)
+		wg.Done()
 	}()
-	first := <-ch
-	second := <-ch
+	wg.Wait()
 	switch {
 	case first && second:
 		return BidrectionalBoth
@@ -358,6 +362,7 @@ func (searcher *ExtendedGraphSearcher) BidrectionalSearch(g ConceptGraph, oldEle
 	start := make([]uint, len(searcher.start))
 	copy(start, searcher.start)
 	start = start[1:]
+	// fmt.Println("Nominals are:", start)
 	alreadyReached := searcher.extendedSearch(g, firstGoals, start...)
 	// now initialize wait group and channel and start a function that waits
 	// on updates on that channel
@@ -398,6 +403,8 @@ func (searcher *ExtendedGraphSearcher) BidrectionalSearch(g ConceptGraph, oldEle
 	_, kReached := alreadyReached[newElement]
 	// a goal set that contains only k
 	kGoalSet := map[uint]struct{}{newElement: struct{}{}}
+
+	// fmt.Println("already reached:", StringUintSet(alreadyReached))
 
 	for ki, _ := range oldElements {
 		// check k -> ki

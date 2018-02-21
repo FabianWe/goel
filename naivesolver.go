@@ -246,16 +246,15 @@ func (solver *NaiveSolver) Solve(tbox *NormalizedTBox) {
 					for ; j < uint(len(solver.S)); j++ {
 						sd := solver.S[j]
 						if sd.Contains(nominal) {
-							fmt.Printf("Found {%d} in %d and %d\n", nominal.NormalizedID(tbox.Components), i, j)
+							// fmt.Printf("Found {%d} in %d and %d\n", nominal.NormalizedID(tbox.Components), i, j)
 							// check if C ↝ D
 							// we also have to check if D ↝ C because we just check
 							// all pairs (i, j) where j > i.
 							// Thus we could have that i is not connected to j
 							// but j is connected to i. In this case we must apply the rule!
 							searchRes := solver.searcher.BidrectionalSearch(solver.graph, i, j)
-							fmt.Println(solver.graph)
-							fmt.Printf("Nodes connected (naive): %d ↝ %d\n", i, j)
-							fmt.Println("Connection type:", searchRes)
+							// fmt.Println(solver.graph)
+							// fmt.Printf("Nodes connected (naive): %d ↝ %d\n", i, j)
 							switch searchRes {
 							case BidrectionalBoth:
 								// update both
@@ -268,11 +267,13 @@ func (solver *NaiveSolver) Solve(tbox *NormalizedTBox) {
 									changed = true
 								}
 							case BidrectionalDirect:
+								// fmt.Printf("Union DIRECT: S(%d) = S(%d) U S(%d)\n", i, i, j)
 								// update only first
 								if sc.Union(sd) {
 									changed = true
 								}
 							case BidrectionalReverse:
+								// fmt.Printf("Union REVERSE: S(%d) = S(%d) U S(%d)\n", j, j, i)
 								if sd.Union(sc) {
 									changed = true
 								}
