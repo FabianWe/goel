@@ -13,7 +13,7 @@ import (
 
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
-	runTests()
+	foo()
 }
 
 var errors uint
@@ -69,14 +69,30 @@ func findD(sets []*goel.BCSet) {
 	}
 }
 
+func findR(r1 []*goel.BCPairSet, r2 []*goel.Relation, c, d uint) {
+	fmt.Printf("Finding (%d, %d) in r1\n", c, d)
+	for i, r := range r1 {
+		if r.ContainsID(c, d) {
+			fmt.Println("Found in", i)
+		}
+	}
+	fmt.Println(strings.Repeat("=", 20))
+	fmt.Printf("Finding (%d, %d) in r2\n", c, d)
+	for i, r := range r2 {
+		if r.Contains(c, d) {
+			fmt.Println("Found in", i)
+		}
+	}
+}
+
 func bar(tbox *goel.NormalizedTBox) {
 	s1, r1 := runTest(tbox)
-	fmt.Println(strings.Repeat("=", 20))
 	s2, r2 := runRuleBased(tbox)
-	fmt.Println("7 for s1")
-	findD(s1)
-	fmt.Println("7 for s2")
-	findD(s2)
+	findR(r1, r2, 12, 4)
+	// fmt.Println("7 for s1")
+	// findD(s1)
+	// fmt.Println("7 for s2")
+	// findD(s2)
 	res := make(chan bool, 2)
 	// compare s and r
 	go func() {
@@ -222,7 +238,7 @@ func compareR(r1 []*goel.BCPairSet, r2 []*goel.Relation) bool {
 		go func() {
 			for p, _ := range next1.M {
 				if !next2.Contains(p.First, p.Second) {
-					fmt.Printf("Missing in r2: (%d, %d)", p.First, p.Second)
+					fmt.Printf("Missing in r2: (%d, %d)\n", p.First, p.Second)
 					res <- false
 					return
 				}
