@@ -36,20 +36,20 @@ func foo() {
 }
 
 func runTests() {
-	builder := goel.RandomELBuilder{NumIndividuals: 1000,
-		NumConceptNames:    100,
-		NumRoles:           100,
-		NumConcreteDomains: 0,
-		MaxCDSize:          10,
-		MaxNumPredicates:   100,
-		MaxNumFeatures:     100}
-	// builder := goel.RandomELBuilder{NumIndividuals: 3,
-	// 	NumConceptNames:    3,
-	// 	NumRoles:           3,
+	// builder := goel.RandomELBuilder{NumIndividuals: 1000,
+	// 	NumConceptNames:    100,
+	// 	NumRoles:           100,
 	// 	NumConcreteDomains: 0,
 	// 	MaxCDSize:          10,
 	// 	MaxNumPredicates:   100,
 	// 	MaxNumFeatures:     100}
+	builder := goel.RandomELBuilder{NumIndividuals: 3,
+		NumConceptNames:    3,
+		NumRoles:           3,
+		NumConcreteDomains: 0,
+		MaxCDSize:          10,
+		MaxNumPredicates:   100,
+		MaxNumFeatures:     100}
 	duration := 5 * time.Hour
 	start := time.Now()
 	for {
