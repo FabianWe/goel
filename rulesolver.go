@@ -69,6 +69,8 @@ type AllChangesState interface {
 	// UpdateGraph(c, d uint) bool
 	// TODO add search method(s) here.
 	ExtendedSearch(goals map[uint]struct{}, additionalStart uint) map[uint]struct{}
+
+	BidrectionalSearch(oldElements map[uint]struct{}, newElement uint) map[uint]BidirectionalSearch
 	// TODO describe requirements
 	AddSubsetRule(c, d uint, ch <-chan bool) bool
 }
@@ -116,8 +118,19 @@ func NewAllChangesSolverState(c *ELBaseComponents, g ConceptGraph, search Extend
 func (state *AllChangesSolverState) ExtendedSearch(goals map[uint]struct{},
 	additionalStart uint) map[uint]struct{} {
 	state.graphMutex.RLock()
+	// TODO remove print
 	fmt.Println(state.Graph)
 	res := state.Searcher.Search(state.Graph, goals, additionalStart)
+	state.graphMutex.RUnlock()
+	return res
+}
+
+func (state *AllChangesSolverState) BidrectionalSearch(oldElements map[uint]struct{},
+	newElement uint) map[uint]BidirectionalSearch {
+	state.graphMutex.RLock()
+	// TODO remove print
+	fmt.Println(state.Graph)
+	res := state.Searcher.BidrectionalSearch(state.Graph, oldElements, newElement)
 	state.graphMutex.RUnlock()
 	return res
 }
@@ -180,17 +193,59 @@ func NewAllChangesCR6() *AllChangesCR6 {
 	return &AllChangesCR6{aMap: make(map[uint]map[uint]struct{}, 10), aMutex: &m}
 }
 
-func (n *AllChangesCR6) applyRule(state AllChangesState, goals map[uint]struct{}, c uint) bool {
+func (n *AllChangesCR6) applyRuleBidirectional(state AllChangesState, goals map[uint]struct{}, c uint) bool {
+	// TODO again, is filtering correct?
+	filtered := make(map[uint]struct{}, len(goals))
+	for d, _ := range goals {
+		// TODO correct?
+		if !state.SubsetConcepts(d, c) || !state.SubsetConcepts(c, d) {
+			filtered[d] = struct{}{}
+		}
+	}
+	if len(filtered) == 0 {
+		return false
+	}
+	connected := state.BidrectionalSearch(filtered, c)
+	// TODO remove prints
+	fmt.Println("Searching bidirectional to and from", filtered, "and", c)
+	fmt.Println("Connected", connected)
+
+	result := false
+	for d, connType := range connected {
+		if c == d {
+			continue
+		}
+		switch connType {
+		case BidrectionalDirect:
+			done := make(chan bool, 1)
+			state.AddSubsetRule(c, d, done)
+			result = state.UnionConcepts(c, d) || result
+			done <- true
+		case BidrectionalReverse:
+			done := make(chan bool, 1)
+			state.AddSubsetRule(c, d, done)
+			result = state.UnionConcepts(d, c) || result
+			done <- true
+		case BidrectionalBoth:
+			// TODO is this still correct in the concurrent version?
+			done1 := make(chan bool, 1)
+			state.AddSubsetRule(c, d, done1)
+			result = state.UnionConcepts(c, d) || result
+			done1 <- true
+			done2 := make(chan bool, 1)
+			state.AddSubsetRule(d, c, done2)
+			result = state.UnionConcepts(d, c) || result
+			done2 <- true
+		}
+	}
+	return result
+}
+
+func (n *AllChangesCR6) applyRuleDirectOnly(state AllChangesState, goals map[uint]struct{}, c uint) bool {
 	// before doing a search on the graph reduce the number of goals by checking
 	// the subset property this might help us to speed up the search
-	// TODO check how much this helps
-	// whoa, seems to help a lot... but again verify this
 	// TODO is this correct even in a concurrent version?
 
-	// TODO filtered is wrong here!
-	// the problem is that we do a bidrectional search and therefor we can't
-	// just simply rule them out this way
-	// should be correct to check if either !Subset(C, D) or !Subset(D, C) though
 	filtered := make(map[uint]struct{}, len(goals))
 	for d, _ := range goals {
 		if !state.SubsetConcepts(d, c) {
@@ -201,9 +256,9 @@ func (n *AllChangesCR6) applyRule(state AllChangesState, goals map[uint]struct{}
 		return false
 	}
 	connected := state.ExtendedSearch(filtered, c)
+	// TODO remove prints
 	fmt.Println("Searching to", filtered, "from", c)
 	fmt.Println("Connected:", connected)
-	fmt.Println(state.ExtendedSearch(map[uint]struct{}{}, 2))
 	result := false
 	for d, _ := range connected {
 		// no need to do anyhting if c == d
@@ -235,7 +290,7 @@ func (n *AllChangesCR6) GetGraphNotification(state AllChangesState) bool {
 	result := false
 	for _, containedIn := range n.aMap {
 		for c, _ := range containedIn {
-			result = n.applyRule(state, containedIn, c) || result
+			result = n.applyRuleDirectOnly(state, containedIn, c) || result
 		}
 	}
 	return result
@@ -265,8 +320,9 @@ func (n *AllChangesCR6) GetSNotification(state AllChangesState, c, cPrime uint) 
 	// so first get all D in which {a} is contained
 	// we can use the extended search method for that, it will give us all pairs
 	// that are connected when starting the search with C
-	result := n.applyRule(state, n.aMap[cPrime], c)
-	// now we must add c to the map of {a}
+	// TODO update documentation
+	result := n.applyRuleBidirectional(state, n.aMap[cPrime], c)
+	// now we must add C to the map of {a}
 	containedIn := n.aMap[cPrime]
 	if len(containedIn) == 0 {
 		containedIn = make(map[uint]struct{}, 10)
@@ -329,6 +385,9 @@ func (rm *AllChangesRuleMap) ApplySubsetNotification(state *AllChangesSolverStat
 	updates := rm.subsetMap[d]
 	result := false
 	for c, _ := range updates {
+		if c == d {
+			continue
+		}
 		// add C' to S(C)
 		result = state.AddConcept(c, cPrime) || result
 	}
@@ -466,10 +525,13 @@ func (solver *AllChangesSolver) AddRole(r, c, d uint) bool {
 }
 
 func (solver *AllChangesSolver) AddSubsetRule(c, d uint, ch <-chan bool) bool {
+	// TODO check here or in newSubsetRule if c == d to avoid infinite
+	// chains of adds, is this possible in some other rules as well?!
 	// no concurrency here, so nothing to worry about, just add the new rule
 	res := solver.newSubsetRule(c, d)
-	// just wait for the channel, not really required but well
-	<-ch
+	// we're not really interested in the ch channel because nothing runs
+	// concurrently
+	// usually we should wait here, but we can completely ignore the channel
 	return res
 }
 
@@ -516,6 +578,9 @@ L:
 			// the rules again)
 			// now also do a notification for CR6
 			solver.cr6.GetSNotification(solver, c, d)
+			// apply subset notifications for cr6
+			// TODO correct? also looks very ugly...
+			solver.AllChangesRuleMap.ApplySubsetNotification(solver.AllChangesSolverState, c, d)
 		case len(solver.pendingRUpdates) != 0:
 			// get next r update and apply it
 			n := len(solver.pendingRUpdates)
