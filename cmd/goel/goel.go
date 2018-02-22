@@ -54,11 +54,14 @@ func main() {
 	execTime := time.Since(start)
 	fmt.Printf("... Done after %v\n", execTime)
 	fmt.Println()
-	fmt.Println("==== Naive ===")
-	naive(normalized)
-	fmt.Println()
+	// fmt.Println("==== Naive ===")
+	// naive(normalized)
+	// fmt.Println()
 	fmt.Println("==== Rule Based ===")
 	rulebased(normalized)
+	fmt.Println()
+	fmt.Println("==== Concurrent ====")
+	concurrent(normalized)
 	// time.Sleep(5 * time.Second)
 }
 
@@ -78,6 +81,20 @@ func rulebased(normalized *goel.NormalizedTBox) {
 	fmt.Println("Building state and rules ...")
 	start := time.Now()
 	solver := goel.NewAllChangesSolver(goel.NewSetGraph(), nil)
+	solver.Init(normalized)
+	execTime := time.Since(start)
+	fmt.Printf("... Done after %v\n", execTime)
+	fmt.Println("Solving ...")
+	start = time.Now()
+	solver.Solve(normalized)
+	execTime = time.Since(start)
+	fmt.Printf("... Done after %v\n", execTime)
+}
+
+func concurrent(normalized *goel.NormalizedTBox) {
+	fmt.Println("Building state and rules ...")
+	start := time.Now()
+	solver := goel.NewConcurrentNotificationSolver(goel.NewSetGraph(), nil)
 	solver.Init(normalized)
 	execTime := time.Since(start)
 	fmt.Printf("... Done after %v\n", execTime)

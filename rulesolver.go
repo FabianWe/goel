@@ -130,27 +130,6 @@ func (state *AllChangesSolverState) BidrectionalSearch(oldElements map[uint]stru
 	return res
 }
 
-// func (state *AllChangesSolverState) UpdateGraph(c, d uint) bool {
-// 	state.graphMutex.Lock()
-// 	res := state.Graph.AddEdge(c, d)
-// 	state.graphMutex.Unlock()
-// 	return res
-// }
-
-// func (state *AllChangesSolverState) IsReachable(c, d uint) bool {
-// 	state.graphMutex.RLock()
-// 	res := state.Searcher.Search(state.Graph, c, d)
-// 	state.graphMutex.RUnlock()
-// 	return res
-// }
-//
-// func (state *AllChangesSolverState) BidrectionalSearch(c, d uint) BidirectionalSearch {
-// 	state.graphMutex.RLock()
-// 	res := state.Searcher.BidrectionalSearch(state.Graph, c, d)
-// 	state.graphMutex.RUnlock()
-// 	return res
-// }
-
 type AllGraphChangeNotification interface {
 	GetGraphNotification(state AllChangesState) bool
 }
@@ -557,8 +536,6 @@ L:
 			c, d := next.C, next.D
 			// first lookup all rules that are interested in an update
 			// on S(D)
-			// TODO here is a mixup?
-			// or is just the documentation wrong?
 			notifications := solver.SRules[d]
 			// now iterate over each notification and apply it
 			for _, notification := range notifications {
@@ -571,11 +548,6 @@ L:
 			// now also do a notification for CR6
 			solver.cr6.GetSNotification(solver, c, d)
 			// apply subset notifications for cr6
-			// TODO correct? also looks very ugly...
-			// TODO this might not be correct!
-			// The problem is that we don't call all our update methods here!
-			// we call them on AllChangesSolverState and this will not create
-			// all events correctly!
 			solver.AllChangesRuleMap.ApplySubsetNotification(solver, c, d)
 		case len(solver.pendingRUpdates) != 0:
 			// get next r update and apply it

@@ -50,7 +50,7 @@ func runTests() {
 		MaxCDSize:          10,
 		MaxNumPredicates:   100,
 		MaxNumFeatures:     100}
-	duration := 5 * time.Hour
+	duration := 1 * time.Hour
 	start := time.Now()
 	for {
 		expired := time.Since(start)
@@ -125,7 +125,7 @@ func bar(tbox *goel.NormalizedTBox) {
 func testInstance(builder *goel.RandomELBuilder) {
 
 	// _, tbox := builder.GenerateRandomTBox(0, 1000, 1000, 10, 100, 100)
-	_, tbox := builder.GenerateRandomTBox(0, 50, 50, 5, 100, 50)
+	_, tbox := builder.GenerateRandomTBox(0, 5, 5, 5, 5, 10)
 	normalizer := goel.NewDefaultNormalFormBUilder(100)
 	normalized := normalizer.Normalize(tbox)
 
@@ -151,7 +151,7 @@ func testInstance(builder *goel.RandomELBuilder) {
 		}
 	}()
 	s1, r1 := runTest(normalized)
-	s2, r2 := runRuleBased(normalized)
+	s2, r2 := runConcurrent(normalized)
 	res := make(chan bool, 2)
 	// compare s and r
 	go func() {
@@ -268,6 +268,13 @@ func runTest(tbox *goel.NormalizedTBox) ([]*goel.BCSet, []*goel.BCPairSet) {
 
 func runRuleBased(tbox *goel.NormalizedTBox) ([]*goel.BCSet, []*goel.Relation) {
 	solver := goel.NewAllChangesSolver(goel.NewSetGraph(), nil)
+	solver.Init(tbox)
+	solver.Solve(tbox)
+	return solver.S, solver.R
+}
+
+func runConcurrent(tbox *goel.NormalizedTBox) ([]*goel.BCSet, []*goel.Relation) {
+	solver := goel.NewConcurrentNotificationSolver(goel.NewSetGraph(), nil)
 	solver.Init(tbox)
 	solver.Solve(tbox)
 	return solver.S, solver.R
