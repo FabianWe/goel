@@ -20,6 +20,8 @@
 
 package domains
 
+import "math"
+
 // RationalDomain is the concrete domain for rational numbers (ℚ).
 // Only elements of type float64 are considered part of this domain.
 //
@@ -72,6 +74,26 @@ func (r EqualsRational) Relation(values ...AbstractLiteral) bool {
 	return float64(r) == qPrime
 }
 
+type EqualsRationalWithEpsilon struct {
+	Epsilon, Q float64
+}
+
+func NewEqualsRationalWithEpsilon(epsilon, q float64) EqualsRationalWithEpsilon {
+	return EqualsRationalWithEpsilon{
+		Epsilon: epsilon,
+		Q:       q,
+	}
+}
+
+func (r EqualsRationalWithEpsilon) Arity() int {
+	return 1
+}
+
+func (r EqualsRationalWithEpsilon) Relation(values ...AbstractLiteral) bool {
+	qPrime := values[0].(float64)
+	return math.Abs(qPrime-r.Q) <= r.Epsilon
+}
+
 type GreaterRational float64
 
 func NewGreaterRational(q float64) GreaterRational {
@@ -99,8 +121,25 @@ func (r BinaryEqualsRational) Arity() int {
 
 func (r BinaryEqualsRational) Relation(values ...AbstractLiteral) bool {
 	v1 := values[0].(float64)
-	v2 := values[0].(float64)
+	v2 := values[1].(float64)
 	return v1 == v2
+}
+
+type BinaryEqualsRationalWithEpsilon float64
+
+func NewBinaryEqualsRationalWithEpsilon(epsilon float64) BinaryEqualsRationalWithEpsilon {
+	return BinaryEqualsRationalWithEpsilon(epsilon)
+}
+
+func (r BinaryEqualsRationalWithEpsilon) Airty() int {
+	return 2
+}
+
+func (r BinaryEqualsRationalWithEpsilon) Relation(values ...AbstractLiteral) bool {
+	epsilon := float64(r)
+	v1 := values[0].(float64)
+	v2 := values[1].(float64)
+	return math.Abs(v1-v2) <= epsilon
 }
 
 type PlusRational float64
