@@ -131,7 +131,7 @@ type AllChangesState interface {
 	// has been added to that data structure and then x will get added.
 	// Case (c): After AddSubsetRule: All notifications that start now already
 	// apply that rule.
-	AddSubsetRule(c, d uint, ch <-chan bool) bool
+	AddSubsetRule(c, d uint) bool
 }
 
 type AllChangesSolverState struct {
@@ -248,25 +248,16 @@ func (n *AllChangesCR6) applyRuleBidirectional(state AllChangesState, goals map[
 		}
 		switch connType {
 		case BidrectionalDirect:
-			done := make(chan bool, 1)
-			state.AddSubsetRule(c, d, done)
+			state.AddSubsetRule(c, d)
 			result = state.UnionConcepts(c, d) || result
-			done <- true
 		case BidrectionalReverse:
-			done := make(chan bool, 1)
-			state.AddSubsetRule(d, c, done)
+			state.AddSubsetRule(d, c)
 			result = state.UnionConcepts(d, c) || result
-			done <- true
 		case BidrectionalBoth:
-			// TODO is this still correct in the concurrent version?
-			done1 := make(chan bool, 1)
-			state.AddSubsetRule(c, d, done1)
+			state.AddSubsetRule(c, d)
 			result = state.UnionConcepts(c, d) || result
-			done1 <- true
-			done2 := make(chan bool, 1)
-			state.AddSubsetRule(d, c, done2)
+			state.AddSubsetRule(d, c)
 			result = state.UnionConcepts(d, c) || result
-			done2 <- true
 		}
 	}
 	return result
@@ -297,10 +288,8 @@ func (n *AllChangesCR6) applyRuleDirectOnly(state AllChangesState, goals map[uin
 		// C ↝ D
 		// so now we can just union both concepts and add a new rule
 		// TODO is size 1 okay? should be
-		done := make(chan bool, 1)
-		state.AddSubsetRule(c, d, done)
+		state.AddSubsetRule(c, d)
 		result = state.UnionConcepts(c, d) || result
-		done <- true
 	}
 	return result
 }
@@ -471,7 +460,7 @@ func (solver *AllChangesSolver) Init(tbox *NormalizedTBox) {
 	solver.pendingSupdates = make([]*SUpdate, 0, 10)
 	solver.pendingRUpdates = make([]*RUpdate, 0, 10)
 	solver.graphChanged = false
-	// inditialize state and rules (concurrently)
+	// initialize state and rules (concurrently)
 	var wg sync.WaitGroup
 	wg.Add(2)
 	go func() {
@@ -552,17 +541,11 @@ func (solver *AllChangesSolver) AddRole(r, c, d uint) bool {
 	return res
 }
 
-func (solver *AllChangesSolver) AddSubsetRule(c, d uint, ch <-chan bool) bool {
+func (solver *AllChangesSolver) AddSubsetRule(c, d uint) bool {
 	// TODO check here or in newSubsetRule if c == d to avoid infinite
 	// chains of adds, is this possible in some other rules as well?!
 	// no concurrency here, so nothing to worry about, just add the new rule
 	res := solver.newSubsetRule(c, d)
-	// we're not really interested in the ch channel because nothing runs
-	// concurrently
-	// usually we should wait here, but we can completely ignore the channel
-	go func() {
-		<-ch
-	}()
 	return res
 }
 

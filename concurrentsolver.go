@@ -110,20 +110,11 @@ func (solver *ConcurrentNotificationSolver) AddRole(r, c, d uint) bool {
 	return res
 }
 
-func (solver *ConcurrentNotificationSolver) AddSubsetRule(c, d uint, ch <-chan bool) bool {
+func (solver *ConcurrentNotificationSolver) AddSubsetRule(c, d uint) bool {
 	// this is exactly the same as in AllChangesSolver, but exists just to show
-	// that we here don't have to worry about reads on the channel:
-	// in this solver we add one update after another and do all notifications
-	// concurrently.
-	// that is: any changes made to some affected S(D) will apply the subset
-	// update rule. And therefor we're safe to simply ignore the channel. The
-	// channel is only important when also several updates happen concurrently
+	// that we here don't have to worry about concurrency
 
 	res := solver.newSubsetRule(c, d)
-	// not intersted in channel
-	go func() {
-		<-ch
-	}()
 	return res
 }
 
@@ -216,3 +207,102 @@ L:
 }
 
 // Full concurrent solver: Run notifications and updates concurrently.
+
+type ConcurrentSolver struct {
+	*AllChangesSolverState
+	*AllChangesRuleMap
+
+	graphChanged bool
+	graphMutex   *sync.Mutex
+
+	search ExtendedReachabilitySearch
+}
+
+// Again some code duplication here, well...
+
+type ConcurrentWorkerPool struct {
+	sChan   chan *SUpdate
+	rChan   chan *RUpdate
+	workers chan bool
+	wg      *sync.WaitGroup
+}
+
+func (p *ConcurrentWorkerPool) Init(sSize, rSize, workers int) {
+	p.sChan = make(chan *SUpdate, sSize)
+	p.rChan = make(chan *RUpdate, rSize)
+	p.workers = make(chan bool, workers)
+	var wg sync.WaitGroup
+	p.wg = &wg
+}
+
+func (p *ConcurrentWorkerPool) AddS(update *SUpdate) {
+	p.wg.Add(1)
+	go func() {
+		p.sChan <- update
+	}()
+}
+
+func (p *ConcurrentWorkerPool) AddR(update *RUpdate) {
+	p.wg.Add(1)
+	go func() {
+		p.rChan <- update
+	}()
+}
+
+func (p *ConcurrentWorkerPool) Close() {
+	close(p.sChan)
+	close(p.rChan)
+	// should not be required, but just to be sure
+	close(p.workers)
+}
+
+func (p *ConcurrentWorkerPool) Wait() {
+	p.wg.Wait()
+}
+
+func (p *ConcurrentWorkerPool) SWorker(solver *ConcurrentSolver) {
+	for update := range p.sChan {
+		// first wait for a worker to free
+		p.workers <- true
+		// now start a go routine that does all updates concurrently
+		go func(update *SUpdate) {
+			// once we're done we signal that to wg and free the worker
+			defer func() {
+				p.wg.Done()
+				<-p.workers
+			}()
+		}(update)
+	}
+}
+
+func NewConcurrentSolver(graph ConceptGraph, search ExtendedReachabilitySearch) *ConcurrentSolver {
+	var graphMutex sync.Mutex
+	if search == nil {
+		search = BFSToSet
+	}
+	return &ConcurrentSolver{
+		AllChangesSolverState: nil,
+		AllChangesRuleMap:     nil,
+		graphChanged:          false,
+		graphMutex:            &graphMutex,
+		search:                search,
+	}
+}
+
+func (solver *ConcurrentSolver) Init(tbox *NormalizedTBox) {
+	solver.graphChanged = false
+	// initialize state and rules (concurrently)
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		solver.AllChangesSolverState = NewAllChangesSolverState(tbox.Components,
+			solver.Graph, solver.search)
+		wg.Done()
+	}()
+	go func() {
+		solver.AllChangesRuleMap = NewAllChangesRuleMap()
+		solver.AllChangesRuleMap.Init(tbox)
+		wg.Done()
+	}()
+	wg.Wait()
+}

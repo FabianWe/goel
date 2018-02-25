@@ -123,7 +123,6 @@ func bar(tbox *goel.NormalizedTBox) {
 }
 
 func testInstance(builder *goel.RandomELBuilder) {
-
 	// _, tbox := builder.GenerateRandomTBox(0, 1000, 1000, 10, 100, 100)
 	_, tbox := builder.GenerateRandomTBox(0, 5, 5, 5, 5, 10)
 	normalizer := goel.NewDefaultNormalFormBUilder(100)
