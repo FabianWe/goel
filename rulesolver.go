@@ -70,7 +70,67 @@ type AllChangesState interface {
 	ExtendedSearch(goals map[uint]struct{}, additionalStart uint) map[uint]struct{}
 
 	BidrectionalSearch(oldElements map[uint]struct{}, newElement uint) map[uint]BidirectionalSearch
-	// TODO describe requirements
+
+	// AddSubsetRule is used to create a new subset rule that says that S(D)
+	// must always be a subset of S(C). That is whenever an add to S(D) happens
+	// that element must be added to S(C) as well.
+	//
+	// However this is a complicated matter when things run concurrently.
+	// The rule creating a these subset rules (CR6 in general) perform once a
+	// union and thus ensure that S(D) ⊆ S(C).
+	//
+	// So AddSubsetRule must take care of the following: If things run
+	// concurrently it must be ensured that once this function terminates all
+	// s updates will comply by this rule.
+	//
+	// This means basically the following: Once AddSubsetRule has terminated
+	// any pending s update that is (concurrently started) and its notifications
+	// are (possibly also concurrently applied) will apply this rule as well.
+	//
+	// This way we ensure that nothing is missing in S(C).
+	// Let's briefly discuss the problem concerning CR6.
+	//
+	// CR6 will call first AddSubsetRule and then apply S(C) = S(C) ∪ S(D).
+	// Now if concurrenlty something somehow becomes added to S(D), and is not
+	// yet present in S(C), the union will not add this element to S(C) as well,
+	// the element has to be added due to the subset rule.
+	//
+	// The problem now is this: We call AddSubsetRule and an element x gets
+	// added to S(D) concurrently. Now if we imagine that this add will not be
+	// executed before the union (so the union will not add this element to S(C))
+	// x must be added to S(C) later due to this new subset rule.
+	//
+	// The solver as they're implemented here don't have to worry about this for
+	// the reason that first the update to S(D) will happen in go and only once
+	// the value has been added to the field in go the notifications for this
+	// update can run.
+	//
+	// A little "proof" that our solver should ensure why we don't miss any add:
+	// If x gets added to S(D) two things will happen:
+	//
+	// (1) The element gets added to S[D] (meaning the mapping in go)
+	// (2) An update gets created that x was added to S(D) and all notifications
+	// concerning this update may run.
+	//
+	// Now to proof that updates will be applied it's important to know when
+	// the update on S[D] is applied (remember that this happens concurrently).
+	//
+	// If the S[D] is updated before AddSubsetRule we don't have to worry,
+	// the union will add x to S(C).
+	// If S[D] is updated during AddSubsetRule: It's important to know that
+	// the subset notifications for S[D] can't be applied during AddSubsetRule
+	// because it requires a write lock on the data structure containing the
+	// subset rules. AddSubsetRule requires a write lock and thus no notifications
+	// can be made. So what happens if x gets added concurrently while
+	// AddSubsetRule is running?
+	// Case (a): Before the write lock: x will be added during the union, that's
+	// ok.
+	// Case (b): During the write lock. The notifications can't be applied because
+	// that would require a read lock on the subset data structure. But we have
+	// write locked it. The notifications can run only after the subset rule
+	// has been added to that data structure and then x will get added.
+	// Case (c): After AddSubsetRule: All notifications that start now already
+	// apply that rule.
 	AddSubsetRule(c, d uint, ch <-chan bool) bool
 }
 
