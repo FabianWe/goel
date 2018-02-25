@@ -214,3 +214,5 @@ L:
 		}
 	}
 }
+
+// Full concurrent solver: Run notifications and updates concurrently.
