@@ -320,6 +320,22 @@ func (n *AllChangesCR6) applyRuleDirectOnly(state AllChangesState, goals map[uin
 	return result
 }
 
+func (n *AllChangesCR6) runFindPairs(state AllChangesState, s map[uint]struct{}) bool {
+	// call the state method to retrieve all connected pairs
+	result := false
+	pairs := state.FindConnectedPairs(s)
+	// now add the rules
+	for p, _ := range pairs.M {
+		c, d := p.First, p.Second
+		if c == d {
+			continue
+		}
+		state.AddSubsetRule(c, d)
+		result = state.UnionConcepts(c, d) || result
+	}
+	return result
+}
+
 func (n *AllChangesCR6) GetGraphNotification(state AllChangesState) bool {
 	// if the graph has changed we iterate over all pairs and revaulate
 	// the condition, that is we add new rules etc.
