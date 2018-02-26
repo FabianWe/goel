@@ -216,6 +216,7 @@ type AllChangesSNotification interface {
 // This requires a bit more memory but I think(!) that it's worth it. Otherwise
 // we always have to iterate over all S(D) and test where {a} is contained.
 // This way finding all C, D with {a} ∈ S(C) ⊓ S(D) is easy.
+// TODO seems that this deadlocks if things happen concurrently...
 type AllChangesCR6 struct {
 	// TODO use slice here, is much nicer, but well it also works this way...
 	aMap map[uint]map[uint]struct{}
@@ -230,6 +231,10 @@ func NewAllChangesCR6() *AllChangesCR6 {
 
 func (n *AllChangesCR6) applyRuleBidirectional(state AllChangesState, goals map[uint]struct{}, c uint) bool {
 	// TODO again, is filtering correct?
+	// I guess not!! even if the union will not change anything we still have
+	// to check if the nodes are connected in order to maintain S(D) <= S(C)
+	// or will this condition then be checked again?
+	// I'm not totally sure...
 	filtered := make(map[uint]struct{}, len(goals))
 	for d, _ := range goals {
 		// TODO correct?
@@ -615,8 +620,9 @@ L:
 				notification.GetRNotification(solver, r, c, d)
 			}
 		case solver.graphChanged:
-			solver.cr6.GetGraphNotification(solver)
+			// TODO changed the position of graph changed, correct?
 			solver.graphChanged = false
+			solver.cr6.GetGraphNotification(solver)
 		default:
 			break L
 		}

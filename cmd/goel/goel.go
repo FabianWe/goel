@@ -30,22 +30,22 @@ import (
 
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
-	// builder := goel.RandomELBuilder{NumIndividuals: 10000,
-	// 	NumConceptNames:    10000,
-	// 	NumRoles:           5000,
-	// 	NumConcreteDomains: 0,
-	// 	MaxCDSize:          1000,
-	// 	MaxNumPredicates:   2000,
-	// 	MaxNumFeatures:     1000}
 	builder := goel.RandomELBuilder{NumIndividuals: 10000,
-		NumConceptNames:    100,
-		NumRoles:           100,
+		NumConceptNames:    10000,
+		NumRoles:           5000,
 		NumConcreteDomains: 0,
-		MaxCDSize:          10,
-		MaxNumPredicates:   100,
-		MaxNumFeatures:     100}
+		MaxCDSize:          1000,
+		MaxNumPredicates:   2000,
+		MaxNumFeatures:     1000}
+	// builder := goel.RandomELBuilder{NumIndividuals: 10000,
+	// 	NumConceptNames:    100,
+	// 	NumRoles:           100,
+	// 	NumConcreteDomains: 0,
+	// 	MaxCDSize:          10,
+	// 	MaxNumPredicates:   100,
+	// 	MaxNumFeatures:     100}
 	fmt.Println("Building random TBox ...")
-	_, tbox := builder.GenerateRandomTBox(0, 1000, 1000, 10, 100, 100)
+	_, tbox := builder.GenerateRandomTBox(0, 1000, 1000, 10, 10000, 100)
 	fmt.Println("... Done")
 	normalizer := goel.NewDefaultNormalFormBUilder(100)
 	fmt.Println("Normalizing TBox ...")

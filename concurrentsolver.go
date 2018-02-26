@@ -198,8 +198,9 @@ L:
 			}
 			wg.Wait()
 		case solver.graphChanged:
-			solver.cr6.GetGraphNotification(solver)
+			// TODO changed the position of graph changed, correct?
 			solver.graphChanged = false
+			solver.cr6.GetGraphNotification(solver)
 		default:
 			break L
 		}
@@ -507,25 +508,43 @@ func (solver *ConcurrentSolver) Solve(tbox *NormalizedTBox) {
 
 }
 
+// TODO it's not okay to run f and the workers concurrently, that is because
+// CR6 locking is not very efficient and should be optimised because it leads
+// to deadlocks
+// see commented out version below.
+// but still there is much running concurrently, so I'm okay with that.
 func (solver *ConcurrentSolver) runAndWait(tbox *NormalizedTBox, f func()) {
 	// initialize pool again
 	solver.initPool(tbox)
-	// we want to run a listener for s and r, also we would like to run f
-	// concurrently and then wait
-	// but we have to wait until f has been applied
+	// first let f do everything it needs
+	f()
+	// now start the listeners
 	go solver.pool.RWorker(solver)
 	go solver.pool.SWorker(solver)
-	// so now we run f concurrently, report back to a done channel once it's
-	// finished and then we have to wait until all updates are done (i.e. wait
-	// for the pool)
-	done := make(chan bool, 1)
-	go func() {
-		f()
-		done <- true
-	}()
-	// now wait until f is finished
-	<-done
-	// now wait until the pool is done
+	// wait until everything is done
 	solver.pool.Wait()
 	solver.pool.Close()
 }
+
+// func (solver *ConcurrentSolver) runAndWait(tbox *NormalizedTBox, f func()) {
+// 	// initialize pool again
+// 	solver.initPool(tbox)
+// 	// we want to run a listener for s and r, also we would like to run f
+// 	// concurrently and then wait
+// 	// but we have to wait until f has been applied
+// 	go solver.pool.RWorker(solver)
+// 	go solver.pool.SWorker(solver)
+// 	// so now we run f concurrently, report back to a done channel once it's
+// 	// finished and then we have to wait until all updates are done (i.e. wait
+// 	// for the pool)
+// 	done := make(chan bool, 1)
+// 	go func() {
+// 		f()
+// 		done <- true
+// 	}()
+// 	// now wait until f is finished
+// 	<-done
+// 	// now wait until the pool is done
+// 	solver.pool.Wait()
+// 	solver.pool.Close()
+// }
