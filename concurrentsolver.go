@@ -372,7 +372,7 @@ func (solver *ConcurrentSolver) initPool(tbox *NormalizedTBox) {
 	// TODO add some useful defaults here...
 	sChanSize, rChanSize, workers := solver.sChanSize, solver.rChanSize, solver.workers
 	if sChanSize < 0 {
-		sChanSize = int(tbox.Components.NumBCD())
+		sChanSize = int(tbox.Components.NumBCD() * 4)
 	}
 	if rChanSize < 0 {
 		rChanSize = sChanSize
