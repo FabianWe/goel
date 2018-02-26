@@ -454,3 +454,66 @@ func (searcher *ExtendedGraphSearcher) BidrectionalSearch(g ConceptGraph, oldEle
 	// now we're done
 	return res
 }
+
+func (searcher *ExtendedGraphSearcher) FindConnectedPairs(g ConceptGraph, s map[uint]struct{}) *BCPairSet {
+	res := NewBCPairSet(nil, uint(len(s)))
+	// first we do an extended search from [{a} for each {a}] (that is what is
+	// stored in start) to s
+	// this way we can easily determine which D all already reached from each C
+	// now run the first search, that is simply from the old start
+	start := make([]uint, len(searcher.start))
+	copy(start, searcher.start)
+	start = start[1:]
+	alreadyReached := searcher.extendedSearch(g, s, start...)
+
+	// this set contains all elements that were not reached by the initial
+	// search and still must be searched
+	// max is not really required here, but just to be sure.
+	searchRequired := make(map[uint]struct{}, IntMax(0, len(s)-len(alreadyReached)))
+	// now fill searchRequired with all elements from goal not yet found
+	for d, _ := range s {
+		if _, reached := alreadyReached[d]; !reached {
+			searchRequired[d] = struct{}{}
+		}
+	}
+	// now for each c perform a search to search required and unite the goals
+	// we use a wait group and a listener function to synchronize everything
+	type searchRes struct {
+		c               uint
+		additionalGoals map[uint]struct{}
+	}
+	ch := make(chan searchRes, 1)
+	done := make(chan bool)
+	// start a listener that adds entries to the result
+	go func() {
+		for update := range ch {
+			c, additionalGoals := update.c, update.additionalGoals
+			for d, _ := range additionalGoals {
+				res.AddID(c, d)
+			}
+		}
+		done <- true
+	}()
+
+	// create a wait group, this group waits until all searches from all C ->
+	// searchRequired are done
+	var wg sync.WaitGroup
+	wg.Add(len(s))
+	for c, _ := range s {
+		// now search from c to searchRequired
+		go func(c uint) {
+			defer wg.Done()
+			additionalGoals := searcher.extendedSearch(g, searchRequired, c)
+			ch <- searchRes{c, additionalGoals}
+			// also add values that are already found
+			ch <- searchRes{c, alreadyReached}
+		}(c)
+	}
+	// wait for all searches that might be running
+	wg.Wait()
+	// close channel
+	close(ch)
+	// wait until all adds have happened
+	<-done
+	return res
+}
