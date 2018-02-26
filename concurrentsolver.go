@@ -337,6 +337,8 @@ type ConcurrentSolver struct {
 	graphChanged      bool
 	graphChangedMutex *sync.Mutex
 
+	graph ConceptGraph
+
 	search ExtendedReachabilitySearch
 
 	pool *ConcurrentWorkerPool
@@ -356,6 +358,7 @@ func NewConcurrentSolver(graph ConceptGraph, search ExtendedReachabilitySearch) 
 		AllChangesRuleMap:     nil,
 		graphChanged:          false,
 		graphChangedMutex:     &graphChangedMutex,
+		graph:                 graph,
 		search:                search,
 		pool:                  NewConcurrentWorkerPool(),
 		sChanSize:             -1,
@@ -386,7 +389,7 @@ func (solver *ConcurrentSolver) Init(tbox *NormalizedTBox) {
 	wg.Add(3)
 	go func() {
 		solver.AllChangesSolverState = NewAllChangesSolverState(tbox.Components,
-			solver.Graph, solver.search)
+			solver.graph, solver.search)
 		wg.Done()
 	}()
 	go func() {

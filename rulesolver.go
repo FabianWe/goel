@@ -134,6 +134,7 @@ type AllChangesState interface {
 	AddSubsetRule(c, d uint) bool
 }
 
+// TODO there is graph and Graph somewhere... we really should fix this
 type AllChangesSolverState struct {
 	*SolverState
 
