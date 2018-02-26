@@ -340,6 +340,8 @@ type ConcurrentSolver struct {
 	search ExtendedReachabilitySearch
 
 	pool *ConcurrentWorkerPool
+
+	sChanSize, rChanSize, workers int
 }
 
 // Again some code duplication here, well...
@@ -355,14 +357,33 @@ func NewConcurrentSolver(graph ConceptGraph, search ExtendedReachabilitySearch) 
 		graphChanged:          false,
 		graphChangedMutex:     &graphChangedMutex,
 		search:                search,
+		pool:                  NewConcurrentWorkerPool(),
+		sChanSize:             -1,
+		rChanSize:             -1,
+		workers:               -1,
 	}
+}
+
+func (solver *ConcurrentSolver) initPool(tbox *NormalizedTBox) {
+	// TODO add some useful defaults here...
+	sChanSize, rChanSize, workers := solver.sChanSize, solver.rChanSize, solver.workers
+	if sChanSize < 0 {
+		sChanSize = int(tbox.Components.NumBCD())
+	}
+	if rChanSize < 0 {
+		rChanSize = sChanSize
+	}
+	if workers < 0 {
+		workers = 4
+	}
+	solver.pool.Init(sChanSize, rChanSize, workers)
 }
 
 func (solver *ConcurrentSolver) Init(tbox *NormalizedTBox) {
 	solver.graphChanged = false
 	// initialize state and rules (concurrently)
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(3)
 	go func() {
 		solver.AllChangesSolverState = NewAllChangesSolverState(tbox.Components,
 			solver.Graph, solver.search)
@@ -371,6 +392,10 @@ func (solver *ConcurrentSolver) Init(tbox *NormalizedTBox) {
 	go func() {
 		solver.AllChangesRuleMap = NewAllChangesRuleMap()
 		solver.AllChangesRuleMap.Init(tbox)
+		wg.Done()
+	}()
+	go func() {
+		solver.initPool(tbox)
 		wg.Done()
 	}()
 	wg.Wait()

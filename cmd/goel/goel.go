@@ -57,12 +57,13 @@ func main() {
 	// fmt.Println("==== Naive ===")
 	// naive(normalized)
 	// fmt.Println()
-	fmt.Println("==== Rule Based ===")
-	rulebased(normalized)
-	fmt.Println()
-	fmt.Println("==== Concurrent ====")
-	concurrent(normalized)
-	// time.Sleep(5 * time.Second)
+	// fmt.Println("==== Rule Based ===")
+	// rulebased(normalized)
+	// fmt.Println()
+	// fmt.Println("==== Concurrent ====")
+	// concurrent(normalized)
+	fmt.Println("==== Full Concurrent ====")
+	fullConcurrent(normalized)
 }
 
 func naive(normalized *goel.NormalizedTBox) {
@@ -103,4 +104,14 @@ func concurrent(normalized *goel.NormalizedTBox) {
 	solver.Solve(normalized)
 	execTime = time.Since(start)
 	fmt.Printf("... Done after %v\n", execTime)
+}
+
+func fullConcurrent(normalized *goel.NormalizedTBox) {
+	fmt.Println("Building state and rules ...")
+	start := time.Now()
+	solver := goel.NewConcurrentSolver(goel.NewSetGraph(), nil)
+	solver.Init(normalized)
+	execTime := time.Since(start)
+	fmt.Printf("... Done after %v\n", execTime)
+	fmt.Println("Solving ...")
 }
