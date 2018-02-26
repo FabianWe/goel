@@ -208,23 +208,16 @@ L:
 
 // Full concurrent solver: Run notifications and updates concurrently.
 
-type ConcurrentSolver struct {
-	*AllChangesSolverState
-	*AllChangesRuleMap
-
-	graphChanged bool
-	graphMutex   *sync.Mutex
-
-	search ExtendedReachabilitySearch
-}
-
-// Again some code duplication here, well...
-
 type ConcurrentWorkerPool struct {
 	sChan   chan *SUpdate
 	rChan   chan *RUpdate
 	workers chan bool
 	wg      *sync.WaitGroup
+}
+
+// TODO document that init must be called
+func NewConcurrentWorkerPool() *ConcurrentWorkerPool {
+	return &ConcurrentWorkerPool{}
 }
 
 func (p *ConcurrentWorkerPool) Init(sSize, rSize, workers int) {
@@ -292,6 +285,7 @@ func (p *ConcurrentWorkerPool) SWorker(solver *ConcurrentSolver) {
 			// apply subset notifications for cr6
 			wg.Add(1)
 			go func() {
+				// TODO is this correctly protected for concurrent use?
 				solver.AllChangesRuleMap.ApplySubsetNotification(solver, c, d)
 				wg.Done()
 			}()
@@ -336,8 +330,22 @@ func (p *ConcurrentWorkerPool) RWorker(solver *ConcurrentSolver) {
 	}
 }
 
+type ConcurrentSolver struct {
+	*AllChangesSolverState
+	*AllChangesRuleMap
+
+	graphChanged      bool
+	graphChangedMutex *sync.Mutex
+
+	search ExtendedReachabilitySearch
+
+	pool *ConcurrentWorkerPool
+}
+
+// Again some code duplication here, well...
+
 func NewConcurrentSolver(graph ConceptGraph, search ExtendedReachabilitySearch) *ConcurrentSolver {
-	var graphMutex sync.Mutex
+	var graphChangedMutex sync.Mutex
 	if search == nil {
 		search = BFSToSet
 	}
@@ -345,7 +353,7 @@ func NewConcurrentSolver(graph ConceptGraph, search ExtendedReachabilitySearch) 
 		AllChangesSolverState: nil,
 		AllChangesRuleMap:     nil,
 		graphChanged:          false,
-		graphMutex:            &graphMutex,
+		graphChangedMutex:     &graphChangedMutex,
 		search:                search,
 	}
 }
@@ -366,6 +374,68 @@ func (solver *ConcurrentSolver) Init(tbox *NormalizedTBox) {
 		wg.Done()
 	}()
 	wg.Wait()
+}
+
+func (solver *ConcurrentSolver) AddConcept(c, d uint) bool {
+	res := solver.AllChangesSolverState.AddConcept(c, d)
+	if res {
+		update := NewSUpdate(c, d)
+		solver.pool.AddS(update)
+	}
+	return res
+}
+
+func (solver *ConcurrentSolver) UnionConcepts(c, d uint) bool {
+	// we don't want to iterate over each concept twice (once in the set union
+	// and once here) so we simply do this by hand... Bit of code duplication
+	// but I guess that's okay
+
+	// first we want to avoid some deadlocks (if c == d nothing happens but we
+	// can't read / write at the same time)
+	if c == d {
+		return false
+	}
+	solver.sMutex[c].Lock()
+	solver.sMutex[d].RLock()
+	sc := solver.S[c].M
+	sd := solver.S[d].M
+	added := false
+
+	for v, _ := range sd {
+		// add to S(C)
+		oldLen := len(sc)
+		sc[v] = struct{}{}
+		if oldLen != len(sc) {
+			// change took place, update
+			added = true
+			update := NewSUpdate(c, v)
+			solver.pool.AddS(update)
+		}
+	}
+	solver.sMutex[c].Unlock()
+	solver.sMutex[d].RUnlock()
+	return added
+}
+
+func (solver *ConcurrentSolver) AddRole(r, c, d uint) bool {
+	res := solver.AllChangesSolverState.AddRole(r, c, d)
+	if res {
+		// update graph as well and issue pending update
+		update := NewRUpdate(r, c, d)
+		// add update
+		solver.pool.AddR(update)
+		// update graph
+		solver.graphMutex.Lock()
+		graphUpdate := solver.Graph.AddEdge(c, d)
+		solver.graphMutex.Unlock()
+		// if update changed something notify about the update
+		if graphUpdate {
+			solver.graphChangedMutex.Lock()
+			solver.graphChanged = true
+			solver.graphChangedMutex.Unlock()
+		}
+	}
+	return res
 }
 
 // TODO right?
