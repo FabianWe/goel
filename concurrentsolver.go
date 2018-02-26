@@ -271,6 +271,67 @@ func (p *ConcurrentWorkerPool) SWorker(solver *ConcurrentSolver) {
 				p.wg.Done()
 				<-p.workers
 			}()
+			c, d := update.C, update.D
+			notifications := solver.SRules[d]
+			// iterate over each notification and apply it, we use a waitgroup to
+			// later wait for all updates to happen
+			var wg sync.WaitGroup
+			wg.Add(len(notifications))
+			for _, notification := range notifications {
+				go func(not SNotification) {
+					not.GetSNotification(solver, c, d)
+					wg.Done()
+				}(notification)
+			}
+			// run rule cr6
+			wg.Add(1)
+			go func() {
+				solver.cr6.GetSNotification(solver, c, d)
+				wg.Done()
+			}()
+			// apply subset notifications for cr6
+			wg.Add(1)
+			go func() {
+				solver.AllChangesRuleMap.ApplySubsetNotification(solver, c, d)
+				wg.Done()
+			}()
+			wg.Wait()
+		}(update)
+	}
+}
+
+func (p *ConcurrentWorkerPool) RWorker(solver *ConcurrentSolver) {
+	for update := range p.rChan {
+		// first wait for a worker to free
+		p.workers <- true
+		// now start a go routine that does all updates concurrently
+		go func(update *RUpdate) {
+			// once we're done we signal that to wg and free the worker
+			defer func() {
+				p.wg.Done()
+				<-p.workers
+			}()
+			r, c, d := update.R, update.C, update.D
+			var wg sync.WaitGroup
+			// all notifications waiting for r
+			notifications := solver.RRules[r]
+			wg.Add(len(notifications))
+			for _, notification := range notifications {
+				go func(not RNotification) {
+					not.GetRNotification(solver, r, c, d)
+					wg.Done()
+				}(notification)
+			}
+			// now also inform CR5 (and whatever is there)
+			notifications = solver.RRules[uint(NoRole)]
+			wg.Add(len(notifications))
+			for _, notification := range notifications {
+				go func(not RNotification) {
+					not.GetRNotification(solver, r, c, d)
+					wg.Done()
+				}(notification)
+			}
+			wg.Wait()
 		}(update)
 	}
 }
@@ -305,4 +366,9 @@ func (solver *ConcurrentSolver) Init(tbox *NormalizedTBox) {
 		wg.Done()
 	}()
 	wg.Wait()
+}
+
+// TODO right?
+func (solver *ConcurrentSolver) AddSubsetRule(c, d uint) bool {
+	return solver.newSubsetRule(c, d)
 }
