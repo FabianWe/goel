@@ -70,6 +70,8 @@ type AllChangesState interface {
 
 	BidrectionalSearch(oldElements map[uint]struct{}, newElement uint) map[uint]BidirectionalSearch
 
+	FindConnectedPairs(s map[uint]struct{}) *BCPairSet
+
 	// AddSubsetRule is used to create a new subset rule that says that S(D)
 	// must always be a subset of S(C). That is whenever an add to S(D) happens
 	// that element must be added to S(C) as well.
@@ -186,6 +188,13 @@ func (state *AllChangesSolverState) BidrectionalSearch(oldElements map[uint]stru
 	newElement uint) map[uint]BidirectionalSearch {
 	state.graphMutex.RLock()
 	res := state.Searcher.BidrectionalSearch(state.Graph, oldElements, newElement)
+	state.graphMutex.RUnlock()
+	return res
+}
+
+func (state *AllChangesSolverState) FindConnectedPairs(s map[uint]struct{}) *BCPairSet {
+	state.graphMutex.RLock()
+	res := state.Searcher.FindConnectedPairs(state.Graph, s)
 	state.graphMutex.RUnlock()
 	return res
 }
