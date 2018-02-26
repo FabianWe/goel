@@ -413,6 +413,9 @@ func (rm *AllChangesRuleMap) ApplySubsetNotification(state AllChangesState, d, c
 }
 
 func (rm *AllChangesRuleMap) newSubsetRule(c, d uint) bool {
+	if c == d {
+		return false
+	}
 	// lock mutex
 	rm.subsetMutex.Lock()
 	defer rm.subsetMutex.Unlock()

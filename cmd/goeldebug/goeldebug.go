@@ -150,7 +150,7 @@ func testInstance(builder *goel.RandomELBuilder) {
 		}
 	}()
 	s1, r1 := runTest(normalized)
-	s2, r2 := runConcurrent(normalized)
+	s2, r2 := runFullConcurrent(normalized)
 	res := make(chan bool, 2)
 	// compare s and r
 	go func() {
@@ -274,6 +274,13 @@ func runRuleBased(tbox *goel.NormalizedTBox) ([]*goel.BCSet, []*goel.Relation) {
 
 func runConcurrent(tbox *goel.NormalizedTBox) ([]*goel.BCSet, []*goel.Relation) {
 	solver := goel.NewConcurrentNotificationSolver(goel.NewSetGraph(), nil)
+	solver.Init(tbox)
+	solver.Solve(tbox)
+	return solver.S, solver.R
+}
+
+func runFullConcurrent(tbox *goel.NormalizedTBox) ([]*goel.BCSet, []*goel.Relation) {
+	solver := goel.NewConcurrentSolver(goel.NewSetGraph(), nil)
 	solver.Init(tbox)
 	solver.Solve(tbox)
 	return solver.S, solver.R

@@ -470,3 +470,62 @@ func (solver *ConcurrentSolver) AddRole(r, c, d uint) bool {
 func (solver *ConcurrentSolver) AddSubsetRule(c, d uint) bool {
 	return solver.newSubsetRule(c, d)
 }
+
+func (solver *ConcurrentSolver) Solve(tbox *NormalizedTBox) {
+	// TODO call init here, made this easier for testing during debuging.
+	// now run the listeners and apply the initial updates
+	addInitial := func() {
+		// add all initial setup steps, that is for each C add ⊤ and C to S(C):
+		// ⊤ add only ⊤, for all other C add ⊤ and C
+		components := tbox.Components
+		solver.AddConcept(1, 1)
+		var c uint = 2
+		// we use + 1 here because we want to use the normalized id directly, so
+		// the bottom concept must be taken into consideration
+		numBCD := components.NumBCD() + 1
+		for ; c < numBCD; c++ {
+			solver.AddConcept(c, 1)
+			solver.AddConcept(c, c)
+		}
+	}
+
+	solver.runAndWait(tbox, addInitial)
+
+	// after the initial stuff has been added: while the graph has changed
+	// run the graph update and apply all the rules
+
+	for solver.graphChanged {
+		// apply rule and wait until all changes have happened, then if the graph
+		// changed again repeat the process.
+		// all other updates must have already taken place
+		solver.graphChanged = false
+		f := func() {
+			solver.cr6.GetGraphNotification(solver)
+		}
+		solver.runAndWait(tbox, f)
+	}
+
+}
+
+func (solver *ConcurrentSolver) runAndWait(tbox *NormalizedTBox, f func()) {
+	// initialize pool again
+	solver.initPool(tbox)
+	// we want to run a listener for s and r, also we would like to run f
+	// concurrently and then wait
+	// but we have to wait until f has been applied
+	go solver.pool.RWorker(solver)
+	go solver.pool.SWorker(solver)
+	// so now we run f concurrently, report back to a done channel once it's
+	// finished and then we have to wait until all updates are done (i.e. wait
+	// for the pool)
+	done := make(chan bool, 1)
+	go func() {
+		f()
+		done <- true
+	}()
+	// now wait until f is finished
+	<-done
+	// now wait until the pool is done
+	solver.pool.Wait()
+	solver.pool.Close()
+}
