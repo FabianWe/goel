@@ -336,6 +336,44 @@ func (n *AllChangesCR6) runFindPairs(state AllChangesState, s map[uint]struct{})
 	return result
 }
 
+// old version
+// func (n *AllChangesCR6) GetGraphNotification(state AllChangesState) bool {
+// 	// if the graph has changed we iterate over all pairs and revaulate
+// 	// the condition, that is we add new rules etc.
+// 	// maybe there are nicer ways but we'll do the following:
+// 	// iterate over each {a} and then perform the extended search for each C
+// 	// that contains {a}.
+//
+// 	// lock mutex
+// 	n.aMutex.Lock()
+// 	defer n.aMutex.Unlock()
+// 	result := false
+// 	for _, containedIn := range n.aMap {
+// 		for c, _ := range containedIn {
+// 			result = n.applyRuleDirectOnly(state, containedIn, c) || result
+// 		}
+// 	}
+// 	return result
+// }
+
+// func (n *AllChangesCR6) GetGraphNotification(state AllChangesState) bool {
+// 	// if the graph has changed we iterate over all pairs and revaulate
+// 	// the condition, that is we add new rules etc.
+// 	// maybe there are nicer ways but we'll do the following:
+// 	// iterate over each {a} and then perform the extended search for each C
+// 	// that contains {a}.
+//
+// 	// lock mutex
+// 	n.aMutex.Lock()
+// 	defer n.aMutex.Unlock()
+// 	result := false
+//
+// 	for _, containedIn := range n.aMap {
+// 		result = n.runFindPairs(state, containedIn) || result
+// 	}
+// 	return result
+// }
+
 func (n *AllChangesCR6) GetGraphNotification(state AllChangesState) bool {
 	// if the graph has changed we iterate over all pairs and revaulate
 	// the condition, that is we add new rules etc.
@@ -347,11 +385,22 @@ func (n *AllChangesCR6) GetGraphNotification(state AllChangesState) bool {
 	n.aMutex.Lock()
 	defer n.aMutex.Unlock()
 	result := false
+
+	// run everything concurrently, that is for each s run rundFindPairs
+	size := len(n.aMap)
+	ch := make(chan bool)
+
 	for _, containedIn := range n.aMap {
-		for c, _ := range containedIn {
-			result = n.applyRuleDirectOnly(state, containedIn, c) || result
-		}
+		go func(s map[uint]struct{}) {
+			ch <- n.runFindPairs(state, s)
+		}(containedIn)
+		// result = n.runFindPairs(state, containedIn) || result
 	}
+
+	for i := 0; i < size; i++ {
+		result = <-ch || result
+	}
+
 	return result
 }
 
