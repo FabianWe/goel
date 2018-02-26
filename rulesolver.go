@@ -65,8 +65,7 @@ type AllChangesState interface {
 	StateHandler
 
 	SubsetConcepts(c, d uint) bool
-	// UpdateGraph(c, d uint) bool
-	// TODO add search method(s) here.
+
 	ExtendedSearch(goals map[uint]struct{}, additionalStart uint) map[uint]struct{}
 
 	BidrectionalSearch(oldElements map[uint]struct{}, newElement uint) map[uint]BidirectionalSearch
@@ -234,18 +233,23 @@ func (n *AllChangesCR6) applyRuleBidirectional(state AllChangesState, goals map[
 	// I guess not!! even if the union will not change anything we still have
 	// to check if the nodes are connected in order to maintain S(D) <= S(C)
 	// or will this condition then be checked again?
-	// I'm not totally sure...
-	filtered := make(map[uint]struct{}, len(goals))
-	for d, _ := range goals {
-		// TODO correct?
-		if !state.SubsetConcepts(d, c) || !state.SubsetConcepts(c, d) {
-			filtered[d] = struct{}{}
-		}
-	}
-	if len(filtered) == 0 {
-		return false
-	}
-	connected := state.BidrectionalSearch(filtered, c)
+	// I don't think filtering is correct here.
+	// Even if the union does not change anything right now the connection
+	// must still be marked to maintain the subset
+	// filtered := make(map[uint]struct{}, len(goals))
+	// for d, _ := range goals {
+	// 	// TODO correct?
+	// 	if !state.SubsetConcepts(d, c) || !state.SubsetConcepts(c, d) {
+	// 		filtered[d] = struct{}{}
+	// 	}
+	// }
+	// if len(filtered) == 0 {
+	// 	return false
+	// }
+	// connected := state.BidrectionalSearch(filtered, c)
+
+	// here ends the commented out code from filtering
+	connected := state.BidrectionalSearch(goals, c)
 
 	result := false
 	for d, connType := range connected {
@@ -274,16 +278,23 @@ func (n *AllChangesCR6) applyRuleDirectOnly(state AllChangesState, goals map[uin
 	// the subset property this might help us to speed up the search
 	// TODO is this correct even in a concurrent version?
 
-	filtered := make(map[uint]struct{}, len(goals))
-	for d, _ := range goals {
-		if !state.SubsetConcepts(d, c) {
-			filtered[d] = struct{}{}
-		}
-	}
-	if len(filtered) == 0 {
-		return false
-	}
-	connected := state.ExtendedSearch(filtered, c)
+	// as in bidrectional: I think filtering is wrong.
+	// filtered := make(map[uint]struct{}, len(goals))
+	// for d, _ := range goals {
+	// 	if !state.SubsetConcepts(d, c) {
+	// 		filtered[d] = struct{}{}
+	// 	}
+	// }
+	// if len(filtered) == 0 {
+	// 	return false
+	// }
+
+	// connected := state.ExtendedSearch(filtered, c)
+
+	// end of commented out filtering code.
+
+	connected := state.ExtendedSearch(goals, c)
+
 	result := false
 	for d, _ := range connected {
 		// no need to do anyhting if c == d
