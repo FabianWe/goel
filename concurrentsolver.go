@@ -61,6 +61,8 @@ func (solver *ConcurrentNotificationSolver) UnionConcepts(c, d uint) bool {
 	if c == d {
 		return false
 	}
+	// ugly duoMutex fix
+	solver.duoMutex.Lock()
 	solver.sMutex[c].Lock()
 	solver.sMutex[d].RLock()
 	sc := solver.S[c].M
@@ -85,6 +87,7 @@ func (solver *ConcurrentNotificationSolver) UnionConcepts(c, d uint) bool {
 	solver.sMutex[c].Unlock()
 	solver.sMutex[d].RUnlock()
 	solver.sPendingMutex.Unlock()
+	solver.duoMutex.Unlock()
 	return added
 }
 
@@ -424,6 +427,8 @@ func (solver *ConcurrentSolver) UnionConcepts(c, d uint) bool {
 	if c == d {
 		return false
 	}
+	// ugly duoMutex fix
+	solver.duoMutex.Lock()
 	solver.sMutex[c].Lock()
 	solver.sMutex[d].RLock()
 	sc := solver.S[c].M
@@ -443,6 +448,7 @@ func (solver *ConcurrentSolver) UnionConcepts(c, d uint) bool {
 	}
 	solver.sMutex[c].Unlock()
 	solver.sMutex[d].RUnlock()
+	solver.duoMutex.Unlock()
 	return added
 }
 

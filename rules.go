@@ -125,6 +125,19 @@ type SolverState struct {
 
 	sMutex []*sync.RWMutex
 	rMutex []*sync.RWMutex
+
+	// TODO this is a really ugly fix.
+	// it's important to notice that union and subset lock two mutexes, thus
+	// suppose we have to go routines concurrenlty running one locks S[c], the
+	// other S[d]: We can't rlock S[c] nor S[d] which would be required for one
+	// of them to finish
+	// thus this deadlock is used s.t. only one union / subset may happen at the
+	// same time.
+	// this is not a nice solution but should avoid the problems with that rule...
+	// Thus if a operation must lock two mutexes: if one of the mutexes will get
+	// a write lock lock this mutex, if both mutexes get an rlock thn rlock
+	// this mutex
+	duoMutex *sync.RWMutex
 }
 
 // NewSolverState returns a new solver state given the base components,
@@ -136,6 +149,7 @@ func NewSolverState(c *ELBaseComponents) *SolverState {
 		R:          nil,
 		sMutex:     nil,
 		rMutex:     nil,
+		duoMutex:   new(sync.RWMutex),
 	}
 	// initialize S and R concurrently
 	// we use + 1 here because we want to use the normalized id directly, so
@@ -198,11 +212,16 @@ func (state *SolverState) UnionConcepts(c, d uint) bool {
 	// then they can't rlock the other mutex!
 	// we don't have that kind of problem with other rules... or at least I hope
 	// so
+	// I've solved this with another mutex, which is not really nice...
+
+	// ugly duoMutex fix
+	state.duoMutex.Lock()
 	state.sMutex[c].Lock()
 	state.sMutex[d].RLock()
 	res := state.S[c].Union(state.S[d])
 	state.sMutex[c].Unlock()
 	state.sMutex[d].RUnlock()
+	state.duoMutex.Unlock()
 	return res
 }
 
@@ -252,11 +271,19 @@ func (state *SolverState) ReverseRoleMapping(r, d uint) []uint {
 }
 
 func (state *SolverState) SubsetConcepts(c, d uint) bool {
+	if c == d {
+		// avoid locking S[c] mutex twice
+		return true
+	}
+
+	// ugly duoMutex fix
+	state.duoMutex.RLock()
 	state.sMutex[c].RLock()
 	state.sMutex[d].RLock()
 	res := state.S[c].IsSubset(state.S[d])
 	state.sMutex[c].RUnlock()
 	state.sMutex[d].RUnlock()
+	state.duoMutex.RUnlock()
 	return res
 }
 
