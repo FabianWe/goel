@@ -193,6 +193,11 @@ func (state *SolverState) UnionConcepts(c, d uint) bool {
 		// prevent deadlock from locking the mutex twice
 		return false
 	}
+	// TODO this may deadlock?!
+	// if we have two unions running, one locks c and one locks d concurrently
+	// then they can't rlock the other mutex!
+	// we don't have that kind of problem with other rules... or at least I hope
+	// so
 	state.sMutex[c].Lock()
 	state.sMutex[d].RLock()
 	res := state.S[c].Union(state.S[d])
