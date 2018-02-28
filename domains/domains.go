@@ -22,8 +22,9 @@ package domains
 
 // AbstractLiteral is the base interface for all concrete domain literals.
 // Such literals are for example floats or strings.
-// Abstract literals should be (regarding =). That is checked in go
-// automatically, from the specification:
+// Abstract literals should be comparable and values from two different domains
+// are never equal. That is checked in go automatically, from the specification:
+//
 // "Interface values are comparable. Two interface values are equal if they have
 // identical dynamic types and equal dynamic values or if both have value nil."
 //
@@ -31,7 +32,7 @@ package domains
 type AbstractLiteral interface {
 }
 
-// Predicate is a predicate as defined for a concrete domain: It has an arity
+// Predicate is a predicate such as > for a concrete domain: It has an arity
 // n > 0 and an extension (a realation with that arity).
 // Enumerating all values is not possible (for example the smaller relation on
 // ℚ), thus it is defined as a function that takes n arguments and returns true
@@ -51,7 +52,6 @@ type Predicate interface {
 type FeatureID int
 
 // PredicateFormula is a formula of the form p(f1, ..., fk).
-// TODO how to link predicate <--> CD?
 type PredicateFormula struct {
 	Predicate Predicate
 	Features  []FeatureID
@@ -60,13 +60,13 @@ type PredicateFormula struct {
 // ConcreteDomain is a concrete domain as defined in EL++. Thus it has a set
 // Δ(D) and a set of extensions p(D).
 // The set is of course not stored, for example ℚ is an infinite set. We cannot
-// even store all predicates (for example predicate <q.
+// even store all predicates (for example predicate >q).
 // A concrete domain will have methods to create new relations
 // (for example for each q ∈ ℚ); and thus we construct them as needed.
 //
 // A concrete domain must be able to answer conjunction queries
-// (is a set of formulae Γ satisfiable) and answer implies queries (does a set
-// of formulae Γ imply another formula).
+// (is a set of formulae Γ satisfiable) and answer implication queries (does a
+// set of formulae Γ imply another formula).
 //
 // As mentioned above relations for a concrete domain are created as need be -
 // and these relations may here be used in formulae. The concrete domain must
@@ -76,7 +76,12 @@ type PredicateFormula struct {
 //
 // It also has a function to determine if an abstract literal is part of the
 // concrete domain. Concrete domains should document which values are considered
-// but of the domain.
+// part of the domain.
+//
+// Concrete domains must be comparable via ==, that is two instances of a
+// concrete domain must be considered equal and == should return false only
+// if both sides are not the same concrete domain.
+// See remark above about comparing interface values.
 type ConcreteDomain interface {
 	// Contains checks if an abstract literal is part of the concrete domain.
 	// The concrete implementation must document this.

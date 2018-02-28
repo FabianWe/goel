@@ -20,7 +20,7 @@
 
 package domains
 
-import "math"
+import "github.com/draffensperger/golp"
 
 // RationalDomain is the concrete domain for rational numbers (ℚ).
 // Only elements of type float64 are considered part of this domain.
@@ -36,6 +36,8 @@ import "math"
 //
 // (4) A binary predicate +(q) for all q ∈ ℚ with the semantics
 // { (q', q'') ∈ ℚ² | q' + q = q'' }
+//
+// Answering the logical queries is done by solving a linear program.
 type RationalDomain struct{}
 
 func (d RationalDomain) Contains(l AbstractLiteral) bool {
@@ -74,25 +76,25 @@ func (r EqualsRational) Relation(values ...AbstractLiteral) bool {
 	return float64(r) == qPrime
 }
 
-type EqualsRationalWithEpsilon struct {
-	Epsilon, Q float64
-}
-
-func NewEqualsRationalWithEpsilon(epsilon, q float64) EqualsRationalWithEpsilon {
-	return EqualsRationalWithEpsilon{
-		Epsilon: epsilon,
-		Q:       q,
-	}
-}
-
-func (r EqualsRationalWithEpsilon) Arity() int {
-	return 1
-}
-
-func (r EqualsRationalWithEpsilon) Relation(values ...AbstractLiteral) bool {
-	qPrime := values[0].(float64)
-	return math.Abs(qPrime-r.Q) <= r.Epsilon
-}
+// type EqualsRationalWithEpsilon struct {
+// 	Epsilon, Q float64
+// }
+//
+// func NewEqualsRationalWithEpsilon(epsilon, q float64) EqualsRationalWithEpsilon {
+// 	return EqualsRationalWithEpsilon{
+// 		Epsilon: epsilon,
+// 		Q:       q,
+// 	}
+// }
+//
+// func (r EqualsRationalWithEpsilon) Arity() int {
+// 	return 1
+// }
+//
+// func (r EqualsRationalWithEpsilon) Relation(values ...AbstractLiteral) bool {
+// 	qPrime := values[0].(float64)
+// 	return math.Abs(qPrime-r.Q) <= r.Epsilon
+// }
 
 type GreaterRational float64
 
@@ -125,22 +127,22 @@ func (r BinaryEqualsRational) Relation(values ...AbstractLiteral) bool {
 	return v1 == v2
 }
 
-type BinaryEqualsRationalWithEpsilon float64
-
-func NewBinaryEqualsRationalWithEpsilon(epsilon float64) BinaryEqualsRationalWithEpsilon {
-	return BinaryEqualsRationalWithEpsilon(epsilon)
-}
-
-func (r BinaryEqualsRationalWithEpsilon) Airty() int {
-	return 2
-}
-
-func (r BinaryEqualsRationalWithEpsilon) Relation(values ...AbstractLiteral) bool {
-	epsilon := float64(r)
-	v1 := values[0].(float64)
-	v2 := values[1].(float64)
-	return math.Abs(v1-v2) <= epsilon
-}
+// type BinaryEqualsRationalWithEpsilon float64
+//
+// func NewBinaryEqualsRationalWithEpsilon(epsilon float64) BinaryEqualsRationalWithEpsilon {
+// 	return BinaryEqualsRationalWithEpsilon(epsilon)
+// }
+//
+// func (r BinaryEqualsRationalWithEpsilon) Airty() int {
+// 	return 2
+// }
+//
+// func (r BinaryEqualsRationalWithEpsilon) Relation(values ...AbstractLiteral) bool {
+// 	epsilon := float64(r)
+// 	v1 := values[0].(float64)
+// 	v2 := values[1].(float64)
+// 	return math.Abs(v1-v2) <= epsilon
+// }
 
 type PlusRational float64
 
@@ -157,4 +159,10 @@ func (r PlusRational) Relation(values ...AbstractLiteral) bool {
 	q1 := values[0].(float64)
 	q2 := values[1].(float64)
 	return q1+q == q2
+}
+
+// Reasoning in ℚ
+
+func (d RationalDomain) formulateLP(gamma []*PredicateFormula) *golp.LP {
+
 }
