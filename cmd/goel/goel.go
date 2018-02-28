@@ -46,7 +46,6 @@ func main() {
 	// 	MaxNumFeatures:     100}
 	fmt.Println("Building random TBox ...")
 	_, tbox := builder.GenerateRandomTBox(0, 1000, 1000, 10, 10000, 100)
-	fmt.Println("... Done")
 	normalizer := goel.NewDefaultNormalFormBUilder(100)
 	fmt.Println("Normalizing TBox ...")
 	start := time.Now()
