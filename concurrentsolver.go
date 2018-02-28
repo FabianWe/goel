@@ -347,7 +347,7 @@ type ConcurrentSolver struct {
 
 	pool *ConcurrentWorkerPool
 
-	sChanSize, rChanSize, workers int
+	SChanSize, RChanSize, Workers int
 }
 
 // Again some code duplication here, well...
@@ -365,15 +365,15 @@ func NewConcurrentSolver(graph ConceptGraph, search ExtendedReachabilitySearch) 
 		graph:                 graph,
 		search:                search,
 		pool:                  NewConcurrentWorkerPool(),
-		sChanSize:             -1,
-		rChanSize:             -1,
-		workers:               -1,
+		SChanSize:             -1,
+		RChanSize:             -1,
+		Workers:               -1,
 	}
 }
 
 func (solver *ConcurrentSolver) initPool(tbox *NormalizedTBox) {
 	// TODO add some useful defaults here...
-	sChanSize, rChanSize, workers := solver.sChanSize, solver.rChanSize, solver.workers
+	sChanSize, rChanSize, workers := solver.SChanSize, solver.RChanSize, solver.Workers
 	if sChanSize < 0 {
 		sChanSize = int(tbox.Components.NumBCD() * 4)
 	}
@@ -519,38 +519,55 @@ func (solver *ConcurrentSolver) Solve(tbox *NormalizedTBox) {
 // to deadlocks
 // see commented out version below.
 // but still there is much running concurrently, so I'm okay with that.
-func (solver *ConcurrentSolver) runAndWait(tbox *NormalizedTBox, f func()) {
-	// initialize pool again
-	solver.initPool(tbox)
-	// first let f do everything it needs
-	f()
-	// now start the listeners
-	go solver.pool.RWorker(solver)
-	go solver.pool.SWorker(solver)
-	// wait until everything is done
-	solver.pool.Wait()
-	solver.pool.Close()
-}
-
+// seems that the problem really was the union method, since we fixed that
+// (in an ugly way though) the version below seems to work just fine.
+// but think this through again... why exactly did it deadlock before and
+// why not any more? and why did the union deadlock never occur here?
+// Another problem: imagine that all workers are locked (and this means for
+// example they want to change the graph but they can't). Can they, at the same
+// time, all lock one of the S(C) for which we must apply a union?
+// Think this through again! If deadlocks appear use this function just to be
+// sure.
+// I think not, the following happens: The GetGraphNotification function will
+// readlock the mutex, so the only reason one of the workers might hang (or all
+// of the for that matter) is because they want to right to the graph, which
+// is of course not possible.but these methods don't keep a lock on any S(C),
+// so it's perfectly safe for the graph to do the unions.
 // func (solver *ConcurrentSolver) runAndWait(tbox *NormalizedTBox, f func()) {
 // 	// initialize pool again
 // 	solver.initPool(tbox)
-// 	// we want to run a listener for s and r, also we would like to run f
-// 	// concurrently and then wait
-// 	// but we have to wait until f has been applied
+// 	// first let f do everything it needs
+// 	f()
+// 	// now start the listeners
 // 	go solver.pool.RWorker(solver)
 // 	go solver.pool.SWorker(solver)
-// 	// so now we run f concurrently, report back to a done channel once it's
-// 	// finished and then we have to wait until all updates are done (i.e. wait
-// 	// for the pool)
-// 	done := make(chan bool, 1)
-// 	go func() {
-// 		f()
-// 		done <- true
-// 	}()
-// 	// now wait until f is finished
-// 	<-done
-// 	// now wait until the pool is done
+// 	// wait until everything is done
 // 	solver.pool.Wait()
 // 	solver.pool.Close()
 // }
+
+// TODO do we really have to close and re-init the the channel again?
+// also do we have to start the listeners again and again?
+// I don't think so, needs testing though
+func (solver *ConcurrentSolver) runAndWait(tbox *NormalizedTBox, f func()) {
+	// initialize pool again
+	solver.initPool(tbox)
+	// we want to run a listener for s and r, also we would like to run f
+	// concurrently and then wait
+	// but we have to wait until f has been applied
+	go solver.pool.RWorker(solver)
+	go solver.pool.SWorker(solver)
+	// so now we run f concurrently, report back to a done channel once it's
+	// finished and then we have to wait until all updates are done (i.e. wait
+	// for the pool)
+	done := make(chan bool, 1)
+	go func() {
+		f()
+		done <- true
+	}()
+	// now wait until f is finished
+	<-done
+	// now wait until the pool is done
+	solver.pool.Wait()
+	solver.pool.Close()
+}

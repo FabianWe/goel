@@ -112,6 +112,7 @@ func fullConcurrent(normalized *goel.NormalizedTBox) {
 	start := time.Now()
 	solver := goel.NewConcurrentSolver(goel.NewSetGraph(), nil)
 	solver.Init(normalized)
+	solver.Workers = 25
 	execTime := time.Since(start)
 	fmt.Printf("... Done after %v\n", execTime)
 	fmt.Println("Solving ...")
