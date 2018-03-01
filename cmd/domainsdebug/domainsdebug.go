@@ -25,6 +25,11 @@ import "github.com/draffensperger/golp"
 
 func main() {
 	fmt.Println("Hello world")
-	lp := golp.NewLP(12, 12)
+	lp := golp.NewLP(0, 2)
+	lp.AddConstraintSparse([]golp.Entry{{0, 1}}, golp.GE, 5)
+	lp.AddConstraintSparse([]golp.Entry{{1, 2}}, golp.EQ, 5)
+	lp.SetObjFn([]float64{1.0, 1.0})
+	fmt.Println(lp.Solve())
+	fmt.Println(lp.Variables())
 	lp.WriteToStdout()
 }

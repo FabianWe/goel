@@ -25,3 +25,15 @@ Despite from Go the following libraries are used.
 
  - [golp, MIT licensed](https://github.com/draffensperger/golp#acknowledgements-and-license). See also further details there
  - [lp_solve, LGPL licensed](http://lpsolve.sourceforge.net/5.5/LGPL.htm) and dynamically linked via golp. More details about lp_solve can be found [here](http://lpsolve.sourceforge.net/5.5/).
+
+lp_solve wance to be cited the following way as well:
+lpsolve citation data
+----------------------
+Description     : Open source (Mixed-Integer) Linear Programming system
+Language        : Multi-platform, pure ANSI C / POSIX source code, Lex/Yacc based parsing
+Official name   : lp_solve (alternatively lpsolve)
+Release data    : Version 5.1.0.0 dated 1 May 2004
+Co-developers   : Michel Berkelaar, Kjell Eikland, Peter Notebaert
+Licence terms   : GNU LGPL (Lesser General Public Licence)
+Citation policy : General references as per LGPL
+                  Module specific references as specified therein

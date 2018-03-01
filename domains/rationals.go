@@ -20,7 +20,12 @@
 
 package domains
 
-import "github.com/draffensperger/golp"
+import (
+	"fmt"
+	"math"
+
+	"github.com/draffensperger/golp"
+)
 
 // RationalDomain is the concrete domain for rational numbers (ℚ).
 // Only elements of type float64 are considered part of this domain.
@@ -163,6 +168,228 @@ func (r PlusRational) Relation(values ...AbstractLiteral) bool {
 
 // Reasoning in ℚ
 
-func (d RationalDomain) formulateLP(gamma []*PredicateFormula) *golp.LP {
+func (d RationalDomain) formulateLP(gamma ...*PredicateFormula) *golp.LP {
+	// first get the number of variables and the normalized ids of the features
+	idMap, numVars := d.getIDMap(gamma...)
+	// we need a preprocessing step as explained above
+	eq := make(map[FeatureID]float64, numVars)
+	varEq := make(map[FeatureID]map[FeatureID]struct{}, numVars)
+	greater := make(map[FeatureID]float64, numVars)
+	for _, formula := range gamma {
+		switch f := formula.Predicate.(type) {
+		case EqualsRational:
+			q := float64(f)
+			// check if there is already an entry, if this is the case we're done
+			// and we can return false if they're not equal
+			if entry, has := eq[formula.Features[0]]; has {
+				if entry != q {
+					return nil
+				}
+				// else everything is ok, was there twice
+			} else {
+				// just add it
+				eq[formula.Features[0]] = q
+			}
+		case GreaterRational:
+			q := float64(f)
+			// now update the greater entry to max
+			// we have the condition that f1 > q
+			// if we have already an entry stored we need the max of both.
+			// for example f1 > 21 and f1 > 42 ==> f1 > 42
+			if entry, has := greater[formula.Features[0]]; has {
+				greater[formula.Features[0]] = math.Max(entry, q)
+			} else {
+				greater[formula.Features[0]] = q
+			}
+		case BinaryEqualsRational:
+			// now add an entry that f1 and f2 must be equal
+			f1, f2 := formula.Features[0], formula.Features[1]
+			if inner, has := varEq[f1]; has {
+				inner[f2] = struct{}{}
+			} else {
+				newMap := make(map[FeatureID]struct{}, numVars)
+				newMap[f2] = struct{}{}
+				varEq[f1] = newMap
+			}
 
+			// we want an undirected graph, so add the other direction as well
+			if inner, has := varEq[f2]; has {
+				inner[f1] = struct{}{}
+			} else {
+				newMap := make(map[FeatureID]struct{}, numVars)
+				newMap[f1] = struct{}{}
+				varEq[f2] = newMap
+			}
+		}
+	}
+	// after preprocessing we can check == and > (see comment above)
+	// and also we can do some improvements on same variables
+	for f, eqTo := range eq {
+		// now check if there is an entry in >, if yes: if entry <= eqTo
+		// return false, this will take care of the == problem and if entry < eqTo
+		// we're already done because there is no possible solution
+		if greaterThan, has := greater[f]; has {
+			if eqTo <= greaterThan {
+				return nil
+			}
+		}
+	}
+	// now we'll do another check:
+	// all variables that are marked as equal must also confirm our extended
+	// > test. For example imagine we have f1 = f2 = f3
+	// and f3 has a constraint > 5 and we have f1 = 5. In this case we also
+	// want to find this error. Thus we create all connected components
+	// (imagine varEq as an undirected graph) and do the said test for all
+	// variables in the connected components.
+
+	cComponents := d.connectedComponents(varEq)
+	for _, component := range cComponents {
+		// the first thing we do is to check if there is an eq constraint on any
+		// variable in the components and compute the maximum of all greater entries
+		eqVal, eqFound := 0.0, false
+		maxVal, maxFound := 0.0, false
+		for fi, _ := range component {
+			if next, has := eq[fi]; has {
+				if eqFound {
+					// if we already found a value it must be equal to this one,
+					// otherwise there is no solution
+					if next != eqVal {
+						return nil
+					}
+					// if equal we have nothing to do, value is unchanged
+				} else {
+					eqVal = next
+					eqFound = true
+				}
+			}
+			// now check if there is an entry in the greater dictionary
+			if next, has := greater[fi]; has {
+				if maxFound {
+					// no matter if we already found an entry, we can just update to max
+					maxVal = math.Max(maxVal, next)
+				} else {
+					maxVal = next
+					maxFound = true
+				}
+			}
+			// if neither was found (>, eq) we don't have to worry
+			if !eqFound && !maxFound {
+				continue
+			}
+			// so now we have the eq val and the max val for the whole component
+			// later on, when formulating the lp, for things that have an eq entry
+			// we don't actually care about the > value because we already took care
+			// of that constraint. so now we add to all elements in the component
+			// the eq value and the max value (though this is as mentioned not
+			// required).
+			// but not all variables have eq set and we haven't checked yet if we
+			// found a value, we'll do that all in the next loop
+			for fi, _ := range component {
+				// if eq value was found just set the eq value
+				if eqFound {
+					eq[fi] = eqVal
+				}
+				// if max value was found just update the max value entry
+				if maxFound {
+					greater[fi] = maxVal
+				} else {
+					// so we haven't found a max value, but there might be an
+					// "evil" entry in greater that could harm us... so now look it up
+					if next, has := greater[fi]; has {
+						// now perform the same test as before
+						// if there is no eq value however just ignore it
+						if eqFound && eqVal <= next {
+							return nil
+						}
+					}
+				}
+			}
+		}
+	}
+	lp := golp.NewLP(0, numVars)
+	// now generate the actual LP
+	// TODO
+	fmt.Println(idMap)
+	return lp
+}
+
+func (d RationalDomain) connectedComponents(varEq map[FeatureID]map[FeatureID]struct{}) []map[FeatureID]struct{} {
+	res := make([]map[FeatureID]struct{}, 0, len(varEq))
+	visited := make(map[FeatureID]struct{}, len(varEq))
+	// visit each node in a for loop, run a search for that node and mark all
+	// nodes reached as visited
+	for node, _ := range varEq {
+		if _, wasVisited := visited[node]; !wasVisited {
+			res = append(res, d.bfs(varEq, node, visited))
+		}
+	}
+	return res
+}
+
+func (d RationalDomain) bfs(varEq map[FeatureID]map[FeatureID]struct{}, node FeatureID, visited map[FeatureID]struct{}) map[FeatureID]struct{} {
+	res := make(map[FeatureID]struct{}, len(varEq))
+	// at least add node to result, not really desired I think but it doesn't hurt
+	res[node] = struct{}{}
+	queue := make([]FeatureID, 1, len(varEq))
+	queue[0] = node
+	for len(queue) > 0 {
+		next := queue[0]
+		queue = queue[1:]
+		// if node was already visited there is nothing to do
+		if _, wasVisited := visited[next]; wasVisited {
+			// if node was already visited there is nothing to do
+			continue
+		}
+		// mark node as visited
+		visited[next] = struct{}{}
+		// now expand the node
+		for succ, _ := range varEq[next] {
+			// if node was already visited there is nothing to do
+			if _, wasVisited := visited[succ]; wasVisited {
+				continue
+			}
+			// otherwise we found a new node in the component, so add to result
+			res[succ] = struct{}{}
+			// add to queue
+			queue = append(queue, succ)
+		}
+	}
+	return res
+}
+
+func (d RationalDomain) bla(f1, f2 FeatureID, eq map[FeatureID]float64, greater map[FeatureID]float64) bool {
+	// eqOne, hasEqOne := eq[f1]
+	// eqTwo, hasEqTwo := eq[f2]
+	// greaterOne, hasGreaterOne := greater[f1]
+	// greaterTwo, hasGreaterTwo := greater[f2]
+	// switch {
+	// case hasEqOne && hasEqTwo:
+	// 	// if the values are not equal there is no solution
+	// 	if eqOne != eqTwo {
+	// 		return false
+	// 	}
+	// 	// if they are equal we check for entries in the other greater map and
+	// 	// repeat the process we did before
+	// 	if hasGreaterTwo {
+	// 		// second one has an entry, do the <= check
+	// 		if eqOne <= greater
+	// 	}
+	// case hasEqOne:
+	// case hasEqTwo:
+	// }
+	return true
+}
+
+func (d RationalDomain) getIDMap(gamma ...*PredicateFormula) (map[FeatureID]int, int) {
+	res := make(map[FeatureID]int)
+	nextID := 0
+	for _, formula := range gamma {
+		for _, feature := range formula.Features {
+			if _, has := res[feature]; !has {
+				res[feature] = nextID
+				nextID++
+			}
+		}
+	}
+	return res, nextID
 }
