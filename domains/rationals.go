@@ -70,6 +70,10 @@ func (r TrueRational) Relation(values ...AbstractLiteral) bool {
 	return true
 }
 
+func (r TrueRational) String() string {
+	return "⊤(ℚ)"
+}
+
 type EqualsRational float64
 
 func NewEqualsRational(q float64) EqualsRational {
@@ -84,6 +88,10 @@ func (r EqualsRational) Arity() int {
 func (r EqualsRational) Relation(values ...AbstractLiteral) bool {
 	qPrime := values[0].(float64)
 	return float64(r) == qPrime
+}
+
+func (r EqualsRational) String() string {
+	return fmt.Sprintf("=q(%f)", r)
 }
 
 // type EqualsRationalWithEpsilon struct {
@@ -121,6 +129,10 @@ func (r GreaterRational) Relation(values ...AbstractLiteral) bool {
 	return qPrime > float64(r)
 }
 
+func (r GreaterRational) String() string {
+	return fmt.Sprintf(">q(%f)", r)
+}
+
 type BinaryEqualsRational struct{}
 
 func NewBinaryEqualsRational() BinaryEqualsRational {
@@ -135,6 +147,10 @@ func (r BinaryEqualsRational) Relation(values ...AbstractLiteral) bool {
 	v1 := values[0].(float64)
 	v2 := values[1].(float64)
 	return v1 == v2
+}
+
+func (r BinaryEqualsRational) String() string {
+	return fmt.Sprintf("fi =ℚ fj")
 }
 
 type lessRational float64
@@ -307,7 +323,6 @@ func (d RationalDomain) ConjSat(gamma ...*PredicateFormula) bool {
 	lp := d.FormulateLP(gamma...)
 	// try to solve the LP
 	sol := lp.Solve()
-	fmt.Println(sol)
 	switch sol {
 	case golp.OPTIMAL, golp.SUBOPTIMAL, golp.FEASFOUND:
 		// TODO FEASFOUND correct? documentation is offline right now :(

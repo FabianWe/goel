@@ -20,6 +20,11 @@
 
 package domains
 
+import (
+	"fmt"
+	"strings"
+)
+
 // AbstractLiteral is the base interface for all concrete domain literals.
 // Such literals are for example floats or strings.
 // Abstract literals should be comparable and values from two different domains
@@ -55,10 +60,28 @@ func NewFeatureID(id int) FeatureID {
 	return FeatureID(id)
 }
 
+func (id FeatureID) String() string {
+	return fmt.Sprintf("f%d", id)
+}
+
 // PredicateFormula is a formula of the form p(f1, ..., fk).
 type PredicateFormula struct {
 	Predicate Predicate
 	Features  []FeatureID
+}
+
+func NewPredicateFormula(predicate Predicate, features ...FeatureID) *PredicateFormula {
+	return &PredicateFormula{Predicate: predicate,
+		Features: features}
+}
+
+func (f *PredicateFormula) String() string {
+	featureStrings := make([]string, len(f.Features))
+	for i, feature := range f.Features {
+		featureStrings[i] = feature.String()
+	}
+	joined := strings.Join(featureStrings, ", ")
+	return fmt.Sprintf("%v (%s)", f.Predicate, joined)
 }
 
 // ConcreteDomain is a concrete domain as defined in EL++. Thus it has a set
