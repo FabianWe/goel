@@ -51,6 +51,10 @@ type Predicate interface {
 // as defined in EL++.
 type FeatureID int
 
+func NewFeatureID(id int) FeatureID {
+	return FeatureID(id)
+}
+
 // PredicateFormula is a formula of the form p(f1, ..., fk).
 type PredicateFormula struct {
 	Predicate Predicate

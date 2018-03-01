@@ -20,12 +20,13 @@
 
 package main
 
-import "fmt"
-
 import "github.com/FabianWe/goel/domains"
 
 func main() {
-	fmt.Println("Hello world")
 	domain := domains.NewRationalDomain()
-	fmt.Println(domain)
+	f0 := domains.NewFeatureID(0)
+	r1 := domains.NewGreaterRational(42.0)
+	// r2 := domains.NewEqualsRational(42.0)
+	lp := domain.FormulateLP(&domains.PredicateFormula{r1, []domains.FeatureID{f0}})
+	lp.WriteToStdout()
 }
