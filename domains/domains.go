@@ -94,7 +94,7 @@ type ConcreteDomain interface {
 	// Each formula consists of an id (the predicate as returned by GetPredicates)
 	// and all the features (that become the variables in the first-order
 	// formula).
-	ConjSat(gamma []*PredicateFormula) bool
+	ConjSat(gamma ...*PredicateFormula) bool
 	// Implies must check if the conjunction of formulae Γ implies the formula.
-	Implies(formula PredicateFormula, gamma []*PredicateFormula) bool
+	Implies(formula PredicateFormula, gamma ...*PredicateFormula) bool
 }

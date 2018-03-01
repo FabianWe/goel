@@ -22,6 +22,7 @@ package domains
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 
 	"github.com/draffensperger/golp"
@@ -216,7 +217,7 @@ func (r PlusRational) Relation(values ...AbstractLiteral) bool {
 // I'm not very happy with this. I think there are other approaches for simple
 // constraint problems of that kind, but implementing them is not really a
 // possibility now.
-var LPEpsilon float64 = 0.00000001
+var LPEpsilon float64 = 0.00001
 
 // FormulateLP will formulate the linear program in the rational domain.
 // Legal input are all predicates defined by the rational domain, the
@@ -231,7 +232,7 @@ var LPEpsilon float64 = 0.00000001
 // all / a single variable, this may lead to unbound exceptions.
 func (d RationalDomain) FormulateLP(gamma ...*PredicateFormula) *golp.LP {
 	idMap, numVars := d.getIDMap(gamma...)
-	lp := golp.NewLP(0, numVars)
+	lp := golp.NewLP(0, numVars+1)
 	// iterate over each formula and add a constraint
 	for _, formula := range gamma {
 		switch f := formula.Predicate.(type) {
@@ -272,6 +273,18 @@ func (d RationalDomain) FormulateLP(gamma ...*PredicateFormula) *golp.LP {
 			panic(fmt.Sprintf("Unknown predicate type for rational domain: %v", reflect.TypeOf(formula.Predicate)))
 		}
 	}
+	// set an objective function
+	// our objective function is simple: every value set to 0 except the last
+	// (our "cheat variable") set to 1
+	// because we also iterate over all variables: remove the lower bound of 0
+	// from the lp
+	objective := make([]float64, numVars+1)
+	for i := 0; i < numVars; i++ {
+		objective[i] = 0.0
+		lp.SetUnbounded(i)
+	}
+	objective[numVars] = 1.0
+	lp.SetObjFn(objective)
 	return lp
 }
 
@@ -287,6 +300,28 @@ func (d RationalDomain) getIDMap(gamma ...*PredicateFormula) (map[FeatureID]int,
 		}
 	}
 	return res, nextID
+}
+
+func (d RationalDomain) ConjSat(gamma ...*PredicateFormula) bool {
+	// first formulate the lp
+	lp := d.FormulateLP(gamma...)
+	// try to solve the LP
+	sol := lp.Solve()
+	fmt.Println(sol)
+	switch sol {
+	case golp.OPTIMAL, golp.SUBOPTIMAL, golp.FEASFOUND:
+		// TODO FEASFOUND correct? documentation is offline right now :(
+		// also check NOFEASFOUND
+		return true
+	case golp.INFEASIBLE:
+		return false
+	case golp.UNBOUNDED:
+		log.Println("Unbounded solution in ConjSat for rational domain, should not happen! Returning false")
+		return false
+	default:
+		log.Println("Unkown solution in ConjSat for rational domain, should not happen! Returning false, result type is", sol)
+		return false
+	}
 }
 
 // The following approach is commented out. It was my second draft to solve the
