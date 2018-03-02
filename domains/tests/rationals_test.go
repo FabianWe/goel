@@ -188,3 +188,75 @@ func TestImpl4(t *testing.T) {
 		t.Error("%v does not imply %v, expected true", form, form)
 	}
 }
+
+// TestImpl5 tests that f0 = f1 = f2, f0 > 42 does not imply f = 42.
+func TestImpl5(t *testing.T) {
+	f0, f1, f2 := domains.NewFeatureID(0), domains.NewFeatureID(1), domains.NewFeatureID(2)
+	eq := domains.NewBinaryEqualsRational()
+	r1 := domains.NewGreaterRational(42)
+	r2 := domains.NewEqualsRational(42)
+
+	form1 := domains.NewPredicateFormula(eq, f0, f1)
+	form2 := domains.NewPredicateFormula(eq, f1, f2)
+	form3 := domains.NewPredicateFormula(r1, f0)
+	form := domains.NewPredicateFormula(r2, f2)
+
+	res := d.Implies(form, form1, form2, form3)
+	if res {
+		t.Errorf("Conjunction %v, %v, %v implies %v, expected false",
+			form1, form2, form3, form)
+	}
+}
+
+// TestImpl6 tests that f0 = f1, f0 = 42 does not imply f1 > 42.
+func TestImpl6(t *testing.T) {
+	f0, f1 := domains.NewFeatureID(0), domains.NewFeatureID(1)
+
+	eq := domains.NewBinaryEqualsRational()
+	r1 := domains.NewEqualsRational(42)
+	r2 := domains.NewGreaterRational(42)
+
+	form1 := domains.NewPredicateFormula(eq, f0, f1)
+	form2 := domains.NewPredicateFormula(r1, f0)
+	form := domains.NewPredicateFormula(r2, f1)
+
+	res := d.Implies(form, form1, form2)
+	if res {
+		t.Errorf("Conjunction %v, %v implies %v, expected false", form1, form2, form)
+	}
+}
+
+// TestImpl7 tests that f0 = 21, f = 42 does not imply that f0 = f1.
+func TestImpl7(t *testing.T) {
+	f0, f1 := domains.NewFeatureID(0), domains.NewFeatureID(1)
+
+	r1 := domains.NewEqualsRational(21)
+	r2 := domains.NewEqualsRational(42)
+	eq := domains.NewBinaryEqualsRational()
+
+	form1 := domains.NewPredicateFormula(r1, f0)
+	form2 := domains.NewPredicateFormula(r2, f1)
+	form := domains.NewPredicateFormula(eq, f0, f1)
+
+	res := d.Implies(form, form1, form2)
+	if res {
+		t.Errorf("Conjunction %v, %v implies %v, expected false", form1, form2, form)
+	}
+}
+
+// TestImpl8 tests that false implies everything.
+func TestImpl8(t *testing.T) {
+	f0, f1 := domains.NewFeatureID(0), domains.NewFeatureID(1)
+	r1 := domains.NewGreaterRational(42)
+	r2 := domains.NewEqualsRational(42)
+	r3 := domains.NewEqualsRational(21)
+
+	form1 := domains.NewPredicateFormula(r1, f0)
+	form2 := domains.NewPredicateFormula(r2, f0)
+	form := domains.NewPredicateFormula(r3, f1)
+	res := d.Implies(form, form1, form2)
+	if !res {
+		t.Error("Conjunction %v, %v (false) does not imply %v, expected true",
+			form1, form2, form)
+	}
+}

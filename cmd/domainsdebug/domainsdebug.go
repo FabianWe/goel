@@ -27,14 +27,16 @@ import (
 )
 
 func main() {
-	domain := domains.NewRationalDomain()
-	f0 := domains.NewFeatureID(0)
-	r1 := domains.NewGreaterRational(1000000.0)
-	r2 := domains.NewEqualsRational(1000000.0)
-	formula1 := &domains.PredicateFormula{r1, []domains.FeatureID{f0}}
-	formula2 := &domains.PredicateFormula{r2, []domains.FeatureID{f0}}
-	lp := domain.FormulateLP(formula1, formula2)
-	lp.WriteToStdout()
-	fmt.Println(domain.ConjSat(formula1, formula2))
-	fmt.Println(domains.NewEqualsRational(42))
+	d := domains.NewRationalDomain()
+
+	f0, f1 := domains.NewFeatureID(0), domains.NewFeatureID(1)
+	r1 := domains.NewGreaterRational(42)
+	r2 := domains.NewEqualsRational(42)
+	r3 := domains.NewEqualsRational(21)
+
+	form1 := domains.NewPredicateFormula(r1, f0)
+	form2 := domains.NewPredicateFormula(r2, f0)
+	form := domains.NewPredicateFormula(r3, f1)
+	res := d.Implies(form, form1, form2)
+	fmt.Println(res)
 }
