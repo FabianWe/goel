@@ -225,9 +225,9 @@ func (r PlusRational) Relation(values ...AbstractLiteral) bool {
 // Reasoning in ℚ
 
 // LPEpsilon is a value used for solving linear programs with lp_solve.
-// lp_solve makes no distinction between > and >=, it's treated as the same
-// relation. Thus if we have f1 > 5.0 and f1 = 5.0 lp_solve will say that this
-// is okay.
+// lp_solve makes no distinction between > and ≥ (or < and ≤), it's treated as
+// the same relation. Thus if we have f1 > 5.0 and f1 = 5.0 lp_solve will say
+// that this is okay.
 // Reasoning with linear programs might not be the best approach here, see
 // my publication for this problem.
 // Here's just an example of how we use this variable:

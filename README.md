@@ -8,6 +8,14 @@ The EL++ solver requires that a LP solver is installed. We use [lp_solve](http:/
 
 To install lp_solve and golp correctly first follow the [installation instructions for golp](https://github.com/draffensperger/golp#installation). Note that lp_solve is LGPL licensed and thus not shipped with goel. This means goel uses at run time a copy of the Library already present on the user's computer system.
 
+## Documentation
+The code documentation is available via godoc.org:
+
+ - [goel](https://godoc.org/github.com/FabianWe/goel) Documentation for the
+ reasoner
+ - [goel/domains](https://godoc.org/github.com/FabianWe/goel/domains)
+ Documentation for concrete domain support.
+
 ## Copyright
 **The MIT License (MIT)**
 
