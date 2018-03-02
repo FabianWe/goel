@@ -55,6 +55,10 @@ func (d RationalDomain) Contains(l AbstractLiteral) bool {
 	return res
 }
 
+func (d RationalDomain) Name() string {
+	return "Rationals ℚ"
+}
+
 // TrueRational implements the domain ⊤(ℚ).
 type TrueRational struct{}
 
@@ -248,7 +252,7 @@ var LPEpsilon float64 = 0.00001
 // all / a single variable, this may lead to unbound exceptions.
 func (d RationalDomain) FormulateLP(gamma ...*PredicateFormula) *golp.LP {
 	idMap, numVars := d.getIDMap(gamma...)
-	lp := golp.NewLP(0, numVars+1)
+	lp := golp.NewLP(len(gamma), numVars+1)
 	// iterate over each formula and add a constraint
 	for _, formula := range gamma {
 		switch f := formula.Predicate.(type) {

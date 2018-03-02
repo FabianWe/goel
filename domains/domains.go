@@ -119,5 +119,66 @@ type ConcreteDomain interface {
 	// formula).
 	ConjSat(gamma ...*PredicateFormula) bool
 	// Implies must check if the conjunction of formulae Γ implies the formula.
-	Implies(formula PredicateFormula, gamma ...*PredicateFormula) bool
+	Implies(formula *PredicateFormula, gamma ...*PredicateFormula) bool
+
+	Name() string
+}
+
+//go:generate stringer -type=ConcreteDomainEnumeration
+
+// ConcreteDomainEnumeration is an enumeration of all concrete domains
+// directly available in goel.
+// Currently this is only the concrete domain of rationals.
+type ConcreteDomainEnumeration int
+
+const (
+	Rationals ConcreteDomainEnumeration = iota
+)
+
+// I've broken stringer, so here is the string method...
+
+func (dom ConcreteDomainEnumeration) String() string {
+	switch dom {
+	case Rationals:
+		return "Rationals"
+	default:
+		return fmt.Sprintf("ConcreteDomainEnumeration(%d)", dom)
+	}
+}
+
+// TypedPredicateFormula is a PredicateFormula that also has information about
+// the domain a formula belongs to.
+// Domains are identfied by an id, see CDManager for more information.
+type TypedPredicateFormula struct {
+	Formula  *PredicateFormula
+	DomainId ConcreteDomainEnumeration
+}
+
+func NewTypedPredicateFormula(formula *PredicateFormula, domain ConcreteDomainEnumeration) *TypedPredicateFormula {
+	return &TypedPredicateFormula{formula, domain}
+}
+
+// CDManager is used to store all concrete domains and the formulae
+// (PredicateFormula) that exist within an ontology.
+// It also stores a reference to the domain a formula was created for.
+// It uses uints to identify the formulae, with indices from 0 to n-1
+// where n is the number of formulae.
+// Thus it just stores TypedPredicateFormula instances.
+// The Domains are normally fixed and contains all domains implemented.
+// That is at the moment only the Rationals (ℚ).
+//
+// Addming formulae is usually done but just appending to the Formulae slice,
+// however this is of course not concurrently safe.
+type CDManager struct {
+	Domains  []ConcreteDomain
+	Formulae []*TypedPredicateFormula
+}
+
+func NewCDManager() *CDManager {
+	domains := []ConcreteDomain{NewRationalDomain()}
+	return &CDManager{domains, nil}
+}
+
+func (m *CDManager) GetDomainByID(id ConcreteDomainEnumeration) ConcreteDomain {
+	return m.Domains[id]
 }
