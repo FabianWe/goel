@@ -339,6 +339,55 @@ func (d RationalDomain) ConjSat(gamma ...*PredicateFormula) bool {
 	}
 }
 
+func (d RationalDomain) Implies(formula PredicateFormula, gamma ...*PredicateFormula) bool {
+	// not optimal, we actually build the program twice...
+	// but well, at least we do it concurrently
+	var additionalOne, additionalTwo *PredicateFormula
+	res := make(chan bool, 2)
+	switch f := formula.Predicate.(type) {
+	case EqualsRational:
+		q := float64(f)
+		f1 := formula.Features[0]
+		r1 := newLessRational(q)
+		r2 := NewGreaterRational(q)
+
+		additionalOne = NewPredicateFormula(r1, f1)
+		additionalTwo = NewPredicateFormula(r2, f1)
+	case GreaterRational:
+		q := float64(f)
+		f1 := formula.Features[0]
+		r1 := newLessRational(q)
+		r2 := NewEqualsRational(q)
+
+		additionalOne = NewPredicateFormula(r1, f1)
+		additionalTwo = NewPredicateFormula(r2, f1)
+	case BinaryEqualsRational:
+		f1, f2 := formula.Features[0], formula.Features[1]
+		r1 := newBinaryLessRational()
+		r2 := newBinaryLessRational()
+
+		additionalOne = NewPredicateFormula(r1, f1, f2)
+		additionalTwo = NewPredicateFormula(r2, f2, f1)
+	}
+	// now we're nearly done... just generate both LPs and solve them
+	go func() {
+		// no nicer way?
+		newGamma := make([]*PredicateFormula, len(gamma), len(gamma)+1)
+		copy(newGamma, gamma)
+		newGamma = append(newGamma, additionalOne)
+		res <- d.ConjSat(newGamma...)
+	}()
+	go func() {
+		newGamma := make([]*PredicateFormula, len(gamma), len(gamma)+1)
+		copy(newGamma, gamma)
+		newGamma = append(newGamma, additionalTwo)
+		res <- d.ConjSat(newGamma...)
+	}()
+	first := <-res
+	second := <-res
+	return !first && !second
+}
+
 // The following approach is commented out. It was my second draft to solve the
 // problems with lp_solve (the first one is not implemented). Because it was so
 // much work I feel reluctant to lose everything ;).
