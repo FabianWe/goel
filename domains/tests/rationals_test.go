@@ -118,3 +118,73 @@ func TestSat6(t *testing.T) {
 			formula1, formula2, formula3, formula4, formula5)
 	}
 }
+
+// TestImpl1 tests that f0 = f1, f1 = f2, f2 = 42 implies f0 = 42.
+func TestImpl1(t *testing.T) {
+	f0, f1, f2 := domains.NewFeatureID(0), domains.NewFeatureID(1), domains.NewFeatureID(2)
+	eq := domains.NewBinaryEqualsRational()
+	r := domains.NewEqualsRational(42)
+
+	formula1 := domains.NewPredicateFormula(eq, f0, f1)
+	formula2 := domains.NewPredicateFormula(eq, f1, f2)
+	formula3 := domains.NewPredicateFormula(r, f2)
+	formula := domains.NewPredicateFormula(r, f0)
+
+	res := d.Implies(formula, formula1, formula2, formula3)
+	if !res {
+		t.Errorf("Conjunction %v, %v, %v does not imply %v, expected true",
+			formula1, formula2, formula3, formula)
+	}
+}
+
+// TestImpl2 tests if f0 = f1 = f2 = f3, f0 > 42 implies f4 > 42.
+func TestImpl2(t *testing.T) {
+	f0, f1, f2, f3 := domains.NewFeatureID(0), domains.NewFeatureID(1), domains.NewFeatureID(2), domains.NewFeatureID(3)
+
+	eq := domains.NewBinaryEqualsRational()
+	r := domains.NewGreaterRational(42)
+
+	formula1 := domains.NewPredicateFormula(eq, f0, f1)
+	formula2 := domains.NewPredicateFormula(eq, f1, f2)
+	formula3 := domains.NewPredicateFormula(eq, f2, f3)
+	formula4 := domains.NewPredicateFormula(r, f0)
+	formula := domains.NewPredicateFormula(r, f3)
+
+	res := d.Implies(formula, formula1, formula2, formula3, formula4)
+	if !res {
+		t.Errorf("Conjunction %v, %v, %v, %v does not imply %v, expected true",
+			formula1, formula2, formula3, formula4, formula)
+	}
+}
+
+// TestImpl3 tests that f0 = f1 = f2 = f3, f0 > 42 implies that f3 > 42.
+func TestImpl3(t *testing.T) {
+	f0, f1, f2, f3 := domains.NewFeatureID(0), domains.NewFeatureID(1), domains.NewFeatureID(2), domains.NewFeatureID(3)
+	eq := domains.NewBinaryEqualsRational()
+	r := domains.NewGreaterRational(42)
+
+	form1 := domains.NewPredicateFormula(eq, f0, f1)
+	form2 := domains.NewPredicateFormula(eq, f1, f2)
+	form3 := domains.NewPredicateFormula(eq, f2, f3)
+	form4 := domains.NewPredicateFormula(r, f0)
+	form := domains.NewPredicateFormula(r, f3)
+
+	res := d.Implies(form, form1, form2, form3, form4)
+	if !res {
+		t.Error("Conjunction %v, %v, %v, %v does not imply %v, expected true",
+			form1, form2, form3, form4, form)
+	}
+}
+
+// TestImpl4 tests that f0 > 42 implies f0 > 42.
+func TestImpl4(t *testing.T) {
+	f0 := domains.NewFeatureID(0)
+	r := domains.NewGreaterRational(42)
+
+	form := domains.NewPredicateFormula(r, f0)
+
+	res := d.Implies(form, form)
+	if !res {
+		t.Error("%v does not imply %v, expected true", form, form)
+	}
+}

@@ -339,7 +339,7 @@ func (d RationalDomain) ConjSat(gamma ...*PredicateFormula) bool {
 	}
 }
 
-func (d RationalDomain) Implies(formula PredicateFormula, gamma ...*PredicateFormula) bool {
+func (d RationalDomain) Implies(formula *PredicateFormula, gamma ...*PredicateFormula) bool {
 	// not optimal, we actually build the program twice...
 	// but well, at least we do it concurrently
 	var additionalOne, additionalTwo *PredicateFormula
