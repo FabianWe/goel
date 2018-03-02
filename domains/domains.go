@@ -166,19 +166,38 @@ func NewTypedPredicateFormula(formula *PredicateFormula, domain ConcreteDomainEn
 // Thus it just stores TypedPredicateFormula instances.
 // The Domains are normally fixed and contains all domains implemented.
 // That is at the moment only the Rationals (ℚ).
+// There also exists a mapping to get all formulae for a given domain.
 //
-// Addming formulae is usually done but just appending to the Formulae slice,
-// however this is of course not concurrently safe.
+// Addming formulae is usually done with the build-in Add method, this will take
+// care that the mapping from domain ↦ formulae of domain is kept in tact.
+// Note that this method is not safe for concurrent use.
 type CDManager struct {
 	Domains  []ConcreteDomain
 	Formulae []*TypedPredicateFormula
+
+	domainMap map[ConcreteDomainEnumeration][]*TypedPredicateFormula
 }
 
 func NewCDManager() *CDManager {
 	domains := []ConcreteDomain{NewRationalDomain()}
-	return &CDManager{domains, nil}
+	m := make(map[ConcreteDomainEnumeration][]*TypedPredicateFormula, len(domains))
+	return &CDManager{domains, nil, m}
 }
 
 func (m *CDManager) GetDomainByID(id ConcreteDomainEnumeration) ConcreteDomain {
 	return m.Domains[id]
+}
+
+// Add adds a new formula to the manager. It updates the Formulae slice (that
+// just contains all formulae) and the mapping domain ↦ formulae that contains
+// all formulae for a certain domain.
+func (m *CDManager) Add(formula *TypedPredicateFormula) {
+	m.Formulae = append(m.Formulae, formula)
+	m.domainMap[formula.DomainId] = append(m.domainMap[formula.DomainId], formula)
+}
+
+// GetFormulaeFor returns all formulae for the given concrete domain. The
+// returned slice should not be modified, so just read from it.
+func (m *CDManager) GetFormulaeFor(id ConcreteDomainEnumeration) []*TypedPredicateFormula {
+	return m.domainMap[id]
 }
