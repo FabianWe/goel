@@ -1,1 +1,1 @@
-./goelbench -cmd build -out benchmarks -names 1000 -roles 1000 -conjunctions 1000 -existentials 1000 -gci 1000 -ri 1000 -num 1
+./goelbench -cmd build -roles 1000 -ri 1000 -num 3 -names 100000 -existentials 100000 -ci 100000 -out benchmarks/100000

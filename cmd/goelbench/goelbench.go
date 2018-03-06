@@ -36,15 +36,14 @@ import (
 
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
-	var conceptNames, roles, conjunctions, existentials, riLHS, gci, ri, numBench uint
-	flag.UintVar(&conceptNames, "names", 0, "number of concept names")
-	flag.UintVar(&roles, "roles", 0, "number of roles")
-	flag.UintVar(&conjunctions, "conjunctions", 0, "number of conjunctions")
-	flag.UintVar(&existentials, "existentials", 0, "number of existentials")
-	flag.UintVar(&riLHS, "riLHS", 10, "max length of role inclusion left hand size")
-	flag.UintVar(&gci, "gci", 1000, "number of GCIs")
-	flag.UintVar(&ri, "ri", 1000, "number of role inclusions")
-	flag.UintVar(&numBench, "num", 0, "number of benchmarks to generate")
+	var conceptNames, individuals, roles, ci, existentials, ri, numBench int
+	flag.IntVar(&conceptNames, "names", 0, "number of concept names")
+	flag.IntVar(&individuals, "individuals", 0, "number of individuals")
+	flag.IntVar(&roles, "roles", 0, "number of roles")
+	flag.IntVar(&ci, "ci", 0, "number of standard ci")
+	flag.IntVar(&existentials, "existentials", 0, "number of existentials")
+	flag.IntVar(&ri, "ri", 1000, "number of role inclusions")
+	flag.IntVar(&numBench, "num", 0, "number of benchmarks to generate")
 	var workers int
 	flag.IntVar(&workers, "workers", 25, "number of workers for the concurrent solver")
 	var cmd, out string
@@ -87,10 +86,10 @@ func main() {
 				log.Println(readErr)
 			}
 			log.Printf("Running benchmark \"%s\"\n", fPath)
-			fmt.Println(naive(box))
-			fmt.Println(ruleBased(box))
-			fmt.Println(notitificationConcurrent(box))
-			fmt.Println(concurrent(box, workers))
+			// fmt.Println(naive(box))
+			fmt.Println(int64(ruleBased(box) / time.Millisecond))
+			fmt.Println(int64(notitificationConcurrent(box) / time.Millisecond))
+			fmt.Println(int64(concurrent(box, workers) / time.Millisecond))
 		}
 	case "build":
 		if out == "" {
@@ -98,20 +97,26 @@ func main() {
 			os.Exit(1)
 		}
 		log.Printf("Building %d benchmarks, saving to \"%s\"\n", numBench, out)
-		builder := goel.RandomELBuilder{
-			NumIndividuals:     0,
-			NumConceptNames:    conceptNames,
-			NumRoles:           roles,
-			NumConcreteDomains: 0,
-			MaxCDSize:          0,
-			MaxNumPredicates:   0,
-			MaxNumFeatures:     0,
+		// builder := goel.RandomELBuilder{
+		// 	NumIndividuals:     0,
+		// 	NumConceptNames:    conceptNames,
+		// 	NumRoles:           roles,
+		// 	NumConcreteDomains: 0,
+		// 	MaxCDSize:          0,
+		// 	MaxNumPredicates:   0,
+		// 	MaxNumFeatures:     0,
+		// }
+		builder := goel.NormalizedRandomELBuilder{
+			NumIndividuals:  uint(individuals),
+			NumConceptNames: uint(conceptNames),
+			NumRoles:        uint(roles),
 		}
-		var i uint
+		var i int
 		for ; i < numBench; i++ {
-			_, tbox := builder.GenerateRandomTBox(0, conjunctions, existentials, riLHS, gci, ri)
-			normalizer := goel.NewDefaultNormalFormBUilder(100)
-			normalized := normalizer.Normalize(tbox)
+			// _, tbox := builder.GenerateRandomTBox(0, conjunctions, existentials, riLHS, gci, ri)
+			// normalizer := goel.NewDefaultNormalFormBUilder(100)
+			// normalized := normalizer.Normalize(tbox)
+			normalized := builder.GenerateRandomTBox(ci, existentials, ri)
 			// create file
 			fileName := fmt.Sprintf("%s/bench%d.txt", out, i)
 			file, fErr := os.Create(fileName)

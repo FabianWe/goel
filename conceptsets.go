@@ -34,6 +34,10 @@ func NewBCSet(c *ELBaseComponents, initialCapacity uint) *BCSet {
 	}
 }
 
+func (s *BCSet) String() string {
+	return StringUintSet(s.M)
+}
+
 func (s *BCSet) Contains(c Concept) bool {
 	_, has := s.M[c.NormalizedID(s.c)]
 	return has

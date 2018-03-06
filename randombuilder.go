@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2016, 2017 Fabian Wenzelmann
+// Copyright (c) 2016, 2017, 2018 Fabian Wenzelmann
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -34,19 +34,19 @@ type RandomELBuilder struct {
 	MaxNumFeatures     uint
 }
 
-func (this *RandomELBuilder) GenerateRandomTBox(numCDExtensions, numConjunctions,
+func (builder *RandomELBuilder) GenerateRandomTBox(numCDExtensions, numConjunctions,
 	numExistentialRestrictions, maxtRILHS, numGCI, numRI uint) ([]Concept, *TBox) {
-	baseComponents := NewELBaseComponents(this.NumIndividuals, numCDExtensions, this.NumConceptNames, this.NumRoles)
+	baseComponents := NewELBaseComponents(builder.NumIndividuals, numCDExtensions, builder.NumConceptNames, builder.NumRoles)
 	concepts := make([]Concept, 0)
 	// first build all nominal concepts
 	var i uint
-	for ; i < this.NumIndividuals; i++ {
+	for ; i < builder.NumIndividuals; i++ {
 		next := NewNominalConcept(i)
 		concepts = append(concepts, next)
 	}
 	// next build all named concepts
 	i = 0
-	for ; i < this.NumConceptNames; i++ {
+	for ; i < builder.NumConceptNames; i++ {
 		next := NewNamedConcept(i)
 		concepts = append(concepts, next)
 	}
@@ -88,7 +88,7 @@ func (this *RandomELBuilder) GenerateRandomTBox(numCDExtensions, numConjunctions
 		} else {
 			// choose role
 			// TODO not so nice, but ok
-			r := NewRole(uint(rand.Intn(int(this.NumRoles))))
+			r := NewRole(uint(rand.Intn(int(builder.NumRoles))))
 			// chose a concept
 			c := concepts[rand.Intn(len(concepts))]
 			next := NewExistentialConcept(r, c)
@@ -100,7 +100,7 @@ func (this *RandomELBuilder) GenerateRandomTBox(numCDExtensions, numConjunctions
 	ris := make([]*RoleInclusion, 0, numRI)
 	i = 0
 	for ; i < numRI; i++ {
-		rhs := NewRole(uint(rand.Intn(int(this.NumRoles))))
+		rhs := NewRole(uint(rand.Intn(int(builder.NumRoles))))
 		lhsSize := rand.Intn(int(maxtRILHS))
 		if lhsSize == 0 {
 			lhsSize = 1
@@ -108,7 +108,7 @@ func (this *RandomELBuilder) GenerateRandomTBox(numCDExtensions, numConjunctions
 		lhs := make([]Role, 0, lhsSize)
 		for j := 0; j < lhsSize; j++ {
 			// add random role
-			nextRole := NewRole(uint(rand.Intn(int(this.NumRoles))))
+			nextRole := NewRole(uint(rand.Intn(int(builder.NumRoles))))
 			lhs = append(lhs, nextRole)
 		}
 		ris = append(ris, NewRoleInclusion(lhs, rhs))
@@ -122,4 +122,71 @@ func (this *RandomELBuilder) GenerateRandomTBox(numCDExtensions, numConjunctions
 		gcis = append(gcis, NewGCIConstraint(lhs, rhs))
 	}
 	return concepts, NewTBox(baseComponents, gcis, ris)
+}
+
+type NormalizedRandomELBuilder struct {
+	NumIndividuals  uint
+	NumConceptNames uint
+	NumRoles        uint
+}
+
+func (builder *NormalizedRandomELBuilder) chooseConcept() uint {
+	n := builder.NumIndividuals + builder.NumConceptNames
+	return uint(rand.Intn(int(n)) + 2)
+}
+
+func (builder *NormalizedRandomELBuilder) chooseRole() uint {
+	return uint(rand.Intn(int(builder.NumRoles)))
+}
+
+func (builder *NormalizedRandomELBuilder) GenerateRandomTBox(numNormalizedCI,
+	numExistentialRestrictions, numRI int) *NormalizedTBox {
+
+	c := NewELBaseComponents(builder.NumIndividuals, 0, builder.NumConceptNames, builder.NumRoles)
+
+	cis := make([]*NormalizedCI, numNormalizedCI)
+	for i := 0; i < int(numNormalizedCI); i++ {
+		if rand.Intn(2) == 0 {
+			// C2 is nil
+			c1, d := builder.chooseConcept(), builder.chooseConcept()
+			cis[i] = NewNormalizedCISingle(c.GetConcept(c1), c.GetConcept(d))
+		} else {
+			// not nil
+			c1, c2, d := builder.chooseConcept(), builder.chooseConcept(), builder.chooseConcept()
+			cis[i] = NewNormalizedCI(c.GetConcept(c1), c.GetConcept(c2), c.GetConcept(d))
+		}
+	}
+
+	ciLeft := make([]*NormalizedCILeftEx, 0)
+	ciRight := make([]*NormalizedCIRightEx, 0)
+	for i := 0; i < int(numExistentialRestrictions); i++ {
+		if rand.Intn(2) == 0 {
+			// left
+			c1, d, r := builder.chooseConcept(), builder.chooseConcept(), builder.chooseRole()
+			ciLeft = append(ciLeft, NewNormalizedCILeftEx(NewRole(r), c.GetConcept(c1), c.GetConcept(d)))
+		} else {
+			// right
+			c1, r, c2 := builder.chooseConcept(), builder.chooseRole(), builder.chooseConcept()
+			ciRight = append(ciRight, NewNormalizedCIRightEx(c.GetConcept(c1), NewRole(r), c.GetConcept(c2)))
+		}
+	}
+	ris := make([]*NormalizedRI, numRI)
+	for i := 0; i < int(numRI); i++ {
+		if rand.Intn(2) == 0 {
+			// r2 is NoRole
+			r1, s := builder.chooseRole(), builder.chooseRole()
+			ris[i] = NewNormalizedRISingle(NewRole(r1), NewRole(s))
+		} else {
+			// r2 is some role
+			r1, r2, s := builder.chooseRole(), builder.chooseRole(), builder.chooseRole()
+			ris[i] = NewNormalizedRI(NewRole(r1), NewRole(r2), NewRole(s))
+		}
+	}
+	return &NormalizedTBox{
+		Components: c,
+		CIs:        cis,
+		CILeft:     ciLeft,
+		CIRight:    ciRight,
+		RIs:        ris,
+	}
 }

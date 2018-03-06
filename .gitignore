@@ -1,3 +1,14 @@
+# compiled binaries
+domainsdebug
+goel
+goelbench
+goeldebug
+medexample
+
+# testing directories
+benchmarks/
+debug/
+
 # gogland IDE stuff
 .idea
 
