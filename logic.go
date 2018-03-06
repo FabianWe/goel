@@ -275,6 +275,18 @@ func NewConjunction(c, d Concept) Conjunction {
 	return Conjunction{C: c, D: d}
 }
 
+func NewMultiConjunction(concepts ...Concept) Concept {
+	if len(concepts) == 0 {
+		return Top
+	}
+	var res Concept
+	res = concepts[0]
+	for _, c := range concepts[1:] {
+		res = NewConjunction(res, c)
+	}
+	return res
+}
+
 func (conjunction Conjunction) String() string {
 	return fmt.Sprintf("(%v ⊓ %v)", conjunction.C, conjunction.D)
 }
@@ -527,6 +539,15 @@ func NewNormalizedRISingle(r1, s Role) *NormalizedRI {
 	return NewNormalizedRI(r1, NoRole, s)
 }
 
+func (ri *NormalizedRI) String() string {
+	if ri.R2 == NoRole {
+		return fmt.Sprintf("%v ⊑ %v", ri.R1, ri.S)
+	} else {
+		return fmt.Sprintf("%v o %v ⊑ %v", ri.R1, ri.R2, ri.S)
+	}
+}
+
+// TODO should be called ri... copied something wrong it seems...
 func (ci *NormalizedRI) Write(w io.Writer) error {
 	var first, second, third int
 	first = int(ci.R1)
