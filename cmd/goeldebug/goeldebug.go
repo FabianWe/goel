@@ -63,9 +63,9 @@ func runTests() {
 	// 	MaxCDSize:          10,
 	// 	MaxNumPredicates:   100,
 	// 	MaxNumFeatures:     100}
-	builder := goel.RandomELBuilder{NumIndividuals: 3,
-		NumConceptNames:    3,
-		NumRoles:           3,
+	builder := goel.RandomELBuilder{NumIndividuals: 1000,
+		NumConceptNames:    1000,
+		NumRoles:           1000,
 		NumConcreteDomains: 0,
 		MaxCDSize:          10,
 		MaxNumPredicates:   100,
@@ -143,8 +143,9 @@ func bar(tbox *goel.NormalizedTBox) {
 }
 
 func testInstance(builder *goel.RandomELBuilder) {
-	// _, tbox := builder.GenerateRandomTBox(0, 1000, 1000, 10, 100, 100)
-	_, tbox := builder.GenerateRandomTBox(0, 5, 5, 5, 5, 10)
+	fmt.Println("Testing")
+	_, tbox := builder.GenerateRandomTBox(0, 100, 100, 5, 100, 100)
+	// _, tbox := builder.GenerateRandomTBox(0, 5, 5, 5, 5, 10)
 	normalizer := goel.NewDefaultNormalFormBUilder(100)
 	normalized := normalizer.Normalize(tbox)
 	// fmt.Println("Last TBox:")

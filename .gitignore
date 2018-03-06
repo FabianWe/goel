@@ -1,9 +1,4 @@
 # compiled binaries
-domainsdebug
-goel
-goelbench
-goeldebug
-medexample
 
 # testing directories
 benchmarks/

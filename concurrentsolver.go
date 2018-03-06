@@ -496,6 +496,11 @@ func (solver *ConcurrentSolver) Solve(tbox *NormalizedTBox) {
 		}
 	}
 
+	// TODO moved up from below
+	solver.initPool(tbox)
+	go solver.pool.RWorker(solver)
+	go solver.pool.SWorker(solver)
+
 	solver.runAndWait(tbox, addInitial)
 
 	// after the initial stuff has been added: while the graph has changed
@@ -511,6 +516,9 @@ func (solver *ConcurrentSolver) Solve(tbox *NormalizedTBox) {
 		}
 		solver.runAndWait(tbox, f)
 	}
+
+	// TODO moved up from below
+	solver.pool.Close()
 
 }
 
@@ -551,12 +559,18 @@ func (solver *ConcurrentSolver) Solve(tbox *NormalizedTBox) {
 // I don't think so, needs testing though
 func (solver *ConcurrentSolver) runAndWait(tbox *NormalizedTBox, f func()) {
 	// initialize pool again
-	solver.initPool(tbox)
+
+	// TODO has been moved up
+	// solver.initPool(tbox)
+
 	// we want to run a listener for s and r, also we would like to run f
 	// concurrently and then wait
 	// but we have to wait until f has been applied
-	go solver.pool.RWorker(solver)
-	go solver.pool.SWorker(solver)
+
+	// TODO has been moved up, hope this is still correct
+	// go solver.pool.RWorker(solver)
+	// go solver.pool.SWorker(solver)
+
 	// so now we run f concurrently, report back to a done channel once it's
 	// finished and then we have to wait until all updates are done (i.e. wait
 	// for the pool)
@@ -569,5 +583,7 @@ func (solver *ConcurrentSolver) runAndWait(tbox *NormalizedTBox, f func()) {
 	<-done
 	// now wait until the pool is done
 	solver.pool.Wait()
-	solver.pool.Close()
+
+	// TODO has been moved up as well
+	// solver.pool.Close()
 }
