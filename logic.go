@@ -33,6 +33,9 @@ import (
 
 //// Concepts ////
 
+// TODO Add a better link tbox <-> components <-> domains, at the moment the
+// solver get the domains
+
 // ELBaseComponents used to save basic information about an EL++ instance.
 // It stores only the number of each base concept, nothing else.
 type ELBaseComponents struct {

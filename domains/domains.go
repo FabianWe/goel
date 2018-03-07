@@ -175,13 +175,19 @@ type CDManager struct {
 	Domains  []ConcreteDomain
 	Formulae []*TypedPredicateFormula
 
-	domainMap map[ConcreteDomainEnumeration][]*TypedPredicateFormula
+	// domainMap map[ConcreteDomainEnumeration][]*TypedPredicateFormula
+	domainMap [][]*TypedPredicateFormula
 }
 
 func NewCDManager() *CDManager {
 	domains := []ConcreteDomain{NewRationalDomain()}
-	m := make(map[ConcreteDomainEnumeration][]*TypedPredicateFormula, len(domains))
-	return &CDManager{domains, nil, m}
+	domainMap := [][]*TypedPredicateFormula{[]*TypedPredicateFormula{}}
+	return &CDManager{domains, nil, domainMap}
+}
+
+func (m *CDManager) AddDomain(d ConcreteDomain) {
+	m.Domains = append(m.Domains, d)
+	m.domainMap = append(m.domainMap, []*TypedPredicateFormula{})
 }
 
 func (m *CDManager) GetDomainByID(id ConcreteDomainEnumeration) ConcreteDomain {

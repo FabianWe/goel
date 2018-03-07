@@ -24,6 +24,8 @@ package goel
 
 import (
 	"sync"
+
+	"github.com/FabianWe/goel/domains"
 )
 
 type ConcurrentNotificationSolver struct {
@@ -393,14 +395,14 @@ func (solver *ConcurrentSolver) initPool(tbox *NormalizedTBox) {
 	solver.pool.Init(sChanSize, rChanSize, workers)
 }
 
-func (solver *ConcurrentSolver) Init(tbox *NormalizedTBox) {
+func (solver *ConcurrentSolver) Init(tbox *NormalizedTBox, domains *domains.CDManager) {
 	solver.graphChanged = false
 	// initialize state and rules (concurrently)
 	var wg sync.WaitGroup
 	wg.Add(3)
 	go func() {
 		solver.AllChangesSolverState = NewAllChangesSolverState(tbox.Components,
-			solver.graph, solver.search)
+			domains, solver.graph, solver.search)
 		wg.Done()
 	}()
 	go func() {

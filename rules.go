@@ -25,6 +25,8 @@ package goel
 import (
 	"log"
 	"sync"
+
+	"github.com/FabianWe/goel/domains"
 )
 
 // StateHandler is used by the concurrent (and maybe other solvers) to update
@@ -113,6 +115,8 @@ type StateHandler interface {
 	// GetComponents returns the number of all objects, s.t. we can use it when
 	// needed.
 	GetComponents() *ELBaseComponents
+
+	GetCDs() *domains.CDManager
 }
 
 // SolverState is an implementation of StateHandler, for more details see there.
@@ -138,11 +142,13 @@ type SolverState struct {
 	// a write lock lock this mutex, if both mutexes get an rlock thn rlock
 	// this mutex
 	duoMutex *sync.RWMutex
+
+	domains *domains.CDManager
 }
 
 // NewSolverState returns a new solver state given the base components,
 // thus it initializes S and R and the mutexes used to control r/w access.
-func NewSolverState(c *ELBaseComponents) *SolverState {
+func NewSolverState(c *ELBaseComponents, domains *domains.CDManager) *SolverState {
 	res := SolverState{
 		components: c,
 		S:          nil,
@@ -150,6 +156,7 @@ func NewSolverState(c *ELBaseComponents) *SolverState {
 		sMutex:     nil,
 		rMutex:     nil,
 		duoMutex:   new(sync.RWMutex),
+		domains:    domains,
 	}
 	// initialize S and R concurrently
 	// we use + 1 here because we want to use the normalized id directly, so
@@ -289,6 +296,10 @@ func (state *SolverState) SubsetConcepts(c, d uint) bool {
 
 func (state *SolverState) GetComponents() *ELBaseComponents {
 	return state.components
+}
+
+func (state *SolverState) GetCDs() *domains.CDManager {
+	return state.domains
 }
 
 type SNotification interface {

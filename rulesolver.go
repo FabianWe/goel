@@ -22,6 +22,8 @@ package goel
 
 import (
 	"sync"
+
+	"github.com/FabianWe/goel/domains"
 )
 
 // SUpdate is a type that stores the information that D has been added to S(C).
@@ -144,7 +146,8 @@ type AllChangesSolverState struct {
 	graphMutex *sync.RWMutex
 }
 
-func NewAllChangesSolverState(c *ELBaseComponents, g ConceptGraph, search ExtendedReachabilitySearch) *AllChangesSolverState {
+func NewAllChangesSolverState(c *ELBaseComponents,
+	domains *domains.CDManager, g ConceptGraph, search ExtendedReachabilitySearch) *AllChangesSolverState {
 	var graphMutex sync.RWMutex
 	// initialize solver state, graph and searcher
 	res := AllChangesSolverState{
@@ -158,7 +161,7 @@ func NewAllChangesSolverState(c *ELBaseComponents, g ConceptGraph, search Extend
 	wg.Add(3)
 	go func() {
 		defer wg.Done()
-		res.SolverState = NewSolverState(c)
+		res.SolverState = NewSolverState(c, domains)
 	}()
 	go func() {
 		defer wg.Done()
@@ -473,7 +476,7 @@ func NewAllChangesSolver(graph ConceptGraph, search ExtendedReachabilitySearch) 
 	}
 }
 
-func (solver *AllChangesSolver) Init(tbox *NormalizedTBox) {
+func (solver *AllChangesSolver) Init(tbox *NormalizedTBox, domains *domains.CDManager) {
 	// create pending slices and reset graph changed
 	solver.pendingSupdates = make([]*SUpdate, 0, 10)
 	solver.pendingRUpdates = make([]*RUpdate, 0, 10)
@@ -483,7 +486,7 @@ func (solver *AllChangesSolver) Init(tbox *NormalizedTBox) {
 	wg.Add(2)
 	go func() {
 		solver.AllChangesSolverState = NewAllChangesSolverState(tbox.Components,
-			solver.graph, solver.search)
+			domains, solver.graph, solver.search)
 		wg.Done()
 	}()
 	go func() {

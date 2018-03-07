@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/FabianWe/goel"
+	"github.com/FabianWe/goel/domains"
 )
 
 func main() {
@@ -112,7 +113,9 @@ func findR(r1 []*goel.BCPairSet, r2 []*goel.Relation, c, d uint) {
 func bar(tbox *goel.NormalizedTBox) {
 	s1, r1 := runTest(tbox)
 	fmt.Println(strings.Repeat("@", 20))
-	s2, r2 := runFullConcurrent(tbox)
+	// TODO not so nice
+	domains := domains.NewCDManager()
+	s2, r2 := runFullConcurrent(tbox, domains)
 	// findR(r1, r2, 10, 13)
 	// fmt.Println("7 for s1")
 	// findD(s1)
@@ -175,7 +178,8 @@ func testInstance(builder *goel.RandomELBuilder) {
 	}()
 	s1, r1 := runTest(normalized)
 	// s2, r2 := runFullConcurrent(normalized)
-	s2, r2 := runFullConcurrent(normalized)
+	domains := domains.NewCDManager()
+	s2, r2 := runFullConcurrent(normalized, domains)
 	res := make(chan bool, 2)
 	// compare s and r
 	go func() {
@@ -290,31 +294,31 @@ func runTest(tbox *goel.NormalizedTBox) ([]*goel.BCSet, []*goel.BCPairSet) {
 	return solver.S, solver.R
 }
 
-func runRuleBased(tbox *goel.NormalizedTBox) ([]*goel.BCSet, []*goel.Relation) {
+func runRuleBased(tbox *goel.NormalizedTBox, domains *domains.CDManager) ([]*goel.BCSet, []*goel.Relation) {
 	solver := goel.NewAllChangesSolver(goel.NewSetGraph(), nil)
-	solver.Init(tbox)
+	solver.Init(tbox, domains)
 	solver.Solve(tbox)
 	return solver.S, solver.R
 }
 
-func runConcurrent(tbox *goel.NormalizedTBox) ([]*goel.BCSet, []*goel.Relation) {
+func runConcurrent(tbox *goel.NormalizedTBox, domains *domains.CDManager) ([]*goel.BCSet, []*goel.Relation) {
 	solver := goel.NewConcurrentNotificationSolver(goel.NewSetGraph(), nil)
-	solver.Init(tbox)
+	solver.Init(tbox, domains)
 	solver.Solve(tbox)
 	return solver.S, solver.R
 }
 
-func runFullConcurrent(tbox *goel.NormalizedTBox) ([]*goel.BCSet, []*goel.Relation) {
+func runFullConcurrent(tbox *goel.NormalizedTBox, domains *domains.CDManager) ([]*goel.BCSet, []*goel.Relation) {
 	solver := goel.NewConcurrentSolver(goel.NewSetGraph(), nil)
-	solver.Init(tbox)
+	solver.Init(tbox, domains)
 	solver.Solve(tbox)
 	return solver.S, solver.R
 }
 
-func runFullConcurrentTC(tbox *goel.NormalizedTBox) ([]*goel.BCSet, []*goel.Relation) {
+func runFullConcurrentTC(tbox *goel.NormalizedTBox, domains *domains.CDManager) ([]*goel.BCSet, []*goel.Relation) {
 	solver := goel.NewConcurrentSolver(goel.NewTransitiveClosureGraph(),
 		goel.ClosureToSet)
-	solver.Init(tbox)
+	solver.Init(tbox, domains)
 	solver.Solve(tbox)
 	return solver.S, solver.R
 }

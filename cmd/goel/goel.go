@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/FabianWe/goel"
+	"github.com/FabianWe/goel/domains"
 )
 
 func main() {
@@ -49,6 +50,8 @@ func main() {
 	normalizer := goel.NewDefaultNormalFormBUilder(100)
 	fmt.Println("Normalizing TBox ...")
 	start := time.Now()
+	// TODO here the CDs are created, not so nice...
+	domains := domains.NewCDManager()
 	normalized := normalizer.Normalize(tbox)
 	execTime := time.Since(start)
 	fmt.Printf("... Done after %v\n", execTime)
@@ -57,16 +60,16 @@ func main() {
 	// naive(normalized)
 	// fmt.Println()
 	fmt.Println("==== Rule Based ===")
-	rulebased(normalized)
+	rulebased(normalized, domains)
 	fmt.Println()
 	fmt.Println("==== Concurrent ====")
-	concurrent(normalized)
+	concurrent(normalized, domains)
 	fmt.Println()
 	fmt.Println("==== Full Concurrent ====")
-	fullConcurrent(normalized)
+	fullConcurrent(normalized, domains)
 	fmt.Println()
 	fmt.Println("==== Transitive Closure ====")
-	fullConcurrentTC(normalized)
+	fullConcurrentTC(normalized, domains)
 }
 
 func naive(normalized *goel.NormalizedTBox) {
@@ -81,11 +84,11 @@ func naive(normalized *goel.NormalizedTBox) {
 	fmt.Printf("... Done after %v\n", execTime)
 }
 
-func rulebased(normalized *goel.NormalizedTBox) {
+func rulebased(normalized *goel.NormalizedTBox, domains *domains.CDManager) {
 	fmt.Println("Building state and rules ...")
 	start := time.Now()
 	solver := goel.NewAllChangesSolver(goel.NewSetGraph(), nil)
-	solver.Init(normalized)
+	solver.Init(normalized, domains)
 	execTime := time.Since(start)
 	fmt.Printf("... Done after %v\n", execTime)
 	fmt.Println("Solving ...")
@@ -95,11 +98,11 @@ func rulebased(normalized *goel.NormalizedTBox) {
 	fmt.Printf("... Done after %v\n", execTime)
 }
 
-func concurrent(normalized *goel.NormalizedTBox) {
+func concurrent(normalized *goel.NormalizedTBox, domains *domains.CDManager) {
 	fmt.Println("Building state and rules ...")
 	start := time.Now()
 	solver := goel.NewConcurrentNotificationSolver(goel.NewSetGraph(), nil)
-	solver.Init(normalized)
+	solver.Init(normalized, domains)
 	execTime := time.Since(start)
 	fmt.Printf("... Done after %v\n", execTime)
 	fmt.Println("Solving ...")
@@ -109,11 +112,11 @@ func concurrent(normalized *goel.NormalizedTBox) {
 	fmt.Printf("... Done after %v\n", execTime)
 }
 
-func fullConcurrent(normalized *goel.NormalizedTBox) {
+func fullConcurrent(normalized *goel.NormalizedTBox, domains *domains.CDManager) {
 	fmt.Println("Building state and rules ...")
 	start := time.Now()
 	solver := goel.NewConcurrentSolver(goel.NewSetGraph(), nil)
-	solver.Init(normalized)
+	solver.Init(normalized, domains)
 	solver.Workers = 25
 	execTime := time.Since(start)
 	fmt.Printf("... Done after %v\n", execTime)
@@ -124,12 +127,12 @@ func fullConcurrent(normalized *goel.NormalizedTBox) {
 	fmt.Printf("... Done after %v\n", execTime)
 }
 
-func fullConcurrentTC(normalized *goel.NormalizedTBox) {
+func fullConcurrentTC(normalized *goel.NormalizedTBox, domains *domains.CDManager) {
 	fmt.Println("Building state and rules ...")
 	start := time.Now()
 	solver := goel.NewConcurrentSolver(goel.NewTransitiveClosureGraph(),
 		goel.ClosureToSet)
-	solver.Init(normalized)
+	solver.Init(normalized, domains)
 	solver.Workers = 25
 	execTime := time.Since(start)
 	fmt.Printf("... Done after %v\n", execTime)

@@ -26,6 +26,7 @@ import (
 	"strings"
 
 	"github.com/FabianWe/goel"
+	"github.com/FabianWe/goel/domains"
 )
 
 type stringMap map[uint]string
@@ -155,7 +156,9 @@ func main() {
 
 	// solve it with the concurrent classifier
 	solver := goel.NewConcurrentSolver(goel.NewSetGraph(), nil)
-	solver.Init(normalized)
+	// no concrete domain formulae, just create empty instance
+	domains := domains.NewCDManager()
+	solver.Init(normalized, domains)
 	solver.Solve(normalized)
 
 	// now print some information we have gathered
