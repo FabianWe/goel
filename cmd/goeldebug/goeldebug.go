@@ -33,7 +33,8 @@ import (
 
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
-	runTests()
+	// runTests()
+	foo()
 }
 
 var errors uint
@@ -41,7 +42,7 @@ var success uint
 var unequal uint
 
 func foo() {
-	f, openErr := os.Open("debug/compare1.txt")
+	f, openErr := os.Open("debug/error1.txt")
 	if openErr != nil {
 		panic(openErr)
 	}
@@ -111,8 +112,8 @@ func findR(r1 []*goel.BCPairSet, r2 []*goel.Relation, c, d uint) {
 func bar(tbox *goel.NormalizedTBox) {
 	s1, r1 := runTest(tbox)
 	fmt.Println(strings.Repeat("@", 20))
-	s2, r2 := runRuleBased(tbox)
-	findR(r1, r2, 10, 13)
+	s2, r2 := runFullConcurrent(tbox)
+	// findR(r1, r2, 10, 13)
 	// fmt.Println("7 for s1")
 	// findD(s1)
 	// fmt.Println("7 for s2")
@@ -174,7 +175,7 @@ func testInstance(builder *goel.RandomELBuilder) {
 	}()
 	s1, r1 := runTest(normalized)
 	// s2, r2 := runFullConcurrent(normalized)
-	s2, r2 := runFullConcurrentTC(normalized)
+	s2, r2 := runFullConcurrent(normalized)
 	res := make(chan bool, 2)
 	// compare s and r
 	go func() {
