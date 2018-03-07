@@ -210,109 +210,6 @@ L:
 	}
 }
 
-// TODO remove or embedd
-type FooSolver struct {
-	*ConcurrentNotificationSolver
-}
-
-func NewFooSolver(graph ConceptGraph, search ExtendedReachabilitySearch) *FooSolver {
-	return &FooSolver{NewConcurrentNotificationSolver(graph, search)}
-}
-
-func (solver *FooSolver) Solve(tbox *NormalizedTBox) {
-	// TODO call init here, made this easier for testing during debuging.
-	// add all initial setup steps, that is for each C add ⊤ and C to S(C):
-	// ⊤ add only ⊤, for all other C add ⊤ and C
-	components := tbox.Components
-	solver.AddConcept(1, 1)
-	var c uint = 2
-	// we use + 1 here because we want to use the normalized id directly, so
-	// the bottom concept must be taken into consideration
-	numBCD := components.NumBCD() + 1
-	for ; c < numBCD; c++ {
-		solver.AddConcept(c, 1)
-		solver.AddConcept(c, c)
-	}
-	// while there are still pending updates apply those updates
-L:
-	for {
-		switch {
-		case len(solver.pendingSupdates) != 0:
-			// get next update and apply all notifications concurrently
-			n := len(solver.pendingSupdates)
-			next := solver.pendingSupdates[n-1]
-			// maybe help the garbage collector a bit
-			solver.pendingSupdates[n-1] = nil
-			solver.pendingSupdates = solver.pendingSupdates[:n-1]
-			// do notifications
-			c, d := next.C, next.D
-			notifications := solver.SRules[d]
-			// iterate over each notification and apply it, we use a waitgroup to
-			// later wait for all updates to happen
-			var wg sync.WaitGroup
-			wg.Add(3)
-
-			go func() {
-				for _, notification := range notifications {
-					notification.GetSNotification(solver, c, d)
-				}
-				wg.Done()
-			}()
-
-			// run rule cr6
-			// wg.Add(1)
-			go func() {
-				solver.cr6.GetSNotification(solver, c, d)
-				wg.Done()
-			}()
-			// apply subset notifications for cr6
-			// wg.Add(1)
-			go func() {
-				solver.AllChangesRuleMap.ApplySubsetNotification(solver, c, d)
-				wg.Done()
-			}()
-			wg.Wait()
-		case len(solver.pendingRUpdates) != 0:
-			// get next r update and apply it concurrently
-			n := len(solver.pendingRUpdates)
-			next := solver.pendingRUpdates[n-1]
-			solver.pendingRUpdates[n-1] = nil
-			solver.pendingRUpdates = solver.pendingRUpdates[:n-1]
-			// do notifications, again create a waitgroup
-			r, c, d := next.R, next.C, next.D
-			var wg sync.WaitGroup
-			// all notifications waiting for r
-			notifications := solver.RRules[r]
-			wg.Add(2)
-
-			go func(notifications []RNotification) {
-				for _, notification := range notifications {
-					notification.GetRNotification(solver, r, c, d)
-				}
-				wg.Done()
-			}(notifications)
-			// now also inform CR5 (and whatever is there)
-			notifications = solver.RRules[uint(NoRole)]
-			// wg.Add(1)
-
-			go func(notifications []RNotification) {
-				for _, notification := range notifications {
-					notification.GetRNotification(solver, r, c, d)
-				}
-				wg.Done()
-			}(notifications)
-
-			wg.Wait()
-		case solver.graphChanged:
-			// TODO changed the position of graph changed, correct?
-			solver.graphChanged = false
-			solver.cr6.GetGraphNotification(solver)
-		default:
-			break L
-		}
-	}
-}
-
 // Full concurrent solver: Run notifications and updates concurrently.
 
 type ConcurrentWorkerPool struct {
@@ -360,6 +257,8 @@ func (p *ConcurrentWorkerPool) Wait() {
 	p.wg.Wait()
 }
 
+// TODO add discussion here involving everything concurrent vs. part of it
+// concurrent
 func (p *ConcurrentWorkerPool) SWorker(solver *ConcurrentSolver) {
 	for update := range p.sChan {
 		// first wait for a worker to free

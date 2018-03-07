@@ -166,8 +166,7 @@ func ruleBased(normalized *goel.NormalizedTBox) time.Duration {
 
 func notitificationConcurrent(normalized *goel.NormalizedTBox) time.Duration {
 	start := time.Now()
-	// solver := goel.NewConcurrentNotificationSolver(goel.NewSetGraph(), nil)
-	solver := goel.NewFooSolver(goel.NewSetGraph(), nil)
+	solver := goel.NewConcurrentNotificationSolver(goel.NewSetGraph(), nil)
 	solver.Init(normalized)
 	solver.Solve(normalized)
 	execTime := time.Since(start)
