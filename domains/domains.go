@@ -164,6 +164,10 @@ func NewTypedPredicateFormula(formula *PredicateFormula, domain ConcreteDomainEn
 	return &TypedPredicateFormula{formula, domain, 0}
 }
 
+func (formula *TypedPredicateFormula) String() string {
+	return fmt.Sprintf("Domain: %v - formula: %v - id: %v", formula.DomainId, formula.Formula, formula.FormulaID)
+}
+
 // CDManager is used to store all concrete domains and the formulae
 // (PredicateFormula) that exist within an ontology.
 // It also stores a reference to the domain a formula was created for.
