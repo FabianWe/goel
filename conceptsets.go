@@ -114,6 +114,19 @@ func (s *BCSet) GetCDConjunction(manager *domains.CDManager) [][]*domains.Predic
 	return res
 }
 
+func CompareSMapping(first, second []*BCSet) bool {
+	if len(first) != len(second) {
+		return false
+	}
+	n := len(first)
+	for i := 0; i < n; i++ {
+		if !first[i].Equals(second[i]) {
+			return false
+		}
+	}
+	return true
+}
+
 type BCPair struct {
 	First, Second uint
 }

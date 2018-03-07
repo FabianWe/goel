@@ -299,6 +299,7 @@ func (solver *NaiveSolver) Solve(tbox *NormalizedTBox, manager *domains.CDManage
 				changed = sc.Add(Bottom) || changed
 				// add all formulae from this domain because false implies everything
 				// (rule CR8)
+				// this must also include the new formula of course
 				for _, formula := range manager.GetFormulaeFor(0) {
 					formulaID := formula.FormulaID
 					asExtension := NewConcreteDomainExtension(formulaID)

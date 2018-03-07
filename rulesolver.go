@@ -615,6 +615,8 @@ L:
 			// the rules again)
 			// now also do a notification for CR6
 			solver.cr6.GetSNotification(solver, c, d)
+			// apply notification for CR7/CR8
+			solver.cr7A8.GetSNotification(solver, c, d)
 			// apply subset notifications for cr6
 			solver.AllChangesRuleMap.ApplySubsetNotification(solver, c, d)
 		case len(solver.pendingRUpdates) != 0:

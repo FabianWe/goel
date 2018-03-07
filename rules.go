@@ -116,7 +116,11 @@ type StateHandler interface {
 	// needed.
 	GetComponents() *ELBaseComponents
 
+	// GetCDs returns the concrete domain manager.
 	GetCDs() *domains.CDManager
+
+	// GetConjunction returns conj(C)
+	GetConjunction(c uint) [][]*domains.PredicateFormula
 }
 
 // SolverState is an implementation of StateHandler, for more details see there.
@@ -302,6 +306,13 @@ func (state *SolverState) GetCDs() *domains.CDManager {
 	return state.domains
 }
 
+func (state *SolverState) GetConjunction(c uint) [][]*domains.PredicateFormula {
+	state.sMutex[c].RLock()
+	res := state.S[c].GetCDConjunction(state.domains)
+	state.sMutex[c].RUnlock()
+	return res
+}
+
 type SNotification interface {
 	// Information, that C' was added to S(C)
 	GetSNotification(state StateHandler, c, cPrime uint) bool
@@ -479,6 +490,107 @@ func (n *CR5) GetSNotification(state StateHandler, d, bot uint) bool {
 	return res
 }
 
+// CR7AndCR8 implements both rules CR7 and CR8 (because they're easily
+// connected).
+//
+// The rule implements SNotification.
+//
+// The SNotification must be received whenever an element gets added to some
+// S(C). The rule itself will then determine if it must do something or not.
+//
+// Some implementation details because it's important to understand what happens
+// here.
+//
+// This rule will first check if the element that was added is a CDExtensions.
+// If so it will compute conj(C) and then test the rule premiss.
+//
+// First it will test if conj(C) is not satisfiable, in this case ⊥ gets added
+// to S(C) and all formulae of the domain (because ⊥ implies everything).
+// The ⊥ satisfies rule CR7, the rest is just a speedup of rule CR8 (no need)
+// to test the implication.
+//
+// If it is satisfiable then it will test the implication condition of rule
+// CR8. But it will not test all formulae that are implied but the conjunction.
+// Instead it will find the first formula that is not contained in S(C) yet
+// that is implied by conj(C). If it finds such a formula the formula gets
+// added. In this case we don't have to check the implication for the other
+// formulae as well. Because we added a new formula to S(C) the implication
+// test will be performed again in any case.
+//
+// This way we don't test the implication again and again (especially if
+// things run concurrently).
+// We can do that because if a conjunction implies a certain formula it will
+// apply the formula even if we added a new formula to the conjunction.
+// TODO Think again, but I'm sure it's correct this way.
+type CR7AndCR8 struct{}
+
+func NewCR7AndCR8() CR7AndCR8 {
+	return CR7AndCR8{}
+}
+
+func (n CR7AndCR8) GetSNotification(state StateHandler, c, cPrime uint) bool {
+	components := state.GetComponents()
+	// first check if cPrime is a CDExtensions
+	_, ok := components.GetConcept(cPrime).(ConcreteDomainExtension)
+	if !ok {
+		// we don't care about it
+		return false
+	}
+	// get conjunction
+	conjunctions := state.GetConjunction(c)
+	if len(conjunctions) != 1 {
+		panic("Only support for one concrete domain at the moment")
+	}
+	conjunction := conjunctions[0]
+	manager := state.GetCDs()
+	// get domain
+	domain := manager.GetDomainByID(0)
+	result := false
+	// now check if conjunction is unsat.
+	// add all formulae from this domain because false implies everything
+	// (rule CR8)
+	// this must also include the new formula of course
+	if !domain.ConjSat(conjunction...) {
+		result = state.AddConcept(c, cPrime) || result
+		for _, formula := range manager.GetFormulaeFor(0) {
+			formulaID := formula.FormulaID
+			asExtension := NewConcreteDomainExtension(formulaID)
+			// add
+			result = state.AddConcept(c, asExtension.NormalizedID(components)) || result
+		}
+	} else {
+		// now find the first formula that is implied by conjuntion and that is
+		// not present yet
+		// we avoid running the test if we already concluded the formula, but
+		// because adds could happen concurrently we have to check the result of
+		// add
+		for _, formula := range manager.GetFormulaeFor(0) {
+			// first check if we already have that formula, no need to test
+			// implication otherwise
+			formulaID := formula.FormulaID
+			asExtension := NewConcreteDomainExtension(formulaID)
+			normalizedID := asExtension.NormalizedID(components)
+			if !state.ContainsConcept(c, normalizedID) {
+				// not contained, so now check the implication
+				if domain.Implies(formula.Formula, conjunction...) {
+					// yes, so now we have to add, but remember: only if add is
+					// successful we finish
+					if state.AddConcept(c, normalizedID) {
+						// done!
+						return true
+					} else {
+						// no else case, just continue the search
+					}
+				}
+				// no else here as well, just continue
+			}
+			// again just continue
+		}
+		// if for loop is ended we couldn't add a thing and nothing has changed
+	}
+	return result
+}
+
 // CR10 implements the rule CR10: for r ⊑ s:
 // If (C, D) ∈ R(r) then add (C, D) to R(s).
 //
@@ -584,10 +696,13 @@ func (n *CR11) GetRNotification(state StateHandler, r, c, d uint) bool {
 type RuleMap struct {
 	SRules map[uint][]SNotification
 	RRules map[uint][]RNotification
+	cr7A8  CR7AndCR8
 }
 
 func NewRuleMap() *RuleMap {
-	return &RuleMap{make(map[uint][]SNotification), make(map[uint][]RNotification)}
+	return &RuleMap{make(map[uint][]SNotification),
+		make(map[uint][]RNotification),
+		NewCR7AndCR8()}
 }
 
 type AddSNotification struct {

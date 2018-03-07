@@ -115,7 +115,7 @@ func bar(tbox *goel.NormalizedTBox) {
 	domains := domains.NewCDManager()
 	s1, r1 := runTest(tbox, domains)
 	fmt.Println(strings.Repeat("@", 20))
-	s2, r2 := runFullConcurrent(tbox, domains)
+	s2, r2 := runRuleBased(tbox, domains)
 	// findR(r1, r2, 10, 13)
 	// fmt.Println("7 for s1")
 	// findD(s1)

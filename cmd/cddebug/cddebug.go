@@ -55,7 +55,10 @@ func main() {
 	normalized := normalizer.Normalize(tbox)
 
 	fmt.Println(ds.Formulae)
-	solver := goel.NewNaiveSolver(goel.NewSetGraph(), goel.BFS)
-	solver.Solve(normalized, ds)
+	// solver := goel.NewNaiveSolver(goel.NewSetGraph(), goel.BFS)
+	// solver.Solve(normalized, ds)
+	solver := goel.NewAllChangesSolver(goel.NewSetGraph(), nil)
+	solver.Init(normalized, ds)
+	solver.Solve(normalized)
 	fmt.Println(solver.S)
 }

@@ -68,3 +68,31 @@ func (r *Relation) Contains(c, d uint) bool {
 	_, has := inner[d]
 	return has
 }
+
+func (r *Relation) Equals(other *Relation) bool {
+	if len(r.Mapping) != len(other.Mapping) {
+		return false
+	}
+	// same length => check if each element is contained in other
+	for c, inner := range r.Mapping {
+		for d, _ := range inner {
+			if !other.Contains(c, d) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func CompareRMapping(first, second []*Relation) bool {
+	if len(first) != len(second) {
+		return false
+	}
+	n := len(first)
+	for i := 0; i < n; i++ {
+		if !first[i].Equals(second[i]) {
+			return false
+		}
+	}
+	return true
+}

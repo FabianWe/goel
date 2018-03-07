@@ -167,6 +167,12 @@ L:
 				solver.cr6.GetSNotification(solver, c, d)
 				wg.Done()
 			}()
+			// run CR7/CR8
+			wg.Add(1)
+			go func() {
+				solver.cr7A8.GetSNotification(solver, c, d)
+				wg.Done()
+			}()
 			// apply subset notifications for cr6
 			wg.Add(1)
 			go func() {
@@ -291,6 +297,12 @@ func (p *ConcurrentWorkerPool) SWorker(solver *ConcurrentSolver) {
 			wg.Add(1)
 			go func() {
 				solver.cr6.GetSNotification(solver, c, d)
+				wg.Done()
+			}()
+			// run rules CR7/CR8
+			wg.Add(1)
+			go func() {
+				solver.cr7A8.GetSNotification(solver, c, d)
 				wg.Done()
 			}()
 			// apply subset notifications for cr6
