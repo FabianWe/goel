@@ -111,10 +111,10 @@ func findR(r1 []*goel.BCPairSet, r2 []*goel.Relation, c, d uint) {
 }
 
 func bar(tbox *goel.NormalizedTBox) {
-	s1, r1 := runTest(tbox)
-	fmt.Println(strings.Repeat("@", 20))
 	// TODO not so nice
 	domains := domains.NewCDManager()
+	s1, r1 := runTest(tbox, domains)
+	fmt.Println(strings.Repeat("@", 20))
 	s2, r2 := runFullConcurrent(tbox, domains)
 	// findR(r1, r2, 10, 13)
 	// fmt.Println("7 for s1")
@@ -176,9 +176,10 @@ func testInstance(builder *goel.RandomELBuilder) {
 			success++
 		}
 	}()
-	s1, r1 := runTest(normalized)
-	// s2, r2 := runFullConcurrent(normalized)
 	domains := domains.NewCDManager()
+	s1, r1 := runTest(normalized, domains)
+	// s2, r2 := runFullConcurrent(normalized)
+
 	s2, r2 := runFullConcurrent(normalized, domains)
 	res := make(chan bool, 2)
 	// compare s and r
@@ -284,13 +285,13 @@ func compareR(r1 []*goel.BCPairSet, r2 []*goel.Relation) bool {
 	return true
 }
 
-func runTest(tbox *goel.NormalizedTBox) ([]*goel.BCSet, []*goel.BCPairSet) {
+func runTest(tbox *goel.NormalizedTBox, domains *domains.CDManager) ([]*goel.BCSet, []*goel.BCPairSet) {
 
 	solver := goel.NewNaiveSolver(
 		goel.NewSetGraph(),
 		goel.BFS,
 	)
-	solver.Solve(tbox)
+	solver.Solve(tbox, domains)
 	return solver.S, solver.R
 }
 

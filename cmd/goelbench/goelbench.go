@@ -90,7 +90,7 @@ func main() {
 			// TODO domains created here, not so nice
 			domains := domains.NewCDManager()
 			log.Printf("Running benchmark \"%s\"\n", fPath)
-			// fmt.Println(naive(box))
+			// fmt.Println(naive(box, domains))
 			runtime.GC()
 			fmt.Println("Rule Based             ", int64(ruleBased(box, domains)/time.Millisecond))
 			runtime.GC()
@@ -147,13 +147,13 @@ func main() {
 	}
 }
 
-func naive(normalized *goel.NormalizedTBox) time.Duration {
+func naive(normalized *goel.NormalizedTBox, domains *domains.CDManager) time.Duration {
 	solver := goel.NewNaiveSolver(
 		goel.NewSetGraph(),
 		goel.BFS,
 	)
 	start := time.Now()
-	solver.Solve(normalized)
+	solver.Solve(normalized, domains)
 	execTime := time.Since(start)
 	return execTime
 }

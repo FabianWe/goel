@@ -57,7 +57,7 @@ func main() {
 	fmt.Printf("... Done after %v\n", execTime)
 	fmt.Println()
 	// fmt.Println("==== Naive ===")
-	// naive(normalized)
+	// naive(normalized, domains)
 	// fmt.Println()
 	fmt.Println("==== Rule Based ===")
 	rulebased(normalized, domains)
@@ -72,14 +72,14 @@ func main() {
 	fullConcurrentTC(normalized, domains)
 }
 
-func naive(normalized *goel.NormalizedTBox) {
+func naive(normalized *goel.NormalizedTBox, domains *domains.CDManager) {
 	solver := goel.NewNaiveSolver(
 		goel.NewSetGraph(),
 		goel.BFS,
 	)
 	fmt.Println("Solving ...")
 	start := time.Now()
-	solver.Solve(normalized)
+	solver.Solve(normalized, domains)
 	execTime := time.Since(start)
 	fmt.Printf("... Done after %v\n", execTime)
 }
