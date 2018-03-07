@@ -159,7 +159,6 @@ func main() {
 	solver.Solve(normalized)
 
 	// now print some information we have gathered
-	fmt.Println(len(solver.S))
 	for i := 2; i < len(solver.S); i++ {
 		if _, has := conceptMap[uint(i)]; has {
 			fmt.Println(printMap(conceptMap, uint(i), solver.S[i]))
