@@ -266,10 +266,10 @@ func (p *ConcurrentWorkerPool) SWorker(solver *ConcurrentSolver) {
 		// now start a go routine that does all updates concurrently
 		go func(update *SUpdate) {
 			// once we're done we signal that to wg and free the worker
-			defer func() {
-				p.wg.Done()
-				<-p.workers
-			}()
+			// defer func() {
+			// 	p.wg.Done()
+			// 	<-p.workers
+			// }()
 			c, d := update.C, update.D
 			notifications := solver.SRules[d]
 			// iterate over each notification and apply it, we use a waitgroup to
@@ -295,6 +295,8 @@ func (p *ConcurrentWorkerPool) SWorker(solver *ConcurrentSolver) {
 				solver.AllChangesRuleMap.ApplySubsetNotification(solver, c, d)
 				wg.Done()
 			}()
+			<-p.workers
+			p.wg.Done()
 			wg.Wait()
 		}(update)
 	}
