@@ -33,8 +33,8 @@ import (
 
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
-	// runTests()
-	foo()
+	runTests()
+	// foo()
 }
 
 var errors uint
