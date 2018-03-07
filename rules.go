@@ -452,7 +452,6 @@ func (n *CR5) GetRNotification(state StateHandler, r, c, d uint) bool {
 }
 
 func (n *CR5) GetSNotification(state StateHandler, d, bot uint) bool {
-	// TODO maybe we could add some concurrency here...
 	if bot != 0 {
 		log.Printf("Error in rule CR5: Expected bottom concept, but got %d", bot)
 		return false

@@ -310,6 +310,7 @@ func (n *AllChangesCR6) GetGraphNotification(state AllChangesState) bool {
 	result := false
 
 	// run everything concurrently, that is for each s run rundFindPairs
+
 	size := len(n.aMap)
 	ch := make(chan bool)
 

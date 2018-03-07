@@ -232,10 +232,17 @@ func (p *ConcurrentWorkerPool) Init(sSize, rSize, workers int) {
 	p.wg = &wg
 }
 
-func (p *ConcurrentWorkerPool) AddS(update *SUpdate) {
-	p.wg.Add(1)
+func (p *ConcurrentWorkerPool) AddS(update ...*SUpdate) {
+	// p.wg.Add(1)
+	// go func() {
+	// 	p.sChan <- update
+	// }()
+
+	p.wg.Add(len(update))
 	go func() {
-		p.sChan <- update
+		for _, u := range update {
+			p.sChan <- u
+		}
 	}()
 }
 
@@ -421,6 +428,7 @@ func (solver *ConcurrentSolver) AddConcept(c, d uint) bool {
 	return res
 }
 
+// TODO experiment
 func (solver *ConcurrentSolver) UnionConcepts(c, d uint) bool {
 	// we don't want to iterate over each concept twice (once in the set union
 	// and once here) so we simply do this by hand... Bit of code duplication
@@ -439,6 +447,8 @@ func (solver *ConcurrentSolver) UnionConcepts(c, d uint) bool {
 	sd := solver.S[d].M
 	added := false
 
+	vals := make([]*SUpdate, 0, len(sd))
+
 	for v, _ := range sd {
 		// add to S(C)
 		oldLen := len(sc)
@@ -447,14 +457,51 @@ func (solver *ConcurrentSolver) UnionConcepts(c, d uint) bool {
 			// change took place, update
 			added = true
 			update := NewSUpdate(c, v)
-			solver.pool.AddS(update)
+			vals = append(vals, update)
+			// solver.pool.AddS(update)
 		}
 	}
+	solver.pool.AddS(vals...)
 	solver.sMutex[c].Unlock()
 	solver.sMutex[d].RUnlock()
 	solver.duoMutex.Unlock()
 	return added
 }
+
+// func (solver *ConcurrentSolver) UnionConcepts(c, d uint) bool {
+// 	// we don't want to iterate over each concept twice (once in the set union
+// 	// and once here) so we simply do this by hand... Bit of code duplication
+// 	// but I guess that's okay
+//
+// 	// first we want to avoid some deadlocks (if c == d nothing happens but we
+// 	// can't read / write at the same time)
+// 	if c == d {
+// 		return false
+// 	}
+// 	// ugly duoMutex fix
+// 	solver.duoMutex.Lock()
+// 	solver.sMutex[c].Lock()
+// 	solver.sMutex[d].RLock()
+// 	sc := solver.S[c].M
+// 	sd := solver.S[d].M
+// 	added := false
+//
+// 	for v, _ := range sd {
+// 		// add to S(C)
+// 		oldLen := len(sc)
+// 		sc[v] = struct{}{}
+// 		if oldLen != len(sc) {
+// 			// change took place, update
+// 			added = true
+// 			update := NewSUpdate(c, v)
+// 			solver.pool.AddS(update)
+// 		}
+// 	}
+// 	solver.sMutex[c].Unlock()
+// 	solver.sMutex[d].RUnlock()
+// 	solver.duoMutex.Unlock()
+// 	return added
+// }
 
 func (solver *ConcurrentSolver) AddRole(r, c, d uint) bool {
 	res := solver.AllChangesSolverState.AddRole(r, c, d)
