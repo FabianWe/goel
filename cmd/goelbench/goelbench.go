@@ -28,6 +28,7 @@ import (
 	"math/rand"
 	"os"
 	"path"
+	"runtime"
 	"strings"
 	"time"
 
@@ -87,10 +88,13 @@ func main() {
 			}
 			log.Printf("Running benchmark \"%s\"\n", fPath)
 			// fmt.Println(naive(box))
-			fmt.Println("Rule Based:", int64(ruleBased(box)/time.Millisecond))
-			fmt.Println("Notification Concurrent:", int64(notitificationConcurrent(box)/time.Millisecond))
-			fmt.Println("Full Concurrent:", int64(concurrent(box, workers)/time.Millisecond))
-			fmt.Println("Full Concurrent TC:", int64(fullConcurrentTC(box, workers)/time.Millisecond))
+			runtime.GC()
+			fmt.Println("Rule Based             ", int64(ruleBased(box)/time.Millisecond))
+			runtime.GC()
+			fmt.Println("Notification Concurrent", int64(notitificationConcurrent(box)/time.Millisecond))
+			runtime.GC()
+			fmt.Println("Full Concurrent        ", int64(concurrent(box, workers)/time.Millisecond))
+			// fmt.Println("Full Concurrent TC:", int64(fullConcurrentTC(box, workers)/time.Millisecond))
 		}
 	case "build":
 		if out == "" {
@@ -162,7 +166,8 @@ func ruleBased(normalized *goel.NormalizedTBox) time.Duration {
 
 func notitificationConcurrent(normalized *goel.NormalizedTBox) time.Duration {
 	start := time.Now()
-	solver := goel.NewConcurrentNotificationSolver(goel.NewSetGraph(), nil)
+	// solver := goel.NewConcurrentNotificationSolver(goel.NewSetGraph(), nil)
+	solver := goel.NewFooSolver(goel.NewSetGraph(), nil)
 	solver.Init(normalized)
 	solver.Solve(normalized)
 	execTime := time.Since(start)

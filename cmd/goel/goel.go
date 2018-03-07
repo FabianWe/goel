@@ -37,15 +37,15 @@ func main() {
 	// 	MaxCDSize:          1000,
 	// 	MaxNumPredicates:   2000,
 	// 	MaxNumFeatures:     1000}
-	builder := goel.RandomELBuilder{NumIndividuals: 1000,
-		NumConceptNames:    1000,
+	builder := goel.RandomELBuilder{NumIndividuals: 0,
+		NumConceptNames:    10000,
 		NumRoles:           100,
 		NumConcreteDomains: 0,
 		MaxCDSize:          10,
 		MaxNumPredicates:   100,
 		MaxNumFeatures:     100}
 	fmt.Println("Building random TBox ...")
-	_, tbox := builder.GenerateRandomTBox(0, 1000, 100, 5, 100, 100)
+	_, tbox := builder.GenerateRandomTBox(0, 1000, 1000, 2, 1000, 1000)
 	normalizer := goel.NewDefaultNormalFormBUilder(100)
 	fmt.Println("Normalizing TBox ...")
 	start := time.Now()

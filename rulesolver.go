@@ -219,12 +219,10 @@ type AllChangesSNotification interface {
 	GetSNotification(state AllChangesState, c, cPrime uint) bool
 }
 
-// TODO I'm so totally not sure if this is correct.
 // We add a map here that maps for each {a} to a list of all C with {a} ∈ S(C).
 // This requires a bit more memory but I think(!) that it's worth it. Otherwise
 // we always have to iterate over all S(D) and test where {a} is contained.
 // This way finding all C, D with {a} ∈ S(C) ⊓ S(D) is easy.
-// TODO seems that this deadlocks if things happen concurrently...
 type AllChangesCR6 struct {
 	// TODO use slice here, is much nicer, but well it also works this way...
 	aMap map[uint]map[uint]struct{}
@@ -238,26 +236,6 @@ func NewAllChangesCR6() *AllChangesCR6 {
 }
 
 func (n *AllChangesCR6) applyRuleBidirectional(state AllChangesState, goals map[uint]struct{}, c uint) bool {
-	// TODO again, is filtering correct?
-	// I guess not!! even if the union will not change anything we still have
-	// to check if the nodes are connected in order to maintain S(D) <= S(C)
-	// or will this condition then be checked again?
-	// I don't think filtering is correct here.
-	// Even if the union does not change anything right now the connection
-	// must still be marked to maintain the subset
-	// filtered := make(map[uint]struct{}, len(goals))
-	// for d, _ := range goals {
-	// 	// TODO correct?
-	// 	if !state.SubsetConcepts(d, c) || !state.SubsetConcepts(c, d) {
-	// 		filtered[d] = struct{}{}
-	// 	}
-	// }
-	// if len(filtered) == 0 {
-	// 	return false
-	// }
-	// connected := state.BidrectionalSearch(filtered, c)
-
-	// here ends the commented out code from filtering
 	connected := state.BidrectionalSearch(goals, c)
 
 	result := false
@@ -282,46 +260,29 @@ func (n *AllChangesCR6) applyRuleBidirectional(state AllChangesState, goals map[
 	return result
 }
 
-func (n *AllChangesCR6) applyRuleDirectOnly(state AllChangesState, goals map[uint]struct{}, c uint) bool {
-	// before doing a search on the graph reduce the number of goals by checking
-	// the subset property this might help us to speed up the search
-	// TODO is this correct even in a concurrent version?
-
-	// as in bidrectional: I think filtering is wrong.
-	// filtered := make(map[uint]struct{}, len(goals))
-	// for d, _ := range goals {
-	// 	if !state.SubsetConcepts(d, c) {
-	// 		filtered[d] = struct{}{}
-	// 	}
-	// }
-	// if len(filtered) == 0 {
-	// 	return false
-	// }
-
-	// connected := state.ExtendedSearch(filtered, c)
-
-	// end of commented out filtering code.
-
-	connected := state.ExtendedSearch(goals, c)
-
-	result := false
-	for d, _ := range connected {
-		// no need to do anyhting if c == d
-		if c == d {
-			continue
-		}
-		// now we found a connection between C and D, that is now we have
-		// C ↝ D
-		// so now we can just union both concepts and add a new rule
-		// TODO is size 1 okay? should be
-		state.AddSubsetRule(c, d)
-		result = state.UnionConcepts(c, d) || result
-	}
-	return result
-}
+// func (n *AllChangesCR6) applyRuleDirectOnly(state AllChangesState, goals map[uint]struct{}, c uint) bool {
+// 	connected := state.ExtendedSearch(goals, c)
+//
+// 	result := false
+// 	for d, _ := range connected {
+// 		// no need to do anyhting if c == d
+// 		if c == d {
+// 			continue
+// 		}
+// 		// now we found a connection between C and D, that is now we have
+// 		// C ↝ D
+// 		// so now we can just union both concepts and add a new rule
+// 		state.AddSubsetRule(c, d)
+// 		result = state.UnionConcepts(c, d) || result
+// 	}
+// 	return result
+// }
 
 func (n *AllChangesCR6) runFindPairs(state AllChangesState, s map[uint]struct{}) bool {
 	// call the state method to retrieve all connected pairs
+
+	// TODO here some filtering might be useful, if already added a subset rule
+	// it is not required to search again
 	result := false
 	pairs := state.FindConnectedPairs(s)
 	// now add the rules
@@ -335,44 +296,6 @@ func (n *AllChangesCR6) runFindPairs(state AllChangesState, s map[uint]struct{})
 	}
 	return result
 }
-
-// old version
-// func (n *AllChangesCR6) GetGraphNotification(state AllChangesState) bool {
-// 	// if the graph has changed we iterate over all pairs and revaulate
-// 	// the condition, that is we add new rules etc.
-// 	// maybe there are nicer ways but we'll do the following:
-// 	// iterate over each {a} and then perform the extended search for each C
-// 	// that contains {a}.
-//
-// 	// lock mutex
-// 	n.aMutex.Lock()
-// 	defer n.aMutex.Unlock()
-// 	result := false
-// 	for _, containedIn := range n.aMap {
-// 		for c, _ := range containedIn {
-// 			result = n.applyRuleDirectOnly(state, containedIn, c) || result
-// 		}
-// 	}
-// 	return result
-// }
-
-// func (n *AllChangesCR6) GetGraphNotification(state AllChangesState) bool {
-// 	// if the graph has changed we iterate over all pairs and revaulate
-// 	// the condition, that is we add new rules etc.
-// 	// maybe there are nicer ways but we'll do the following:
-// 	// iterate over each {a} and then perform the extended search for each C
-// 	// that contains {a}.
-//
-// 	// lock mutex
-// 	n.aMutex.Lock()
-// 	defer n.aMutex.Unlock()
-// 	result := false
-//
-// 	for _, containedIn := range n.aMap {
-// 		result = n.runFindPairs(state, containedIn) || result
-// 	}
-// 	return result
-// }
 
 func (n *AllChangesCR6) GetGraphNotification(state AllChangesState) bool {
 	// if the graph has changed we iterate over all pairs and revaulate
