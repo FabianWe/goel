@@ -185,21 +185,27 @@ func NewCDManager() *CDManager {
 	return &CDManager{domains, nil, domainMap}
 }
 
-func (m *CDManager) AddDomain(d ConcreteDomain) {
+func (m *CDManager) AddDomain(d ConcreteDomain) int {
 	m.Domains = append(m.Domains, d)
 	m.domainMap = append(m.domainMap, []*TypedPredicateFormula{})
+	return len(m.Domains) - 1
 }
 
 func (m *CDManager) GetDomainByID(id ConcreteDomainEnumeration) ConcreteDomain {
 	return m.Domains[id]
 }
 
+func (m *CDManager) GetFormulaByID(id uint) *TypedPredicateFormula {
+	return m.Formulae[id]
+}
+
 // Add adds a new formula to the manager. It updates the Formulae slice (that
 // just contains all formulae) and the mapping domain ↦ formulae that contains
 // all formulae for a certain domain.
-func (m *CDManager) Add(formula *TypedPredicateFormula) {
+func (m *CDManager) Add(formula *TypedPredicateFormula) int {
 	m.Formulae = append(m.Formulae, formula)
 	m.domainMap[formula.DomainId] = append(m.domainMap[formula.DomainId], formula)
+	return len(m.Formulae) - 1
 }
 
 // GetFormulaeFor returns all formulae for the given concrete domain. The

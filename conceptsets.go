@@ -22,6 +22,8 @@
 
 package goel
 
+import "github.com/FabianWe/goel/domains"
+
 type BCSet struct {
 	M map[uint]struct{}
 	c *ELBaseComponents
@@ -92,6 +94,22 @@ func (s *BCSet) Copy() *BCSet {
 	res := NewBCSet(s.c, uint(len(s.M)))
 	for v, _ := range s.M {
 		res.M[v] = struct{}{}
+	}
+	return res
+}
+
+func (s *BCSet) GetCDConjunction(manager *domains.CDManager) [][]*domains.PredicateFormula {
+	res := make([][]*domains.PredicateFormula, len(manager.Domains))
+	for candidate, _ := range s.M {
+		concept := s.c.GetConcept(candidate)
+		cdExt, ok := concept.(ConcreteDomainExtension)
+		if !ok {
+			continue
+		}
+		// now look up the formula via the manager
+		formula := manager.GetFormulaByID(uint(cdExt))
+		// lookup the domain and add result
+		res[formula.DomainId] = append(res[formula.DomainId], formula.Formula)
 	}
 	return res
 }
