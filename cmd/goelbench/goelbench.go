@@ -87,9 +87,10 @@ func main() {
 			}
 			log.Printf("Running benchmark \"%s\"\n", fPath)
 			// fmt.Println(naive(box))
-			fmt.Println(int64(ruleBased(box) / time.Millisecond))
-			fmt.Println(int64(notitificationConcurrent(box) / time.Millisecond))
-			fmt.Println(int64(concurrent(box, workers) / time.Millisecond))
+			fmt.Println("Rule Based:", int64(ruleBased(box)/time.Millisecond))
+			fmt.Println("Notification Concurrent:", int64(notitificationConcurrent(box)/time.Millisecond))
+			fmt.Println("Full Concurrent:", int64(concurrent(box, workers)/time.Millisecond))
+			fmt.Println("Full Concurrent TC:", int64(fullConcurrentTC(box, workers)/time.Millisecond))
 		}
 	case "build":
 		if out == "" {
@@ -171,9 +172,20 @@ func notitificationConcurrent(normalized *goel.NormalizedTBox) time.Duration {
 func concurrent(normalized *goel.NormalizedTBox, workers int) time.Duration {
 	start := time.Now()
 	solver := goel.NewConcurrentSolver(goel.NewSetGraph(), nil)
-	solver.Init(normalized)
 	solver.Workers = workers
+	solver.Init(normalized)
 	solver.Solve(normalized)
+	execTime := time.Since(start)
+	return execTime
+}
+
+func fullConcurrentTC(tbox *goel.NormalizedTBox, workers int) time.Duration {
+	start := time.Now()
+	solver := goel.NewConcurrentSolver(goel.NewTransitiveClosureGraph(),
+		goel.ClosureToSet)
+	solver.Workers = workers
+	solver.Init(tbox)
+	solver.Solve(tbox)
 	execTime := time.Since(start)
 	return execTime
 }

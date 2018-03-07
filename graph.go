@@ -25,6 +25,7 @@ package goel
 import (
 	"fmt"
 	"log"
+	"reflect"
 	"strings"
 	"sync"
 )
@@ -267,7 +268,7 @@ func (searcher *GraphSearcher) BidrectionalSearch(g ConceptGraph, c, d uint) Bid
 // Extended Search
 type ExtendedReachabilitySearch func(g ConceptGraph, goals map[uint]struct{}, start ...uint) map[uint]struct{}
 
-// TODO think about this again and seems rather slow... but why? hmmm...
+// TODO think about this again, seems rather slow... but why? hmmm...
 func BFSToSet(g ConceptGraph, goals map[uint]struct{}, start ...uint) map[uint]struct{} {
 	// same trick as in BFS
 	result := make(map[uint]struct{}, len(goals))
@@ -515,5 +516,93 @@ func (searcher *ExtendedGraphSearcher) FindConnectedPairs(g ConceptGraph, s map[
 	close(ch)
 	// wait until all adds have happened
 	<-done
+	return res
+}
+
+// Transitive closure graph.
+
+type TransitiveClosureGraph struct {
+	*SetGraph
+	closure *Relation
+}
+
+func NewTransitiveClosureGraph() *TransitiveClosureGraph {
+	return &TransitiveClosureGraph{
+		SetGraph: NewSetGraph(),
+		closure:  NewRelation(0),
+	}
+}
+
+func (g *TransitiveClosureGraph) Init(numConcepts uint) {
+	g.SetGraph.Init(numConcepts)
+	g.closure = NewRelation(numConcepts)
+}
+
+func (g *TransitiveClosureGraph) AddEdge(source, target uint) bool {
+	if !g.SetGraph.AddEdge(source, target) {
+		return false
+	}
+	// now we have a new edge from source to target
+	// that means that all nodes reaching source also reach everything
+	// that target reaches including source as well.
+	// that is: they all need an update
+	// we actually store all targets in a set, this way we don't iterate over
+	// closure while adding to it... this might break things
+	// we can compute both slices concurrently
+	newTargets := map[uint]struct{}{target: struct{}{}}
+	updateNodes := map[uint]struct{}{source: struct{}{}}
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		// here we update all new target nodes, that is everything that is reachable
+		// from target
+		for reachable, _ := range g.closure.Mapping[target] {
+			newTargets[reachable] = struct{}{}
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		// here we compute all nodes that have a path to source
+		for reachesSource, _ := range g.closure.ReverseMapping[source] {
+			updateNodes[reachesSource] = struct{}{}
+		}
+	}()
+	wg.Wait()
+	// now that we have the mappings we have to perform the update...
+	for v1, _ := range updateNodes {
+		// insert all targets
+		for v2, _ := range newTargets {
+			g.closure.Add(v1, v2)
+		}
+	}
+	return true
+}
+
+func ClosureToSet(g ConceptGraph, goals map[uint]struct{}, start ...uint) map[uint]struct{} {
+	// TODO ugly as hell... but well...
+	tcg, ok := g.(*TransitiveClosureGraph)
+	if !ok {
+		log.Println("ClosureToSet called for something that is not a TransitiveClosureGraph! Type:", reflect.TypeOf(g))
+		return BFSToSet(g, goals)
+	}
+	res := make(map[uint]struct{}, len(goals))
+	// just build the union of everything reachable by some start
+	// TODO: speedup: If len(start) == 1 no copying is required, right?
+	// The other methods never change the returned map, or do they?
+	allReachable := make(map[uint]struct{}, len(goals))
+	for _, v := range start {
+		// now add everything that v reaches to allReachable
+		for reachable, _ := range tcg.closure.Mapping[v] {
+			allReachable[reachable] = struct{}{}
+		}
+	}
+	// now iterate over all goals we're looking for and add those reachable
+	// from anything in start
+	for goal, _ := range goals {
+		if _, reachable := allReachable[goal]; reachable {
+			res[goal] = struct{}{}
+		}
+	}
 	return res
 }
