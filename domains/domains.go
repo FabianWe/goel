@@ -152,10 +152,16 @@ func (dom ConcreteDomainEnumeration) String() string {
 type TypedPredicateFormula struct {
 	Formula  *PredicateFormula
 	DomainId ConcreteDomainEnumeration
+
+	// id of the formula, this is required for the conversion to concepts
+	// on create set to 0, but this must be set to the correct value!
+	// thus when creating a formula and adding it use the Add function, that will
+	// set this value correctly
+	FormulaID uint
 }
 
 func NewTypedPredicateFormula(formula *PredicateFormula, domain ConcreteDomainEnumeration) *TypedPredicateFormula {
-	return &TypedPredicateFormula{formula, domain}
+	return &TypedPredicateFormula{formula, domain, 0}
 }
 
 // CDManager is used to store all concrete domains and the formulae
@@ -202,10 +208,14 @@ func (m *CDManager) GetFormulaByID(id uint) *TypedPredicateFormula {
 // Add adds a new formula to the manager. It updates the Formulae slice (that
 // just contains all formulae) and the mapping domain ↦ formulae that contains
 // all formulae for a certain domain.
+//
+// Also it will set the FormulaID correctly (and return the id as well).
 func (m *CDManager) Add(formula *TypedPredicateFormula) int {
+	res := len(m.Formulae)
+	formula.FormulaID = uint(res)
 	m.Formulae = append(m.Formulae, formula)
 	m.domainMap[formula.DomainId] = append(m.domainMap[formula.DomainId], formula)
-	return len(m.Formulae) - 1
+	return res
 }
 
 // GetFormulaeFor returns all formulae for the given concrete domain. The

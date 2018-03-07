@@ -25,6 +25,8 @@ package goel
 import (
 	"log"
 	"sync"
+
+	"github.com/FabianWe/goel/domains"
 )
 
 // TODO redefine set interfaces s.t. that accept the components as well
@@ -149,7 +151,7 @@ func (solver *NaiveSolver) updateR(r Role, c, d Concept, bc *ELBaseComponents) b
 
 // TODO seems some iterations are just... stupid.
 // check again!
-func (solver *NaiveSolver) Solve(tbox *NormalizedTBox) {
+func (solver *NaiveSolver) Solve(tbox *NormalizedTBox, manager *domains.CDManager) {
 	solver.init(tbox.Components)
 	changed := true
 	for changed {
@@ -278,8 +280,47 @@ func (solver *NaiveSolver) Solve(tbox *NormalizedTBox) {
 				}
 			}
 		}
+		// now try CR7 and CR8
+		var i uint = 1
+		// iterate over each c
+		for ; i < uint(len(solver.S)); i++ {
+			// get conjunction
+			sc := solver.S[i]
+			conjunctions := sc.GetCDConjunction(manager)
+			if len(conjunctions) != 1 {
+				panic("Only support for one concrete domain at the moment")
+			}
+			conjunction := conjunctions[0]
+			// get domain
+			domain := manager.GetDomainByID(0)
+			// check if unsatisfiable, if yes apply CR7 and add false
+			if !domain.ConjSat(conjunction...) {
+				// a little bit nicer here than before by avoid the if...
+				changed = sc.Add(Bottom) || changed
+				// add all formulae from this domain because false implies everything
+				// (rule CR8)
+				for _, formula := range manager.GetFormulaeFor(0) {
+					formulaID := formula.FormulaID
+					asExtension := NewConcreteDomainExtension(formulaID)
+					// now add
+					changed = sc.Add(asExtension) || changed
+				}
+			} else {
+				// can't apply CR7 and we have to check CR8 for each formula
+				for _, formula := range manager.GetFormulaeFor(0) {
+					// check if the implication is true
+					if domain.Implies(formula.Formula, conjunction...) {
+						// add
+						formulaID := formula.FormulaID
+						asExtension := NewConcreteDomainExtension(formulaID)
+						// add
+						changed = sc.Add(asExtension) || changed
+					}
+				}
+			}
+		}
 		// now try rule CR10 and CR11
-		var i uint
+		i = 0
 		for ; i < uint(len(tbox.RIs)); i++ {
 			ri := tbox.RIs[i]
 			if ri.R2 == NoRole {
