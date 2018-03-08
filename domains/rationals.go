@@ -53,19 +53,29 @@ import (
 //
 // Update: Problem still there, with new error:
 // delete_lp: The stack of B&B levels was not empty (failed at 0 nodes)
-// pretty sure it's something with lp_solve
-type RationalDomain struct{}
-
-func NewRationalDomain() RationalDomain {
-	return RationalDomain{}
+// pretty sure it's something with lp_solve and golp
+//
+// I've locked the complete domain when solving a linear program!
+// That's totally not the way to go!
+//
+// Update again: Even locking it with a mutex didn't help, some syscall crashes
+// in golp (that's what I expect)
+type RationalDomain struct {
+	// mutex *sync.Mutex
 }
 
-func (d RationalDomain) Contains(l AbstractLiteral) bool {
+func NewRationalDomain() *RationalDomain {
+	// var m sync.Mutex
+	// return &RationalDomain{&m}
+	return &RationalDomain{}
+}
+
+func (d *RationalDomain) Contains(l AbstractLiteral) bool {
 	_, res := l.(float64)
 	return res
 }
 
-func (d RationalDomain) Name() string {
+func (d *RationalDomain) Name() string {
 	return "Rationals ℚ"
 }
 
@@ -336,6 +346,7 @@ func (d RationalDomain) ConjSat(gamma ...*PredicateFormula) bool {
 	// first formulate the lp
 	lp := d.FormulateLP(gamma...)
 	// try to solve the LP
+
 	sol := lp.Solve()
 	switch sol {
 	case golp.OPTIMAL, golp.SUBOPTIMAL, golp.FEASFOUND:

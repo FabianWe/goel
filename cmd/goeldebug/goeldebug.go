@@ -180,7 +180,7 @@ func testInstance(builder *goel.RandomELBuilder) {
 	s1, r1 := runTest(normalized, domains)
 	// s2, r2 := runFullConcurrent(normalized)
 
-	s2, r2 := runFullConcurrent(normalized, domains)
+	s2, r2 := runRuleBased(normalized, domains)
 	res := make(chan bool, 2)
 	// compare s and r
 	go func() {
