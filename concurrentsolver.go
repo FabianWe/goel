@@ -300,16 +300,23 @@ func (p *ConcurrentWorkerPool) SWorker(solver *ConcurrentSolver) {
 				wg.Done()
 			}()
 			// run rules CR7/CR8
-			wg.Add(1)
-			go func() {
-				solver.cr7A8.GetSNotification(solver, c, d)
-				wg.Done()
-			}()
+			// TODO commented out
+			// wg.Add(1)
+			// go func() {
+			// 	solver.cr7A8.GetSNotification(solver, c, d)
+			// 	wg.Done()
+			// }()
 			// apply subset notifications for cr6
 			wg.Add(1)
 			go func() {
 				// TODO is this correctly protected for concurrent use?
 				solver.AllChangesRuleMap.ApplySubsetNotification(solver, c, d)
+				wg.Done()
+			}()
+			wg.Wait()
+			wg.Add(1)
+			go func() {
+				solver.cr7A8.GetSNotification(solver, c, d)
 				wg.Done()
 			}()
 			wg.Wait()

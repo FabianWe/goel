@@ -26,7 +26,10 @@ import (
 	"testing"
 
 	"github.com/FabianWe/goel"
+	"github.com/FabianWe/goel/domains"
 )
+
+var ds *domains.CDManager = domains.NewCDManager()
 
 func assertSContains(t *testing.T, ids []uint, s *goel.BCSet) {
 	for _, id := range ids {
@@ -49,7 +52,7 @@ func runConcurrent(tbox *goel.TBox) *goel.ConcurrentSolver {
 	normalizer := goel.NewDefaultNormalFormBUilder(100)
 	normalized := normalizer.Normalize(tbox)
 	solver := goel.NewConcurrentSolver(goel.NewSetGraph(), nil)
-	solver.Init(normalized)
+	solver.Init(normalized, ds)
 	solver.Solve(normalized)
 	return solver
 }

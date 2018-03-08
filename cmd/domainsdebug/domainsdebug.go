@@ -40,3 +40,36 @@ func main() {
 	res := d.Implies(form, form1, form2)
 	fmt.Println(res)
 }
+
+// func main() {
+// 	d := domains.NewRationalDomain()
+// 	features := make([]domains.FeatureID, 1000)
+// 	for i := 0; i < 1000; i++ {
+// 		features[i] = domains.NewFeatureID(i)
+// 	}
+//
+// 	r1 := domains.NewGreaterRational(42)
+// 	r2 := domains.NewEqualsRational(42)
+// 	r3 := domains.NewEqualsRational(21)
+//
+// 	rs := []domains.Predicate{r1, r2, r3}
+//
+// 	formulae := make([]*domains.PredicateFormula, 1000)
+//
+// 	for i := 0; i < 1000; i++ {
+// 		formulae[i] = domains.NewPredicateFormula(
+// 			rs[rand.Intn(3)],
+// 			features[rand.Intn(1000)],
+// 		)
+// 	}
+//
+// 	var wg sync.WaitGroup
+// 	wg.Add(100000)
+// 	for i := 0; i < 100000; i++ {
+// 		go func() {
+// 			fmt.Println(d.ConjSat(formulae...))
+// 			wg.Done()
+// 		}()
+// 	}
+// 	wg.Wait()
+// }

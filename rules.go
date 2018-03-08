@@ -528,6 +528,14 @@ func NewCR7AndCR8() CR7AndCR8 {
 	return CR7AndCR8{}
 }
 
+// TODO A speedup example: Instead when things like formulae get added
+// it's better to first apply subset rules etc. because this way
+// we don't have to reason that much
+// I think that would be an actually really good improvement.
+// So in short: If we know that p(f1, ..., fk) gets added to some S(D):
+// first add it to everything that always contains all elements from S(D)
+// before reasoning with it (otherwise we start a reasoner for nothing... gets
+// added anyway)
 func (n CR7AndCR8) GetSNotification(state StateHandler, c, cPrime uint) bool {
 	components := state.GetComponents()
 	// first check if cPrime is a CDExtensions

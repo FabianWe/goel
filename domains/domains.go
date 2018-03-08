@@ -22,6 +22,7 @@ package domains
 
 import (
 	"fmt"
+	"os"
 	"strings"
 )
 
@@ -206,6 +207,10 @@ func (m *CDManager) GetDomainByID(id ConcreteDomainEnumeration) ConcreteDomain {
 }
 
 func (m *CDManager) GetFormulaByID(id uint) *TypedPredicateFormula {
+	if id >= uint(len(m.Formulae)) {
+		fmt.Println("id =", id)
+		os.Exit(1)
+	}
 	return m.Formulae[id]
 }
 
