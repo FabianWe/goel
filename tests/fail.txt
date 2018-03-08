@@ -1,0 +1,639 @@
+*** Error in `/tmp/go-build715559506/github.com/FabianWe/goel/tests/_test/tests.test': double free or corruption (!prev): 0x00007f1b7243f780 ***
+fatal error: unexpected signal during runtime execution
+======= Backtrace: =========
+/lib/x86_64-linux-gnu/libc.so.6(+0x777e5)[0x7f1bc25d77e5]
+/lib/x86_64-linux-gnu/libc.so.6(+0x8037a)[0x7f1bc25e037a]
+/lib/x86_64-linux-gnu/libc.so.6(cfree+0x4c)[0x7f1bc25e453c]
+/lib/x86_64-linux-gnu/libc.so.6(realloc+0x2a5)[0x7f1bc25e4965]
+/home/fabian/Documents/go/src/github.com/draffensperger/golp/lpsolve/liblpsolve55.so(clean_realloc+0x25)[0x7f1bc2b71895]
+/home/fabian/Documents/go/src/github.com/draffensperger/golp/lpsolve/liblpsolve55.so(LUSOL_realloc_a+0x83)[0x7f1bc2b71d53]
+/home/fabian/Documents/go/src/github.com/draffensperger/golp/lpsolve/liblpsolve55.so(LUSOL_free+0xb)[0x7f1bc2b71dcb]
+/home/fabian/Documents/go/src/github.com/draffensperger/golp/lpsolve/liblpsolve55.so(bfp_free+0x52)[0x7f1bc2b67572]
+/home/fabian/Documents/go/src/github.com/draffensperger/golp/lpsolve/liblpsolve55.so(delete_lp+0x83)[0x7f1bc2b8cba3]
+/tmp/go-build715559506/github.com/FabianWe/goel/tests/_test/tests.test[0x458b00]
+======= Memory map: ========
+00400000-0062f000 r-xp 00000000 08:01 423859                             /tmp/go-build715559506/github.com/FabianWe/goel/tests/_test/tests.test
+0082e000-0082f000 r--p 0022e000 08:01 423859                             /tmp/go-build715559506/github.com/FabianWe/goel/tests/_test/tests.test
+0082f000-00848000 rw-p 0022f000 08:01 423859                             /tmp/go-build715559506/github.com/FabianWe/goel/tests/_test/tests.test
+00848000-0086a000 rw-p 00000000 00:00 0
+00b68000-06986000 rw-p 00000000 00:00 0                                  [heap]
+c000000000-c000003000 rw-p 00000000 00:00 0
+c41ffb2000-c4209c0000 rw-p 00000000 00:00 0
+7f1b28000000-7f1b2bff2000 rw-p 00000000 00:00 0
+7f1b2bff2000-7f1b2c000000 ---p 00000000 00:00 0
+7f1b2c000000-7f1b2fe57000 rw-p 00000000 00:00 0
+7f1b2fe57000-7f1b30000000 ---p 00000000 00:00 0
+7f1b48000000-7f1b4c000000 rw-p 00000000 00:00 0
+7f1b50000000-7f1b510a2000 rw-p 00000000 00:00 0
+7f1b510a2000-7f1b54000000 ---p 00000000 00:00 0
+7f1b58000000-7f1b5bff9000 rw-p 00000000 00:00 0
+7f1b5bff9000-7f1b5c000000 ---p 00000000 00:00 0
+7f1b5c000000-7f1b5fff9000 rw-p 00000000 00:00 0
+7f1b5fff9000-7f1b60000000 ---p 00000000 00:00 0
+7f1b64000000-7f1b67ff8000 rw-p 00000000 00:00 0
+7f1b67ff8000-7f1b68000000 ---p 00000000 00:00 0
+7f1b6c000000-7f1b6c984000 rw-p 00000000 00:00 0
+7f1b6c984000-7f1b70000000 ---p 00000000 00:00 0
+7f1b70000000-7f1b74000000 rw-p 00000000 00:00 0
+7f1b78000000-7f1b7bffe000 rw-p 00000000 00:00 0
+7f1b7bffe000-7f1b7c000000 ---p 00000000 00:00 0
+7f1b7c000000-7f1b7f50f000 rw-p 00000000 00:00 0
+7f1b7f50f000-7f1b80000000 ---p 00000000 00:00 0
+7f1b84000000-7f1b87ffc000 rw-p 00000000 00:00 0
+7f1b87ffc000-7f1b88000000 ---p 00000000 00:00 0
+7f1b88000000-7f1b8bfff000 rw-p 00000000 00:00 0
+7f1b8bfff000-7f1b8c000000 ---p 00000000 00:00 0
+7f1b8c000000-7f1b8fff9000 rw-p 00000000 00:00 0
+7f1b8fff9000-7f1b90000000 ---p 00000000 00:00 0
+7f1b94000000-7f1b97ffe000 rw-p 00000000 00:00 0
+7f1b97ffe000-7f1b98000000 ---p 00000000 00:00 0
+7f1b98000000-7f1b9bffb000 rw-p 00000000 00:00 0
+7f1b9bffb000-7f1b9c000000 ---p 00000000 00:00 0
+7f1b9c000000-7f1b9fff8000 rw-p 00000000 00:00 0
+7f1b9fff8000-7f1ba0000000 ---p 00000000 00:00 0
+7f1ba0000000-7f1ba3ffe000 rw-p 00000000 00:00 0
+7f1ba3ffe000-7f1ba4000000 ---p 00000000 00:00 0
+7f1ba8000000-7f1babfff000 rw-p 00000000 00:00 0
+7f1babfff000-7f1bac000000 ---p 00000000 00:00 0
+7f1baf7ff000-7f1baf800000 ---p 00000000 00:00 0
+7f1baf800000-7f1bb0000000 rw-p 00000000 00:00 0
+7f1bb0000000-7f1bb4000000 rw-p 00000000 00:00 0
+7f1bb4000000-7f1bb8000000 rw-p 00000000 00:00 0
+7f1bb841d000-7f1bb8433000 r-xp 00000000 08:01 1971305                    /lib/x86_64-linux-gnu/libgcc_s.so.1
+7f1bb8433000-7f1bb8632000 ---p 00016000 08:01 1971305                    /lib/x86_64-linux-gnu/libgcc_s.so.1
+7f1bb8632000-7f1bb8633000 rw-p 00015000 08:01 1971305                    /lib/x86_64-linux-gnu/libgcc_s.so.1
+7f1bb8659000-7f1bb865a000 ---p 00000000 00:00 0
+7f1bb865a000-7f1bb8e5a000 rw-p 00000000 00:00 0
+7f1bb8e5a000-7f1bb8e5b000 ---p 00000000 00:00 0
+7f1bb8e5b000-7f1bb965b000 rw-p 00000000 00:00 0
+7f1bb965b000-7f1bb965c000 ---p 00000000 00:00 0
+7f1bb965c000-7f1bb9e9c000 rw-p 00000000 00:00 0
+7f1bb9e9c000-7f1bb9e9d000 ---p 00000000 00:00 0
+7f1bb9e9d000-7f1bba69d000 rw-p 00000000 00:00 0
+7f1bba69d000-7f1bba69e000 ---p 00000000 00:00 0
+7f1bba69e000-7f1bbae9e000 rw-p 00000000 00:00 0
+7f1bbae9e000-7f1bbae9f000 ---p 00000000 00:00 0
+7f1bbae9f000-7f1bbb7ff000 rw-p 00000000 00:00 0
+7f1bbb7ff000-7f1bbb800000 ---p 00000000 00:00 0
+7f1bbb800000-7f1bbc000000 rw-p 00000000 00:00 0
+7f1bbc000000-7f1bbfffc000 rw-p 00000000 00:00 0
+7f1bbfffc000-7f1bc0000000 ---p 00000000 00:00 0
+7f1bc000f000-7f1bc004f000 rw-p 00000000 00:00 0
+7f1bc004f000-7f1bc0050000 ---p 00000000 00:00 0
+7f1bc0050000-7f1bc0850000 rw-p 00000000 00:00 0
+7f1bc0850000-7f1bc0851000 ---p 00000000 00:00 0
+7f1bc0851000-7f1bc1051000 rw-p 00000000 00:00 0
+7f1bc1051000-7f1bc1052000 ---p 00000000 00:00 0
+7f1bc1052000-7f1bc1852000 rw-p 00000000 00:00 0
+7f1bc1852000-7f1bc1853000 ---p 00000000 00:00 0
+7f1bc1853000-7f1bc2053000 rw-p 00000000 00:00 0
+7f1bc2053000-7f1bc2056000 r-xp 00000000 08:01 1971769                    /lib/x86_64-linux-gnu/libdl-2.23.so
+7f1bc2056000-7f1bc2255000 ---p 00003000 08:01 1971769                    /lib/x86_64-linux-gnu/libdl-2.23.so
+7f1bc2255000-7f1bc2256000 r--p 00002000 08:01 1971769                    /lib/x86_64-linux-gnu/libdl-2.23.so
+7f1bc2256000-7f1bc2257000 rw-p 00003000 08:01 1971769                    /lib/x86_64-linux-gnu/libdl-2.23.so
+7f1bc2257000-7f1bc235f000 r-xp 00000000 08:01 1971607                    /lib/x86_64-linux-gnu/libm-2.23.so
+7f1bc235f000-7f1bc255e000 ---p 00108000 08:01 1971607                    /lib/x86_64-linux-gnu/libm-2.23.so
+7f1bc255e000-7f1bc255f000 r--p 00107000 08:01 1971607                    /lib/x86_64-linux-gnu/libm-2.23.so
+7f1bc255f000-7f1bc2560000 rw-p 00108000 08:01 1971607                    /lib/x86_64-linux-gnu/libm-2.23.so
+7f1bc2560000-7f1bc2720000 r-xp 00000000 08:01 1971742                    /lib/x86_64-linux-gnu/libc-2.23.so
+7f1bc2720000-7f1bc2920000 ---p 001c0000 08:01 1971742                    /lib/x86_64-linux-gnu/libc-2.23.so
+7f1bc2920000-7f1bc2924000 r--p 001c0000 08:01 1971742                    /lib/x86_64-linux-gnu/libc-2.23.so
+7f1bc2924000-7f1bc2926000 rw-p 001c4000 08:01 1971742                    /lib/x86_64-linux-gnu/libc-2.23.so
+7f1bc2926000-7f1bc292a000 rw-p 00000000 00:00 0
+7f1bc292a000-7f1bc2942000 r-xp 00000000 08:01 1971726                    /lib/x86_64-linux-gnu/libpthread-2.23.so
+7f1bc2942000-7f1bc2b41000 ---p 00018000 08:01 1971726                    /lib/x86_64-linux-gnu/libpthread-2.23.so
+7f1bc2b41000-7f1bc2b42000 r--p 00017000 08:01 1971726                    /lib/x86_64-linux-gnu/libpthread-2.23.so
+7f1bc2b42000-7f1bc2b43000 rw-p 00018000 08:01 1971726                    /lib/x86_64-linux-gnu/libpthread-2.23.so
+7f1bc2b43000-7f1bc2b47000 rw-p 00000000 00:00 0
+7f1bc2b47000-7f1bc2be2000 r-xp 00000000 08:04 10491464                   /home/fabian/Documents/go/src/github.com/draffensperger/golp/lpsolve/liblpsolve55.so
+7f1bc2be2000-7f1bc2de1000 ---p 0009b000 08:04 10491464                   /home/fabian/Documents/go/src/github.com/draffensperger/golp/lpsolve/liblpsolve55.so
+7f1bc2de1000-7f1bc2de3000 r--p 0009a000 08:04 10491464                   /home/fabian/Documents/go/src/github.com/draffensperger/golp/lpsolve/liblpsolve55.so
+7f1bc2de3000-7f1bc2de4000 rw-p 0009c000 08:04 10491464                   /home/fabian/Documents/go/src/github.com/draffensperger/golp/lpsolve/liblpsolve55.so
+7f1bc2de4000-7f1bc2e0a000 r-xp 00000000 08:01 1971684                    /lib/x86_64-linux-gnu/ld-2.23.so
+7f1bc2e2e000-7f1bc2fe2000 rw-p 00000000 00:00 0
+7f1bc2fe7000-7f1bc3009000 rw-p 00000000 00:00 0
+7f1bc3009000-7f1bc300a000 r--p 00025000 08:01 1971684                    /lib/x86_64-linux-gnu/ld-2.23.so
+7f1bc300a000-7f1bc300b000 rw-p 00026000 08:01 1971684                    /lib/x86_64-linux-gnu/ld-2.23.so
+7f1bc300b000-7f1bc300c000 rw-p 00000000 00:00 0
+7ffc328c4000-7ffc328e5000 rw-p 00000000 00:00 0                          [stack]
+7ffc3294a000-7ffc3294d000 r--p 00000000 00:00 0                          [vvar]
+7ffc3294d000-7ffc3294f000 r-xp 00000000 00:00 0                          [vdso]
+ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0                  [vsyscall]
+[signal SIGSEGV: segmentation violation code=0x1 addr=0x4 pc=0x7f1bc2b73038]
+
+runtime stack:
+runtime.throw(0x58523a, 0x2a)
+	/usr/local/go/src/runtime/panic.go:605 +0x95
+runtime.sigpanic()
+	/usr/local/go/src/runtime/signal_unix.go:351 +0x2b8
+
+goroutine 926387 [syscall, locked to thread]:
+runtime.cgocall(0x514820, 0xc420440688, 0x412007)
+	/usr/local/go/src/runtime/cgocall.go:132 +0xe4 fp=0xc420440658 sp=0xc420440618 pc=0x403de4
+github.com/draffensperger/golp._Cfunc_solve(0x7f1b70da95a0, 0x7f1b00000000)
+	github.com/draffensperger/golp/_obj/_cgo_gotypes.go:1743 +0x49 fp=0xc420440688 sp=0xc420440658 pc=0x4f2a69
+github.com/draffensperger/golp.(*LP).Solve.func1(0x7f1b70da95a0, 0xd8)
+	/home/fabian/Documents/go/src/github.com/draffensperger/golp/lp.go:339 +0x60 fp=0xc4204406c0 sp=0xc420440688 pc=0x4f3930
+github.com/draffensperger/golp.(*LP).Solve(0xc4205f76b8, 0x1c)
+	/home/fabian/Documents/go/src/github.com/draffensperger/golp/lp.go:339 +0x2e fp=0xc4204406e0 sp=0xc4204406c0 pc=0x4f353e
+github.com/FabianWe/goel/domains.RationalDomain.ConjSat(0xc4205b0fc0, 0x1c, 0x1c, 0x1c)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:329 +0x51 fp=0xc420440748 sp=0xc4204406e0 pc=0x4f7cf1
+github.com/FabianWe/goel/domains.RationalDomain.Implies.func1(0xc4208aaa00, 0x1b, 0x20, 0xc4207b0f90, 0xc4205b62a0)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:382 +0xeb fp=0xc4204407b8 sp=0xc420440748 pc=0x4f84fb
+runtime.goexit()
+	/usr/local/go/src/runtime/asm_amd64.s:2337 +0x1 fp=0xc4204407c0 sp=0xc4204407b8 pc=0x459e91
+created by github.com/FabianWe/goel/domains.RationalDomain.Implies
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:377 +0x1d4
+
+goroutine 1 [chan receive]:
+testing.(*B).run1(0xc42086d200, 0xc42086d200)
+	/usr/local/go/src/testing/benchmark.go:216 +0xa1
+testing.(*B).Run(0xc42006cc00, 0x581b0f, 0x19, 0x586ff8, 0x4afe00)
+	/usr/local/go/src/testing/benchmark.go:513 +0x21a
+testing.runBenchmarks.func1(0xc42006cc00)
+	/usr/local/go/src/testing/benchmark.go:417 +0x60
+testing.(*B).runN(0xc42006cc00, 0x1)
+	/usr/local/go/src/testing/benchmark.go:141 +0xb2
+testing.runBenchmarks(0x582e27, 0x1e, 0xc4205000e0, 0x833ae0, 0x3, 0x3, 0xc00)
+	/usr/local/go/src/testing/benchmark.go:423 +0x49e
+testing.(*M).Run(0xc42046cf18, 0xc42046cf70)
+	/usr/local/go/src/testing/testing.go:927 +0x31c
+main.main()
+	github.com/FabianWe/goel/tests/_test/_testmain.go:58 +0xdb
+
+goroutine 4 [syscall, locked to thread]:
+github.com/draffensperger/golp._Cfunc_delete_lp(0x7f1b70da95a0)
+	github.com/draffensperger/golp/_obj/_cgo_gotypes.go:1494 +0x41
+github.com/draffensperger/golp.deleteLP.func1(0x7f1b70da95a0)
+	/home/fabian/Documents/go/src/github.com/draffensperger/golp/lp.go:74 +0x60
+github.com/draffensperger/golp.deleteLP(0xc4205f76b8)
+	/home/fabian/Documents/go/src/github.com/draffensperger/golp/lp.go:74 +0x2e
+
+goroutine 926308 [semacquire]:
+sync.runtime_Semacquire(0xc4205a901c)
+	/usr/local/go/src/runtime/sema.go:56 +0x39
+sync.(*WaitGroup).Wait(0xc4205a9010)
+	/usr/local/go/src/sync/waitgroup.go:131 +0x72
+github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker.func1(0xc4204d0300, 0xc420500020, 0xc420910aa0)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:322 +0x258
+created by github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:282 +0xa0
+
+goroutine 926249 [chan receive]:
+github.com/FabianWe/goel/domains.RationalDomain.Implies(0xc4200784b0, 0xc42083ee00, 0x1c, 0x20, 0xc42000d800)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:390 +0x24d
+github.com/FabianWe/goel/domains.(*RationalDomain).Implies(0x866268, 0xc4200784b0, 0xc42083ee00, 0x1c, 0x20, 0x852800)
+	<autogenerated>:1 +0x5c
+github.com/FabianWe/goel.CR7AndCR8.GetSNotification(0x8393c0, 0xc4204d0300, 0x29, 0x44, 0x5872a0)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/rules.go:583 +0x252
+github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker.func1.4(0xc4204d0300, 0x29, 0x44, 0xc4207b5810)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:319 +0x54
+created by github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker.func1
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:318 +0x24a
+
+goroutine 703734 [semacquire]:
+sync.runtime_Semacquire(0xc4207e403c)
+	/usr/local/go/src/runtime/sema.go:56 +0x39
+sync.(*WaitGroup).Wait(0xc4207e4030)
+	/usr/local/go/src/sync/waitgroup.go:131 +0x72
+github.com/FabianWe/goel.(*ConcurrentWorkerPool).Wait(0xc420500020)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:272 +0x2f
+github.com/FabianWe/goel.(*ConcurrentSolver).runAndWait(0xc4204d0300, 0xc4200c6070, 0xc4202200a0)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:652 +0x94
+github.com/FabianWe/goel.(*ConcurrentSolver).Solve(0xc4204d0300, 0xc4200c6070)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:572 +0xe2
+github.com/FabianWe/goel/tests.BenchmarkFullConcurrentCD(0xc42086d200)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/tests/cd_test.go:88 +0x78
+testing.(*B).runN(0xc42086d200, 0x1)
+	/usr/local/go/src/testing/benchmark.go:141 +0xb2
+testing.(*B).run1.func1(0xc42086d200)
+	/usr/local/go/src/testing/benchmark.go:214 +0x5a
+created by testing.(*B).run1
+	/usr/local/go/src/testing/benchmark.go:207 +0x80
+
+goroutine 926311 [chan receive]:
+github.com/FabianWe/goel/domains.RationalDomain.Implies(0xc420078450, 0xc420908d00, 0x1c, 0x20, 0xc420680500)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:390 +0x24d
+github.com/FabianWe/goel/domains.(*RationalDomain).Implies(0x866268, 0xc420078450, 0xc420908d00, 0x1c, 0x20, 0x852e00)
+	<autogenerated>:1 +0x5c
+github.com/FabianWe/goel.CR7AndCR8.GetSNotification(0x8393c0, 0xc4204d0300, 0x28, 0x43, 0x5872a0)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/rules.go:583 +0x252
+github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker.func1.4(0xc4204d0300, 0x28, 0x43, 0xc4205a9010)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:319 +0x54
+created by github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker.func1
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:318 +0x24a
+
+goroutine 925950 [chan receive]:
+github.com/FabianWe/goel/domains.RationalDomain.Implies(0xc4200789f0, 0xc4208aaa00, 0x1b, 0x20, 0xc420220700)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:391 +0x276
+github.com/FabianWe/goel/domains.(*RationalDomain).Implies(0x866268, 0xc4200789f0, 0xc4208aaa00, 0x1b, 0x20, 0x852f00)
+	<autogenerated>:1 +0x5c
+github.com/FabianWe/goel.CR7AndCR8.GetSNotification(0x8393c0, 0xc4204d0300, 0x44, 0x5e, 0x5872a0)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/rules.go:583 +0x252
+github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker.func1.4(0xc4204d0300, 0x44, 0x5e, 0xc4207fe1e0)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:319 +0x54
+created by github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker.func1
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:318 +0x24a
+
+goroutine 926369 [runnable, locked to thread]:
+github.com/draffensperger/golp._Cfunc_make_lp(0x20000001d, 0x7f1b480008c0)
+	github.com/draffensperger/golp/_obj/_cgo_gotypes.go:1615 +0x4e
+github.com/draffensperger/golp.NewLP(0x1d, 0x2, 0x1d)
+	/home/fabian/Documents/go/src/github.com/draffensperger/golp/lp.go:66 +0x51
+github.com/FabianWe/goel/domains.RationalDomain.FormulateLP(0xc4205c61e0, 0x1d, 0x1d, 0xc4205c62c0)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:255 +0x93
+github.com/FabianWe/goel/domains.RationalDomain.ConjSat(0xc4205c61e0, 0x1d, 0x1d, 0x1d)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:327 +0x43
+github.com/FabianWe/goel/domains.RationalDomain.Implies.func2(0xc420908d00, 0x1c, 0x20, 0xc4205be510, 0xc4207fbb90)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:388 +0xeb
+created by github.com/FabianWe/goel/domains.RationalDomain.Implies
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:384 +0x22d
+
+goroutine 925947 [semacquire]:
+sync.runtime_Semacquire(0xc4207fe1ec)
+	/usr/local/go/src/runtime/sema.go:56 +0x39
+sync.(*WaitGroup).Wait(0xc4207fe1e0)
+	/usr/local/go/src/sync/waitgroup.go:131 +0x72
+github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker.func1(0xc4204d0300, 0xc420500020, 0xc4207ef590)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:322 +0x258
+created by github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:282 +0xa0
+
+goroutine 926375 [runnable, locked to thread]:
+github.com/draffensperger/golp._Cfunc_make_lp(0x20000001d, 0x7f1ba96f69b0)
+	github.com/draffensperger/golp/_obj/_cgo_gotypes.go:1615 +0x4e
+github.com/draffensperger/golp.NewLP(0x1d, 0x2, 0x1d)
+	/home/fabian/Documents/go/src/github.com/draffensperger/golp/lp.go:66 +0x51
+github.com/FabianWe/goel/domains.RationalDomain.FormulateLP(0xc4205b8d20, 0x1d, 0x1d, 0x1c)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:255 +0x93
+github.com/FabianWe/goel/domains.RationalDomain.ConjSat(0xc4205b8d20, 0x1d, 0x1d, 0x1d)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:327 +0x43
+github.com/FabianWe/goel/domains.RationalDomain.Implies.func2(0xc42083ee00, 0x1c, 0x20, 0xc4205b2720, 0xc4207f7650)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:388 +0xeb
+created by github.com/FabianWe/goel/domains.RationalDomain.Implies
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:384 +0x22d
+
+goroutine 926246 [semacquire]:
+sync.runtime_Semacquire(0xc4207b581c)
+	/usr/local/go/src/runtime/sema.go:56 +0x39
+sync.(*WaitGroup).Wait(0xc4207b5810)
+	/usr/local/go/src/sync/waitgroup.go:131 +0x72
+github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker.func1(0xc4204d0300, 0xc420500020, 0xc42058b740)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:322 +0x258
+created by github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:282 +0xa0
+
+goroutine 703740 [chan receive]:
+github.com/FabianWe/goel.(*ConcurrentWorkerPool).RWorker(0xc420500020, 0xc4204d0300)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:330 +0xb9
+created by github.com/FabianWe/goel.(*ConcurrentSolver).Solve
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:569 +0x95
+
+goroutine 926145 [chan receive]:
+github.com/FabianWe/goel/domains.RationalDomain.Implies(0xc420078630, 0xc4204a2c00, 0x1b, 0x20, 0xc420500800)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:391 +0x276
+github.com/FabianWe/goel/domains.(*RationalDomain).Implies(0x866268, 0xc420078630, 0xc4204a2c00, 0x1b, 0x20, 0x855800)
+	<autogenerated>:1 +0x5c
+github.com/FabianWe/goel.CR7AndCR8.GetSNotification(0x8393c0, 0xc4204d0300, 0x4b, 0x65, 0x5872a0)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/rules.go:583 +0x252
+github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker.func1.4(0xc4204d0300, 0x4b, 0x65, 0xc4207ae0a0)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:319 +0x54
+created by github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker.func1
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:318 +0x24a
+
+goroutine 926368 [runnable, locked to thread]:
+github.com/draffensperger/golp._Cfunc_set_add_rowmode(0x7f1b975224e0, 0x7f1b97522401, 0x1)
+	github.com/draffensperger/golp/_obj/_cgo_gotypes.go:1629 +0x4a
+github.com/draffensperger/golp.(*LP).SetAddRowMode.func1(0x7f1b975224e0, 0x56fa01, 0x56fa40)
+	/home/fabian/Documents/go/src/github.com/draffensperger/golp/lp.go:183 +0x69
+github.com/draffensperger/golp.(*LP).SetAddRowMode(0xc420606168, 0xc420606101)
+	/home/fabian/Documents/go/src/github.com/draffensperger/golp/lp.go:184 +0x37
+github.com/draffensperger/golp.NewLP(0x1d, 0x2, 0x1d)
+	/home/fabian/Documents/go/src/github.com/draffensperger/golp/lp.go:68 +0xaa
+github.com/FabianWe/goel/domains.RationalDomain.FormulateLP(0xc4205c62d0, 0x1d, 0x1d, 0xc4205c63b0)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:255 +0x93
+github.com/FabianWe/goel/domains.RationalDomain.ConjSat(0xc4205c62d0, 0x1d, 0x1d, 0x1d)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:327 +0x43
+github.com/FabianWe/goel/domains.RationalDomain.Implies.func1(0xc420908d00, 0x1c, 0x20, 0xc4205be4e0, 0xc4207fbb90)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:382 +0xeb
+created by github.com/FabianWe/goel/domains.RationalDomain.Implies
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:377 +0x1d4
+
+goroutine 703741 [chan send]:
+github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker(0xc420500020, 0xc4204d0300)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:280 +0x6a
+created by github.com/FabianWe/goel.(*ConcurrentSolver).Solve
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:570 +0xc0
+
+goroutine 926142 [semacquire]:
+sync.runtime_Semacquire(0xc4207ae0ac)
+	/usr/local/go/src/runtime/sema.go:56 +0x39
+sync.(*WaitGroup).Wait(0xc4207ae0a0)
+	/usr/local/go/src/sync/waitgroup.go:131 +0x72
+github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker.func1(0xc4204d0300, 0xc420500020, 0xc420595dc0)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:322 +0x258
+created by github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:282 +0xa0
+
+goroutine 926350 [runnable, locked to thread]:
+github.com/draffensperger/golp._Cfunc_solve(0x7f1ba00008c0, 0x7f1b00000000)
+	github.com/draffensperger/golp/_obj/_cgo_gotypes.go:1743 +0x49
+github.com/draffensperger/golp.(*LP).Solve.func1(0x7f1ba00008c0, 0x412fe6)
+	/home/fabian/Documents/go/src/github.com/draffensperger/golp/lp.go:339 +0x60
+github.com/draffensperger/golp.(*LP).Solve(0xc420641cb8, 0x1c)
+	/home/fabian/Documents/go/src/github.com/draffensperger/golp/lp.go:339 +0x2e
+github.com/FabianWe/goel/domains.RationalDomain.ConjSat(0xc4205b4fc0, 0x1c, 0x1c, 0x1c)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:329 +0x51
+github.com/FabianWe/goel/domains.RationalDomain.Implies.func1(0xc4204a2c00, 0x1b, 0x20, 0xc4205ae6f0, 0xc4209996c0)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:382 +0xeb
+created by github.com/FabianWe/goel/domains.RationalDomain.Implies
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:377 +0x1d4
+
+goroutine 926374 [runnable, locked to thread]:
+github.com/draffensperger/golp._Cfunc_set_add_rowmode(0x7f1bb4000a10, 0x7f1bb4000a01, 0x1)
+	github.com/draffensperger/golp/_obj/_cgo_gotypes.go:1629 +0x4a
+github.com/draffensperger/golp.(*LP).SetAddRowMode.func1(0x7f1bb4000a10, 0x56fa01, 0x56fa40)
+	/home/fabian/Documents/go/src/github.com/draffensperger/golp/lp.go:183 +0x69
+github.com/draffensperger/golp.(*LP).SetAddRowMode(0xc4205f6080, 0xc4205f6001)
+	/home/fabian/Documents/go/src/github.com/draffensperger/golp/lp.go:184 +0x37
+github.com/draffensperger/golp.NewLP(0x1d, 0x2, 0x1d)
+	/home/fabian/Documents/go/src/github.com/draffensperger/golp/lp.go:68 +0xaa
+github.com/FabianWe/goel/domains.RationalDomain.FormulateLP(0xc42099e000, 0x1d, 0x1d, 0x1c)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:255 +0x93
+github.com/FabianWe/goel/domains.RationalDomain.ConjSat(0xc42099e000, 0x1d, 0x1d, 0x1d)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:327 +0x43
+github.com/FabianWe/goel/domains.RationalDomain.Implies.func1(0xc42083ee00, 0x1c, 0x20, 0xc4205b26f0, 0xc4207f7650)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:382 +0xeb
+created by github.com/FabianWe/goel/domains.RationalDomain.Implies
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:377 +0x1d4
+SIGABRT: abort
+PC=0x7f1bc2595428 m=11 sigcode=18446744073709551610
+signal arrived during cgo execution
+
+goroutine 4 [syscall, locked to thread]:
+runtime.cgocall(0x514500, 0xc42002f6c0, 0x1)
+	/usr/local/go/src/runtime/cgocall.go:132 +0xe4 fp=0xc42002f690 sp=0xc42002f650 pc=0x403de4
+github.com/draffensperger/golp._Cfunc_delete_lp(0x7f1b70da95a0)
+	github.com/draffensperger/golp/_obj/_cgo_gotypes.go:1494 +0x41 fp=0xc42002f6c0 sp=0xc42002f690 pc=0x4f2621
+github.com/draffensperger/golp.deleteLP.func1(0x7f1b70da95a0)
+	/home/fabian/Documents/go/src/github.com/draffensperger/golp/lp.go:74 +0x60 fp=0xc42002f6f8 sp=0xc42002f6c0 pc=0x4f35c0
+github.com/draffensperger/golp.deleteLP(0xc4205f76b8)
+	/home/fabian/Documents/go/src/github.com/draffensperger/golp/lp.go:74 +0x2e fp=0xc42002f710 sp=0xc42002f6f8 pc=0x4f2bde
+runtime.call32(0x0, 0x587038, 0xc4207e4000, 0x1000000010)
+	/usr/local/go/src/runtime/asm_amd64.s:509 +0x3b fp=0xc42002f740 sp=0xc42002f710 pc=0x45766b
+runtime.runfinq()
+	/usr/local/go/src/runtime/mfinal.go:222 +0x218 fp=0xc42002f7e0 sp=0xc42002f740 pc=0x417568
+runtime.goexit()
+	/usr/local/go/src/runtime/asm_amd64.s:2337 +0x1 fp=0xc42002f7e8 sp=0xc42002f7e0 pc=0x459e91
+created by runtime.createfing
+	/usr/local/go/src/runtime/mfinal.go:156 +0x62
+
+goroutine 1 [chan receive]:
+testing.(*B).run1(0xc42086d200, 0xc42086d200)
+	/usr/local/go/src/testing/benchmark.go:216 +0xa1
+testing.(*B).Run(0xc42006cc00, 0x581b0f, 0x19, 0x586ff8, 0x4afe00)
+	/usr/local/go/src/testing/benchmark.go:513 +0x21a
+testing.runBenchmarks.func1(0xc42006cc00)
+	/usr/local/go/src/testing/benchmark.go:417 +0x60
+testing.(*B).runN(0xc42006cc00, 0x1)
+	/usr/local/go/src/testing/benchmark.go:141 +0xb2
+testing.runBenchmarks(0x582e27, 0x1e, 0xc4205000e0, 0x833ae0, 0x3, 0x3, 0xc00)
+	/usr/local/go/src/testing/benchmark.go:423 +0x49e
+testing.(*M).Run(0xc42046cf18, 0xc42046cf70)
+	/usr/local/go/src/testing/testing.go:927 +0x31c
+main.main()
+	github.com/FabianWe/goel/tests/_test/_testmain.go:58 +0xdb
+
+goroutine 926308 [semacquire]:
+sync.runtime_Semacquire(0xc4205a901c)
+	/usr/local/go/src/runtime/sema.go:56 +0x39
+sync.(*WaitGroup).Wait(0xc4205a9010)
+	/usr/local/go/src/sync/waitgroup.go:131 +0x72
+github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker.func1(0xc4204d0300, 0xc420500020, 0xc420910aa0)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:322 +0x258
+created by github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:282 +0xa0
+
+goroutine 926249 [chan receive]:
+github.com/FabianWe/goel/domains.RationalDomain.Implies(0xc4200784b0, 0xc42083ee00, 0x1c, 0x20, 0xc42000d800)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:390 +0x24d
+github.com/FabianWe/goel/domains.(*RationalDomain).Implies(0x866268, 0xc4200784b0, 0xc42083ee00, 0x1c, 0x20, 0x852800)
+	<autogenerated>:1 +0x5c
+github.com/FabianWe/goel.CR7AndCR8.GetSNotification(0x8393c0, 0xc4204d0300, 0x29, 0x44, 0x5872a0)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/rules.go:583 +0x252
+github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker.func1.4(0xc4204d0300, 0x29, 0x44, 0xc4207b5810)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:319 +0x54
+created by github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker.func1
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:318 +0x24a
+
+goroutine 703734 [semacquire]:
+sync.runtime_Semacquire(0xc4207e403c)
+	/usr/local/go/src/runtime/sema.go:56 +0x39
+sync.(*WaitGroup).Wait(0xc4207e4030)
+	/usr/local/go/src/sync/waitgroup.go:131 +0x72
+github.com/FabianWe/goel.(*ConcurrentWorkerPool).Wait(0xc420500020)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:272 +0x2f
+github.com/FabianWe/goel.(*ConcurrentSolver).runAndWait(0xc4204d0300, 0xc4200c6070, 0xc4202200a0)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:652 +0x94
+github.com/FabianWe/goel.(*ConcurrentSolver).Solve(0xc4204d0300, 0xc4200c6070)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:572 +0xe2
+github.com/FabianWe/goel/tests.BenchmarkFullConcurrentCD(0xc42086d200)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/tests/cd_test.go:88 +0x78
+testing.(*B).runN(0xc42086d200, 0x1)
+	/usr/local/go/src/testing/benchmark.go:141 +0xb2
+testing.(*B).run1.func1(0xc42086d200)
+	/usr/local/go/src/testing/benchmark.go:214 +0x5a
+created by testing.(*B).run1
+	/usr/local/go/src/testing/benchmark.go:207 +0x80
+
+goroutine 926311 [chan receive]:
+github.com/FabianWe/goel/domains.RationalDomain.Implies(0xc420078450, 0xc420908d00, 0x1c, 0x20, 0xc420680500)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:390 +0x24d
+github.com/FabianWe/goel/domains.(*RationalDomain).Implies(0x866268, 0xc420078450, 0xc420908d00, 0x1c, 0x20, 0x852e00)
+	<autogenerated>:1 +0x5c
+github.com/FabianWe/goel.CR7AndCR8.GetSNotification(0x8393c0, 0xc4204d0300, 0x28, 0x43, 0x5872a0)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/rules.go:583 +0x252
+github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker.func1.4(0xc4204d0300, 0x28, 0x43, 0xc4205a9010)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:319 +0x54
+created by github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker.func1
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:318 +0x24a
+
+goroutine 925950 [chan receive]:
+github.com/FabianWe/goel/domains.RationalDomain.Implies(0xc4200789f0, 0xc4208aaa00, 0x1b, 0x20, 0xc420220700)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:391 +0x276
+github.com/FabianWe/goel/domains.(*RationalDomain).Implies(0x866268, 0xc4200789f0, 0xc4208aaa00, 0x1b, 0x20, 0x852f00)
+	<autogenerated>:1 +0x5c
+github.com/FabianWe/goel.CR7AndCR8.GetSNotification(0x8393c0, 0xc4204d0300, 0x44, 0x5e, 0x5872a0)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/rules.go:583 +0x252
+github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker.func1.4(0xc4204d0300, 0x44, 0x5e, 0xc4207fe1e0)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:319 +0x54
+created by github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker.func1
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:318 +0x24a
+
+goroutine 926369 [runnable, locked to thread]:
+github.com/draffensperger/golp._Cfunc_make_lp(0x20000001d, 0x7f1b480008c0)
+	github.com/draffensperger/golp/_obj/_cgo_gotypes.go:1615 +0x4e
+github.com/draffensperger/golp.NewLP(0x1d, 0x2, 0x1d)
+	/home/fabian/Documents/go/src/github.com/draffensperger/golp/lp.go:66 +0x51
+github.com/FabianWe/goel/domains.RationalDomain.FormulateLP(0xc4205c61e0, 0x1d, 0x1d, 0xc4205c62c0)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:255 +0x93
+github.com/FabianWe/goel/domains.RationalDomain.ConjSat(0xc4205c61e0, 0x1d, 0x1d, 0x1d)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:327 +0x43
+github.com/FabianWe/goel/domains.RationalDomain.Implies.func2(0xc420908d00, 0x1c, 0x20, 0xc4205be510, 0xc4207fbb90)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:388 +0xeb
+created by github.com/FabianWe/goel/domains.RationalDomain.Implies
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:384 +0x22d
+
+goroutine 925947 [semacquire]:
+sync.runtime_Semacquire(0xc4207fe1ec)
+	/usr/local/go/src/runtime/sema.go:56 +0x39
+sync.(*WaitGroup).Wait(0xc4207fe1e0)
+	/usr/local/go/src/sync/waitgroup.go:131 +0x72
+github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker.func1(0xc4204d0300, 0xc420500020, 0xc4207ef590)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:322 +0x258
+created by github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:282 +0xa0
+
+goroutine 926375 [runnable, locked to thread]:
+github.com/draffensperger/golp._Cfunc_make_lp(0x20000001d, 0x7f1ba96f69b0)
+	github.com/draffensperger/golp/_obj/_cgo_gotypes.go:1615 +0x4e
+github.com/draffensperger/golp.NewLP(0x1d, 0x2, 0x1d)
+	/home/fabian/Documents/go/src/github.com/draffensperger/golp/lp.go:66 +0x51
+github.com/FabianWe/goel/domains.RationalDomain.FormulateLP(0xc4205b8d20, 0x1d, 0x1d, 0x1c)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:255 +0x93
+github.com/FabianWe/goel/domains.RationalDomain.ConjSat(0xc4205b8d20, 0x1d, 0x1d, 0x1d)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:327 +0x43
+github.com/FabianWe/goel/domains.RationalDomain.Implies.func2(0xc42083ee00, 0x1c, 0x20, 0xc4205b2720, 0xc4207f7650)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:388 +0xeb
+created by github.com/FabianWe/goel/domains.RationalDomain.Implies
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:384 +0x22d
+
+goroutine 926246 [semacquire]:
+sync.runtime_Semacquire(0xc4207b581c)
+	/usr/local/go/src/runtime/sema.go:56 +0x39
+sync.(*WaitGroup).Wait(0xc4207b5810)
+	/usr/local/go/src/sync/waitgroup.go:131 +0x72
+github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker.func1(0xc4204d0300, 0xc420500020, 0xc42058b740)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:322 +0x258
+created by github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:282 +0xa0
+
+goroutine 703740 [chan receive]:
+github.com/FabianWe/goel.(*ConcurrentWorkerPool).RWorker(0xc420500020, 0xc4204d0300)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:330 +0xb9
+created by github.com/FabianWe/goel.(*ConcurrentSolver).Solve
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:569 +0x95
+
+goroutine 926145 [chan receive]:
+github.com/FabianWe/goel/domains.RationalDomain.Implies(0xc420078630, 0xc4204a2c00, 0x1b, 0x20, 0xc420500800)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:391 +0x276
+github.com/FabianWe/goel/domains.(*RationalDomain).Implies(0x866268, 0xc420078630, 0xc4204a2c00, 0x1b, 0x20, 0x855800)
+	<autogenerated>:1 +0x5c
+github.com/FabianWe/goel.CR7AndCR8.GetSNotification(0x8393c0, 0xc4204d0300, 0x4b, 0x65, 0x5872a0)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/rules.go:583 +0x252
+github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker.func1.4(0xc4204d0300, 0x4b, 0x65, 0xc4207ae0a0)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:319 +0x54
+created by github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker.func1
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:318 +0x24a
+
+goroutine 926368 [runnable, locked to thread]:
+github.com/draffensperger/golp._Cfunc_set_add_rowmode(0x7f1b975224e0, 0x7f1b97522401, 0x1)
+	github.com/draffensperger/golp/_obj/_cgo_gotypes.go:1629 +0x4a
+github.com/draffensperger/golp.(*LP).SetAddRowMode.func1(0x7f1b975224e0, 0x56fa01, 0x56fa40)
+	/home/fabian/Documents/go/src/github.com/draffensperger/golp/lp.go:183 +0x69
+github.com/draffensperger/golp.(*LP).SetAddRowMode(0xc420606168, 0xc420606101)
+	/home/fabian/Documents/go/src/github.com/draffensperger/golp/lp.go:184 +0x37
+github.com/draffensperger/golp.NewLP(0x1d, 0x2, 0x1d)
+	/home/fabian/Documents/go/src/github.com/draffensperger/golp/lp.go:68 +0xaa
+github.com/FabianWe/goel/domains.RationalDomain.FormulateLP(0xc4205c62d0, 0x1d, 0x1d, 0xc4205c63b0)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:255 +0x93
+github.com/FabianWe/goel/domains.RationalDomain.ConjSat(0xc4205c62d0, 0x1d, 0x1d, 0x1d)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:327 +0x43
+github.com/FabianWe/goel/domains.RationalDomain.Implies.func1(0xc420908d00, 0x1c, 0x20, 0xc4205be4e0, 0xc4207fbb90)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:382 +0xeb
+created by github.com/FabianWe/goel/domains.RationalDomain.Implies
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:377 +0x1d4
+
+goroutine 703741 [chan send]:
+github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker(0xc420500020, 0xc4204d0300)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:280 +0x6a
+created by github.com/FabianWe/goel.(*ConcurrentSolver).Solve
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:570 +0xc0
+
+goroutine 926142 [semacquire]:
+sync.runtime_Semacquire(0xc4207ae0ac)
+	/usr/local/go/src/runtime/sema.go:56 +0x39
+sync.(*WaitGroup).Wait(0xc4207ae0a0)
+	/usr/local/go/src/sync/waitgroup.go:131 +0x72
+github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker.func1(0xc4204d0300, 0xc420500020, 0xc420595dc0)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:322 +0x258
+created by github.com/FabianWe/goel.(*ConcurrentWorkerPool).SWorker
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/concurrentsolver.go:282 +0xa0
+
+goroutine 926350 [runnable, locked to thread]:
+github.com/draffensperger/golp._Cfunc_solve(0x7f1ba00008c0, 0x7f1b00000000)
+	github.com/draffensperger/golp/_obj/_cgo_gotypes.go:1743 +0x49
+github.com/draffensperger/golp.(*LP).Solve.func1(0x7f1ba00008c0, 0x412fe6)
+	/home/fabian/Documents/go/src/github.com/draffensperger/golp/lp.go:339 +0x60
+github.com/draffensperger/golp.(*LP).Solve(0xc420641cb8, 0x1c)
+	/home/fabian/Documents/go/src/github.com/draffensperger/golp/lp.go:339 +0x2e
+github.com/FabianWe/goel/domains.RationalDomain.ConjSat(0xc4205b4fc0, 0x1c, 0x1c, 0x1c)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:329 +0x51
+github.com/FabianWe/goel/domains.RationalDomain.Implies.func1(0xc4204a2c00, 0x1b, 0x20, 0xc4205ae6f0, 0xc4209996c0)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:382 +0xeb
+created by github.com/FabianWe/goel/domains.RationalDomain.Implies
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:377 +0x1d4
+
+goroutine 926374 [runnable, locked to thread]:
+github.com/draffensperger/golp._Cfunc_set_add_rowmode(0x7f1bb4000a10, 0x7f1bb4000a01, 0x1)
+	github.com/draffensperger/golp/_obj/_cgo_gotypes.go:1629 +0x4a
+github.com/draffensperger/golp.(*LP).SetAddRowMode.func1(0x7f1bb4000a10, 0x56fa01, 0x56fa40)
+	/home/fabian/Documents/go/src/github.com/draffensperger/golp/lp.go:183 +0x69
+github.com/draffensperger/golp.(*LP).SetAddRowMode(0xc4205f6080, 0xc4205f6001)
+	/home/fabian/Documents/go/src/github.com/draffensperger/golp/lp.go:184 +0x37
+github.com/draffensperger/golp.NewLP(0x1d, 0x2, 0x1d)
+	/home/fabian/Documents/go/src/github.com/draffensperger/golp/lp.go:68 +0xaa
+github.com/FabianWe/goel/domains.RationalDomain.FormulateLP(0xc42099e000, 0x1d, 0x1d, 0x1c)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:255 +0x93
+github.com/FabianWe/goel/domains.RationalDomain.ConjSat(0xc42099e000, 0x1d, 0x1d, 0x1d)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:327 +0x43
+github.com/FabianWe/goel/domains.RationalDomain.Implies.func1(0xc42083ee00, 0x1c, 0x20, 0xc4205b26f0, 0xc4207f7650)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:382 +0xeb
+created by github.com/FabianWe/goel/domains.RationalDomain.Implies
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:377 +0x1d4
+
+goroutine 926387 [syscall, locked to thread]:
+github.com/draffensperger/golp._Cfunc_solve(0x7f1b70da95a0, 0x7f1b00000000)
+	github.com/draffensperger/golp/_obj/_cgo_gotypes.go:1743 +0x49
+github.com/draffensperger/golp.(*LP).Solve.func1(0x7f1b70da95a0, 0xd8)
+	/home/fabian/Documents/go/src/github.com/draffensperger/golp/lp.go:339 +0x60
+github.com/draffensperger/golp.(*LP).Solve(0xc4205f76b8, 0x1c)
+	/home/fabian/Documents/go/src/github.com/draffensperger/golp/lp.go:339 +0x2e
+github.com/FabianWe/goel/domains.RationalDomain.ConjSat(0xc4205b0fc0, 0x1c, 0x1c, 0x1c)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:329 +0x51
+github.com/FabianWe/goel/domains.RationalDomain.Implies.func1(0xc4208aaa00, 0x1b, 0x20, 0xc4207b0f90, 0xc4205b62a0)
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:382 +0xeb
+created by github.com/FabianWe/goel/domains.RationalDomain.Implies
+	/home/fabian/Documents/go/src/github.com/FabianWe/goel/domains/rationals.go:377 +0x1d4
+
+rax    0x0
+rbx    0x91
+rcx    0x7f1bc2595428
+rdx    0x6
+rdi    0x1d71
+rsi    0x1db7
+rbp    0x7f1bb9659c90
+rsp    0x7f1bb96598f8
+r8     0x4
+r9     0x0
+r10    0x8
+r11    0x206
+r12    0x91
+r13    0x7f1bb9659aa8
+r14    0x7f1bb9659aa8
+r15    0x2
+rip    0x7f1bc2595428
+rflags 0x206
+cs     0x33
+fs     0x0
+gs     0x0

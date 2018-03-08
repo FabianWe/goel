@@ -22,9 +22,6 @@
 
 package tests
 
-import "testing"
-import "github.com/FabianWe/goel"
-
 // variables for testing
 
 var aMap map[uint]struct{}
@@ -76,52 +73,52 @@ func mapContains(a map[uint]struct{}, x uint) bool {
 	return has
 }
 
-func BenchmarkMapUnion(b *testing.B) {
-	// prevent compiler optimisation
-	var r map[uint]struct{}
-	for n := 0; n < b.N; n++ {
-		r = mapUnion(aMap, bMap)
-	}
-	mapRes = r
-}
-
-func BenchmarkSortedSliceUnion(b *testing.B) {
-	// prevent compiler optimisation
-	var r []uint
-	for n := 0; n < b.N; n++ {
-		r = goel.InsertedSorted(aSlice, bMap)
-	}
-	sliceRes = r
-}
-
-func BenchmarkContainsMap(b *testing.B) {
-	var r bool
-	for n := 0; n < b.N; n++ {
-		r = mapContains(aMap, 40000)
-	}
-	contains = r
-}
-
-func BenchmarkNotContainsMap(b *testing.B) {
-	var r bool
-	for n := 0; n < b.N; n++ {
-		r = mapContains(aMap, 600000)
-	}
-	contains = r
-}
-
-func BenchmarkSortedSliceContains(b *testing.B) {
-	var r bool
-	for n := 0; n < b.N; n++ {
-		r = goel.ContainsSorted(aSlice, 40000)
-	}
-	contains = r
-}
-
-func BenchmarkSortedSliceNotContains(b *testing.B) {
-	var r bool
-	for n := 0; n < b.N; n++ {
-		r = goel.ContainsSorted(aSlice, 600000)
-	}
-	contains = r
-}
+// func BenchmarkMapUnion(b *testing.B) {
+// 	// prevent compiler optimisation
+// 	var r map[uint]struct{}
+// 	for n := 0; n < b.N; n++ {
+// 		r = mapUnion(aMap, bMap)
+// 	}
+// 	mapRes = r
+// }
+//
+// func BenchmarkSortedSliceUnion(b *testing.B) {
+// 	// prevent compiler optimisation
+// 	var r []uint
+// 	for n := 0; n < b.N; n++ {
+// 		r = goel.InsertedSorted(aSlice, bMap)
+// 	}
+// 	sliceRes = r
+// }
+//
+// func BenchmarkContainsMap(b *testing.B) {
+// 	var r bool
+// 	for n := 0; n < b.N; n++ {
+// 		r = mapContains(aMap, 40000)
+// 	}
+// 	contains = r
+// }
+//
+// func BenchmarkNotContainsMap(b *testing.B) {
+// 	var r bool
+// 	for n := 0; n < b.N; n++ {
+// 		r = mapContains(aMap, 600000)
+// 	}
+// 	contains = r
+// }
+//
+// func BenchmarkSortedSliceContains(b *testing.B) {
+// 	var r bool
+// 	for n := 0; n < b.N; n++ {
+// 		r = goel.ContainsSorted(aSlice, 40000)
+// 	}
+// 	contains = r
+// }
+//
+// func BenchmarkSortedSliceNotContains(b *testing.B) {
+// 	var r bool
+// 	for n := 0; n < b.N; n++ {
+// 		r = goel.ContainsSorted(aSlice, 600000)
+// 	}
+// 	contains = r
+// }

@@ -44,6 +44,16 @@ import (
 // { (q', q'') ∈ ℚ² | q' + q = q'' }
 //
 // Answering the logical queries is done by solving a linear program.
+//
+// TODO in this domain: see my comment in Implies
+// If this bug is still there it might be worth to try to reduce the actual
+// cgo calls to a fixed value (like 500)
+// see: https://groups.google.com/forum/#!topic/golang-nuts/_FYWG3oU6X8
+// we need a reasoner for this written in go...
+//
+// Update: Problem still there, with new error:
+// delete_lp: The stack of B&B levels was not empty (failed at 0 nodes)
+// pretty sure it's something with lp_solve
 type RationalDomain struct{}
 
 func NewRationalDomain() RationalDomain {
@@ -343,11 +353,19 @@ func (d RationalDomain) ConjSat(gamma ...*PredicateFormula) bool {
 	}
 }
 
+// TODO cgo has a rather harsh limit about was is allowed to run concurrently
+// for C
+// thus running many cgo things concurrently may deadlock
+// I hope that the issue is really only in cgo, so no concurrency here...
+// for transperency I've included the output in fail.txt
+//
+// It could also be some other bug in golp (I won't rule out I made a mistake
+// but thie output suggests otherwise)
 func (d RationalDomain) Implies(formula *PredicateFormula, gamma ...*PredicateFormula) bool {
 	// not optimal, we actually build the program twice...
 	// but well, at least we do it concurrently
 	var additionalOne, additionalTwo *PredicateFormula
-	res := make(chan bool, 2)
+	// res := make(chan bool, 2)
 	switch f := formula.Predicate.(type) {
 	case EqualsRational:
 		q := float64(f)
@@ -374,22 +392,36 @@ func (d RationalDomain) Implies(formula *PredicateFormula, gamma ...*PredicateFo
 		additionalTwo = NewPredicateFormula(r2, f2, f1)
 	}
 	// now we're nearly done... just generate both LPs and solve them
-	go func() {
-		// no nicer way?
-		newGamma := make([]*PredicateFormula, len(gamma), len(gamma)+1)
-		copy(newGamma, gamma)
-		newGamma = append(newGamma, additionalOne)
-		res <- d.ConjSat(newGamma...)
-	}()
-	go func() {
-		newGamma := make([]*PredicateFormula, len(gamma), len(gamma)+1)
-		copy(newGamma, gamma)
-		newGamma = append(newGamma, additionalTwo)
-		res <- d.ConjSat(newGamma...)
-	}()
-	first := <-res
-	second := <-res
-	return !first && !second
+	// go func() {
+	// 	// no nicer way?
+	// 	newGamma := make([]*PredicateFormula, len(gamma), len(gamma)+1)
+	// 	copy(newGamma, gamma)
+	// 	newGamma = append(newGamma, additionalOne)
+	// 	res <- d.ConjSat(newGamma...)
+	// }()
+	// go func() {
+	// 	newGamma := make([]*PredicateFormula, len(gamma), len(gamma)+1)
+	// 	copy(newGamma, gamma)
+	// 	newGamma = append(newGamma, additionalTwo)
+	// 	res <- d.ConjSat(newGamma...)
+	// }()
+	newGamma1 := make([]*PredicateFormula, len(gamma), len(gamma)+1)
+	copy(newGamma1, gamma)
+	newGamma1 = append(newGamma1, additionalOne)
+	first := d.ConjSat(newGamma1...)
+	if first {
+		return false
+	}
+
+	newGamma2 := make([]*PredicateFormula, len(gamma), len(gamma)+1)
+	copy(newGamma2, gamma)
+	newGamma2 = append(newGamma2, additionalTwo)
+	second := d.ConjSat(newGamma2...)
+	return !second
+
+	// first := <-res
+	// second := <-res
+	// return !first && !second
 }
 
 // The following approach is commented out. It was my second draft to solve the
