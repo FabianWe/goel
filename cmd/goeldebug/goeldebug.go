@@ -178,9 +178,9 @@ func testInstance(builder *goel.RandomELBuilder) {
 	}()
 	domains := domains.NewCDManager()
 	s1, r1 := runTest(normalized, domains)
-	s2, r2 := runFullConcurrent(normalized, domains)
-
+	// s2, r2 := runFullConcurrent(normalized, domains)
 	// s2, r2 := runRuleBased(normalized, domains)
+	s2, r2 := runBulk(normalized, domains)
 	res := make(chan bool, 2)
 	// compare s and r
 	go func() {
@@ -319,6 +319,13 @@ func runFullConcurrent(tbox *goel.NormalizedTBox, domains *domains.CDManager) ([
 func runFullConcurrentTC(tbox *goel.NormalizedTBox, domains *domains.CDManager) ([]*goel.BCSet, []*goel.Relation) {
 	solver := goel.NewConcurrentSolver(goel.NewTransitiveClosureGraph(),
 		goel.ClosureToSet)
+	solver.Init(tbox, domains)
+	solver.Solve(tbox)
+	return solver.S, solver.R
+}
+
+func runBulk(tbox *goel.NormalizedTBox, domains *domains.CDManager) ([]*goel.BCSet, []*goel.Relation) {
+	solver := goel.NewBulkSolver(goel.NewSetGraph(), nil)
 	solver.Init(tbox, domains)
 	solver.Solve(tbox)
 	return solver.S, solver.R

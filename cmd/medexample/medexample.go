@@ -155,7 +155,8 @@ func main() {
 	normalized := normalizer.Normalize(tbox)
 
 	// solve it with the concurrent classifier
-	solver := goel.NewConcurrentSolver(goel.NewSetGraph(), nil)
+	// solver := goel.NewConcurrentSolver(goel.NewSetGraph(), nil)
+	solver := goel.NewBulkSolver(goel.NewSetGraph(), nil)
 	// no concrete domain formulae, just create empty instance
 	domains := domains.NewCDManager()
 	solver.Init(normalized, domains)
