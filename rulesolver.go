@@ -63,6 +63,13 @@ func NewRUpdate(r, c, d uint) *RUpdate {
 //
 // A default implementation is given in AllChangesSolverState.
 // TODO add name of CR6 here.
+//
+// TODO There are some improvements possible, for example from
+// "Practical Reasoning with Nominals in the EL Family of Description Logics"
+// (Kazakov et al.) and "The incredible ELK" (also Kazakov et al.)
+//
+// Also, if not dealing with nominals, it is possible to just turn the graph
+// completely off and thus avoid adding edges to it
 type AllChangesState interface {
 	StateHandler
 

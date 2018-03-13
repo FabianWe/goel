@@ -23,6 +23,7 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"runtime"
 	"time"
 
 	"github.com/FabianWe/goel"
@@ -63,13 +64,20 @@ func main() {
 	rulebased(normalized, domains)
 	fmt.Println()
 	fmt.Println("==== Concurrent ====")
+	runtime.GC()
 	concurrent(normalized, domains)
 	fmt.Println()
 	fmt.Println("==== Full Concurrent ====")
+	runtime.GC()
 	fullConcurrent(normalized, domains)
 	fmt.Println()
 	fmt.Println("==== Transitive Closure ====")
+	runtime.GC()
 	fullConcurrentTC(normalized, domains)
+	fmt.Println()
+	fmt.Println("==== Bulk ====")
+	runtime.GC()
+	bulk(normalized, domains)
 }
 
 func naive(normalized *goel.NormalizedTBox, domains *domains.CDManager) {
@@ -134,6 +142,21 @@ func fullConcurrentTC(normalized *goel.NormalizedTBox, domains *domains.CDManage
 		goel.ClosureToSet)
 	solver.Init(normalized, domains)
 	solver.Workers = 25
+	execTime := time.Since(start)
+	fmt.Printf("... Done after %v\n", execTime)
+	fmt.Println("Solving ...")
+	start = time.Now()
+	solver.Solve(normalized)
+	execTime = time.Since(start)
+	fmt.Printf("... Done after %v\n", execTime)
+}
+
+func bulk(normalized *goel.NormalizedTBox, domains *domains.CDManager) {
+	fmt.Println("Building state and rules ...")
+	start := time.Now()
+	solver := goel.NewBulkSolver(goel.NewSetGraph(), nil)
+	solver.Init(normalized, domains)
+	solver.Workers = 4
 	execTime := time.Since(start)
 	fmt.Printf("... Done after %v\n", execTime)
 	fmt.Println("Solving ...")
