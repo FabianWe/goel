@@ -156,7 +156,7 @@ func bulk(normalized *goel.NormalizedTBox, domains *domains.CDManager) {
 	start := time.Now()
 	solver := goel.NewBulkSolver(goel.NewSetGraph(), nil)
 	solver.Init(normalized, domains)
-	solver.Workers = 4
+	solver.Workers = 25
 	execTime := time.Since(start)
 	fmt.Printf("... Done after %v\n", execTime)
 	fmt.Println("Solving ...")

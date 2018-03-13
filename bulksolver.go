@@ -294,6 +294,10 @@ func (solver *BulkSolver) AddRole(r, c, d uint) bool {
 	return res
 }
 
+func (solver *BulkSolver) AddSubsetRule(c, d uint) bool {
+	return solver.newSubsetRule(c, d)
+}
+
 func (solver *BulkSolver) Init(tbox *NormalizedTBox, domains *domains.CDManager) {
 	solver.graphChanged = false
 	// initialize state and rules (concurrently)
@@ -400,6 +404,16 @@ func (solver *BulkSolver) Solve(tbox *NormalizedTBox) {
 		}
 	}
 	solver.runAndWait(addInitial)
+	for solver.graphChanged {
+		// apply rule and wait until all changes have happened, then if the graph
+		// changed again repeat the process.
+		// all other updates must have already taken place
+		solver.graphChanged = false
+		f := func() {
+			solver.cr6.GetGraphNotification(solver)
+		}
+		solver.runAndWait(f)
+	}
 }
 
 func (solver *BulkSolver) runAndWait(f func()) {
