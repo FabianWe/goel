@@ -66,7 +66,7 @@ func runTests() {
 	// 	MaxNumPredicates:   100,
 	// 	MaxNumFeatures:     100}
 	builder := goel.RandomELBuilder{NumIndividuals: 1000,
-		NumConceptNames:    1000,
+		NumConceptNames:    10000,
 		NumRoles:           1000,
 		NumConcreteDomains: 0,
 		MaxCDSize:          10,
@@ -148,7 +148,7 @@ func bar(tbox *goel.NormalizedTBox) {
 
 func testInstance(builder *goel.RandomELBuilder) {
 	fmt.Println("Testing")
-	_, tbox := builder.GenerateRandomTBox(0, 100, 100, 5, 100, 100)
+	_, tbox := builder.GenerateRandomTBox(0, 100, 100, 2, 1000, 1000)
 	// _, tbox := builder.GenerateRandomTBox(0, 5, 5, 5, 5, 10)
 	normalizer := goel.NewDefaultNormalFormBUilder(100)
 	normalized := normalizer.Normalize(tbox)
@@ -178,9 +178,9 @@ func testInstance(builder *goel.RandomELBuilder) {
 	}()
 	domains := domains.NewCDManager()
 	s1, r1 := runTest(normalized, domains)
-	// s2, r2 := runFullConcurrent(normalized)
+	s2, r2 := runFullConcurrent(normalized, domains)
 
-	s2, r2 := runRuleBased(normalized, domains)
+	// s2, r2 := runRuleBased(normalized, domains)
 	res := make(chan bool, 2)
 	// compare s and r
 	go func() {

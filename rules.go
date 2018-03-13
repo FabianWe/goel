@@ -62,6 +62,10 @@ import (
 // This is not an ideal solution, but until there is an efficient (and final)
 // implementation I think it's best to keep it that way.
 //
+// Also another interesting approach is given in "Practical Reasoning with
+// Nominals in the EL Family of Description Logics"
+// (Kazakov, Krötzsch, Simancík)
+//
 // Here is a quick summary of the ideas I came up with:
 // (1) Check only if an edge was inserted in the graph, in this case check
 //  all {a}, C, D for the conditions of rule CR6.
