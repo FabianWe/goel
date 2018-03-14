@@ -39,6 +39,7 @@ import (
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
 	var conceptNames, individuals, roles, ci, existentials, ri, numBench int
+	var compare bool
 	flag.IntVar(&conceptNames, "names", 0, "number of concept names")
 	flag.IntVar(&individuals, "individuals", 0, "number of individuals")
 	flag.IntVar(&roles, "roles", 0, "number of roles")
@@ -46,6 +47,7 @@ func main() {
 	flag.IntVar(&existentials, "existentials", 0, "number of existentials")
 	flag.IntVar(&ri, "ri", 1000, "number of role inclusions")
 	flag.IntVar(&numBench, "num", 0, "number of benchmarks to generate")
+	flag.BoolVar(&compare, "compare", false, "if true the results of solver will be compared")
 	var workers int
 	flag.IntVar(&workers, "workers", 25, "number of workers for the concurrent solver")
 	var cmd, out string
@@ -75,6 +77,10 @@ func main() {
 			}
 		}
 		for _, f := range benchFiles {
+			lastRMapping = nil
+			currentRMapping = nil
+			lastSMapping = nil
+			currentSMapping = nil
 			fPath := path.Join(out, f)
 			file, openErr := os.Open(fPath)
 			if openErr != nil {
@@ -93,12 +99,21 @@ func main() {
 			// fmt.Println(naive(box, domains))
 			runtime.GC()
 			fmt.Println("Rule Based             ", int64(ruleBased(box, domains)/time.Millisecond))
+			if compare {
+				compareMappings()
+			}
 			// runtime.GC()
 			// fmt.Println("Notification Concurrent", int64(notitificationConcurrent(box, domains)/time.Millisecond))
 			runtime.GC()
 			fmt.Println("Full Concurrent        ", int64(concurrent(box, domains, workers)/time.Millisecond))
+			if compare {
+				compareMappings()
+			}
 			runtime.GC()
 			fmt.Println("Bulk concurrent        ", int64(bulk(box, domains, workers)/time.Millisecond))
+			if compare {
+				compareMappings()
+			}
 		}
 	case "build":
 		if out == "" {
@@ -159,12 +174,41 @@ func naive(normalized *goel.NormalizedTBox, domains *domains.CDManager) time.Dur
 	return execTime
 }
 
+var lastSMapping, currentSMapping []*goel.BCSet
+var lastRMapping, currentRMapping []*goel.Relation
+
+func shiftMapping(newS []*goel.BCSet, newR []*goel.Relation) {
+	lastSMapping = currentSMapping
+	lastRMapping = currentRMapping
+
+	currentSMapping = newS
+	currentRMapping = newR
+}
+
+func compareMappings() {
+	if lastSMapping == nil || lastRMapping == nil || currentSMapping == nil || currentRMapping == nil {
+		return
+	}
+	cmp1 := goel.CompareSMapping(lastSMapping, currentSMapping)
+	if !cmp1 {
+		log.Println("Compare of S mappings failed")
+	}
+	cmp2 := goel.CompareRMapping(lastRMapping, currentRMapping)
+	if !cmp2 {
+		log.Println("Compare of R mappings failed")
+	}
+	if cmp1 && cmp2 {
+		log.Println("Compare success")
+	}
+}
+
 func ruleBased(normalized *goel.NormalizedTBox, domains *domains.CDManager) time.Duration {
 	start := time.Now()
 	solver := goel.NewAllChangesSolver(goel.NewSetGraph(), nil)
 	solver.Init(normalized, domains)
 	solver.Solve(normalized)
 	execTime := time.Since(start)
+	shiftMapping(solver.S, solver.R)
 	return execTime
 }
 
@@ -174,6 +218,7 @@ func notitificationConcurrent(normalized *goel.NormalizedTBox, domains *domains.
 	solver.Init(normalized, domains)
 	solver.Solve(normalized)
 	execTime := time.Since(start)
+	shiftMapping(solver.S, solver.R)
 	return execTime
 }
 
@@ -184,6 +229,7 @@ func concurrent(normalized *goel.NormalizedTBox, domains *domains.CDManager, wor
 	solver.Init(normalized, domains)
 	solver.Solve(normalized)
 	execTime := time.Since(start)
+	shiftMapping(solver.S, solver.R)
 	return execTime
 }
 
@@ -195,6 +241,7 @@ func fullConcurrentTC(tbox *goel.NormalizedTBox, domains *domains.CDManager, wor
 	solver.Init(tbox, domains)
 	solver.Solve(tbox)
 	execTime := time.Since(start)
+	shiftMapping(solver.S, solver.R)
 	return execTime
 }
 
@@ -206,5 +253,6 @@ func bulk(tbox *goel.NormalizedTBox, domains *domains.CDManager, workers int) ti
 	solver.Init(tbox, domains)
 	solver.Solve(tbox)
 	execTime := time.Since(start)
+	shiftMapping(solver.S, solver.R)
 	return execTime
 }

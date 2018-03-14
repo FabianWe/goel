@@ -22,7 +22,9 @@
 
 package goel
 
-import "github.com/FabianWe/goel/domains"
+import (
+	"github.com/FabianWe/goel/domains"
+)
 
 type BCSet struct {
 	M map[uint]struct{}
@@ -119,7 +121,7 @@ func CompareSMapping(first, second []*BCSet) bool {
 		return false
 	}
 	n := len(first)
-	for i := 0; i < n; i++ {
+	for i := 1; i < n; i++ {
 		if !first[i].Equals(second[i]) {
 			return false
 		}
