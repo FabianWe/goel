@@ -28,8 +28,13 @@ import (
 	"github.com/FabianWe/goel/domains"
 )
 
-// TODO where to activate?!
-
+// BulkWorker is a helper class for the BulkSolver.
+// It can be used as a solver state that adds consequences to an internal queue
+// and changes the global mappings S and R (given from the BulkSolver).
+// S and R are updated / queried through the AllChangesSolverState of the
+// linked BulkSolver directly, i.e. it does not call for example AddConcept
+// on the bulk solver but on the solver state of that solver. That way
+// the bulk solver can process all consequences from the queues.
 type BulkWorker struct {
 	*AllChangesSolverState
 	*AllChangesRuleMap
@@ -125,6 +130,8 @@ func (worker *BulkWorker) AddSubsetRule(c, d uint) bool {
 	return worker.bulkSolver.newSubsetRule(c, d)
 }
 
+// Run runs all updates and adds the derived consequences to the internal
+// queues.
 func (worker *BulkWorker) Run(sUpdates []*SUpdate, rUpdates []*RUpdate) {
 	for _, update := range sUpdates {
 		c, d := update.C, update.D
@@ -158,8 +165,24 @@ func (worker *BulkWorker) Run(sUpdates []*SUpdate, rUpdates []*RUpdate) {
 	}
 }
 
+// BulkSolver is a solver that runs concurrently but tries to avoid that
+// consequences of a single update are performed concurrently, instead updates
+// are accumulated and then performed in bulks.
+//
+// After creating a BulkSolver via NewBulkSolver the following settings can
+// be changed before solving:
+// Workers: The number of workers that are allowed to run concurrently.
+// A worker will process a set of updates concurrently, i.e. use BulkWorker
+// to compute all consequences.
+//
+// K is an option that stores how many updates at most are processed by a single
+// worker. Setting K to a lower value usually means that more updates will be
+// processed concurrently (instead of running them all at once).
+//
+// Internally it works by a method that waits for updates, computes the bulks
+// and runs them concurrently. This method may get deactivated and then
+// activated again.
 type BulkSolver struct {
-	// TODO add workers etc.
 	*AllChangesSolverState
 	*AllChangesRuleMap
 

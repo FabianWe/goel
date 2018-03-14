@@ -26,6 +26,7 @@ import (
 	"github.com/FabianWe/goel/domains"
 )
 
+// BCSet is a set of uints (concepts). Thus it is used for the entries S(C).
 type BCSet struct {
 	M map[uint]struct{}
 	c *ELBaseComponents
@@ -52,7 +53,6 @@ func (s *BCSet) ContainsID(c uint) bool {
 	return has
 }
 
-// TODO sometimes we get null here... check again where it is used.
 func (s *BCSet) Add(c Concept) bool {
 	// TODO remove debug
 	oldLen := len(s.M)
@@ -100,6 +100,10 @@ func (s *BCSet) Copy() *BCSet {
 	return res
 }
 
+// GetCDConjunction iterates over tha whole set S(C) and returns for each
+// concrete domain all formulae contained in that concrete domain.
+// We could store the conjunctions instead of creating them again all the time,
+// but this should be ok.
 func (s *BCSet) GetCDConjunction(manager *domains.CDManager) [][]*domains.PredicateFormula {
 	res := make([][]*domains.PredicateFormula, len(manager.Domains))
 	for candidate, _ := range s.M {
@@ -116,6 +120,8 @@ func (s *BCSet) GetCDConjunction(manager *domains.CDManager) [][]*domains.Predic
 	return res
 }
 
+// CompareSMapping compares to mappings S1 and S2 (the mappings S from the
+// algorithm).
 func CompareSMapping(first, second []*BCSet) bool {
 	if len(first) != len(second) {
 		return false
