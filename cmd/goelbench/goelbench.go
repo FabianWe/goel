@@ -93,13 +93,12 @@ func main() {
 			// fmt.Println(naive(box, domains))
 			runtime.GC()
 			fmt.Println("Rule Based             ", int64(ruleBased(box, domains)/time.Millisecond))
-			runtime.GC()
-			fmt.Println("Notification Concurrent", int64(notitificationConcurrent(box, domains)/time.Millisecond))
+			// runtime.GC()
+			// fmt.Println("Notification Concurrent", int64(notitificationConcurrent(box, domains)/time.Millisecond))
 			runtime.GC()
 			fmt.Println("Full Concurrent        ", int64(concurrent(box, domains, workers)/time.Millisecond))
 			runtime.GC()
 			fmt.Println("Bulk concurrent        ", int64(bulk(box, domains, workers)/time.Millisecond))
-			// fmt.Println("Full Concurrent TC:", int64(fullConcurrentTC(box, domains, workers)/time.Millisecond))
 		}
 	case "build":
 		if out == "" {
@@ -203,6 +202,7 @@ func bulk(tbox *goel.NormalizedTBox, domains *domains.CDManager, workers int) ti
 	start := time.Now()
 	solver := goel.NewBulkSolver(goel.NewSetGraph(), nil)
 	solver.Workers = workers
+	solver.K = 200
 	solver.Init(tbox, domains)
 	solver.Solve(tbox)
 	execTime := time.Since(start)

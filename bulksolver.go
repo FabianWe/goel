@@ -172,6 +172,14 @@ type BulkSolver struct {
 
 	wg *sync.WaitGroup
 
+	// K is the number of updates that will be run by a concurrent worker
+	// (maximal K things, maybe less). This is a way to let the solver know
+	// how many updates will be processed without concurrency.
+	// If set to a number ≤ 0 everything that is currently at the queue gets
+	// processed in parallel.
+	// TODO add a nice way to find a good k automatically?
+	K int
+
 	// stuff for blocking the system, that is pending updates and the boolean flag
 	// if a listener is active and the
 	block           *sync.Mutex
@@ -199,6 +207,7 @@ func NewBulkSolver(graph ConceptGraph, search ExtendedReachabilitySearch) *BulkS
 		graph:                 graph,
 		search:                search,
 		wg:                    &wg,
+		K:                     -1,
 		block:                 &block,
 		pendingSUpdates:       nil,
 		pendingRUpdates:       nil,
@@ -333,7 +342,6 @@ func (solver *BulkSolver) activate() {
 }
 
 func (solver *BulkSolver) listener() {
-	// TODO add k
 L:
 	for {
 		// get a worker
@@ -344,25 +352,46 @@ L:
 		m := len(solver.pendingRUpdates)
 		if (n + m) > 0 {
 			// start a worker
-			sUpdates := make([]*SUpdate, len(solver.pendingSUpdates))
-			rUpdates := make([]*RUpdate, len(solver.pendingRUpdates))
-			copy(sUpdates, solver.pendingSUpdates)
-			copy(rUpdates, solver.pendingRUpdates)
-			solver.pendingSUpdates = nil
-			solver.pendingRUpdates = nil
+			var sUpdates []*SUpdate
+			var rUpdates []*RUpdate
+			if solver.K <= 0 {
+				sUpdates = make([]*SUpdate, len(solver.pendingSUpdates))
+				rUpdates = make([]*RUpdate, len(solver.pendingRUpdates))
+				copy(sUpdates, solver.pendingSUpdates)
+				copy(rUpdates, solver.pendingRUpdates)
+				solver.pendingSUpdates = nil
+				solver.pendingRUpdates = nil
+			} else {
+				numS := IntMin(solver.K, len(solver.pendingSUpdates))
+				sUpdates = make([]*SUpdate, numS)
+				copy(sUpdates, solver.pendingSUpdates[:numS])
+				solver.pendingSUpdates = solver.pendingSUpdates[numS:]
+				// if there are still updates we can execute (not reached k yet)
+				// also r updates
+				if numS < solver.K {
+					// now find out how much we can run
+					numR := IntMin(solver.K-numS, m)
+					rUpdates = make([]*RUpdate, numR)
+					copy(rUpdates, solver.pendingRUpdates[:numR])
+					solver.pendingRUpdates = solver.pendingRUpdates[numR:]
+				}
+			}
 			// run worker concurrently
+			// fmt.Println("Running with", len(sUpdates)+len(rUpdates))
 			go func(sUpdates []*SUpdate, rUpdates []*RUpdate) {
 				worker := NewBulkWokrer(solver)
 				worker.Run(sUpdates, rUpdates)
+				// fmt.Println("Done running")
 				n := len(sUpdates)
 				m := len(rUpdates)
 				solver.wg.Add(-(n + m))
 				solver.block.Lock()
-				if (n + m) > 0 {
-					solver.activate()
-				}
 				solver.pendingSUpdates = append(solver.pendingSUpdates, worker.ComputedS...)
 				solver.pendingRUpdates = append(solver.pendingRUpdates, worker.ComputedR...)
+				// TODO is this even required? hmm... doesn't hurt in any case
+				if (len(worker.ComputedS) + len(worker.ComputedR)) > 0 {
+					solver.activate()
+				}
 				solver.block.Unlock()
 				// free worker
 				<-solver.WorkerPool

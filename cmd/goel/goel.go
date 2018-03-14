@@ -140,8 +140,8 @@ func fullConcurrentTC(normalized *goel.NormalizedTBox, domains *domains.CDManage
 	start := time.Now()
 	solver := goel.NewConcurrentSolver(goel.NewTransitiveClosureGraph(),
 		goel.ClosureToSet)
-	solver.Init(normalized, domains)
 	solver.Workers = 25
+	solver.Init(normalized, domains)
 	execTime := time.Since(start)
 	fmt.Printf("... Done after %v\n", execTime)
 	fmt.Println("Solving ...")
@@ -155,8 +155,9 @@ func bulk(normalized *goel.NormalizedTBox, domains *domains.CDManager) {
 	fmt.Println("Building state and rules ...")
 	start := time.Now()
 	solver := goel.NewBulkSolver(goel.NewSetGraph(), nil)
-	solver.Init(normalized, domains)
 	solver.Workers = 25
+	// solver.K = 200
+	solver.Init(normalized, domains)
 	execTime := time.Since(start)
 	fmt.Printf("... Done after %v\n", execTime)
 	fmt.Println("Solving ...")

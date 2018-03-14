@@ -274,6 +274,8 @@ func (p *ConcurrentWorkerPool) Wait() {
 
 // TODO add discussion here involving everything concurrent vs. part of it
 // concurrent
+// It seems that not running all notifications concurrently really improves
+// the outcome
 func (p *ConcurrentWorkerPool) SWorker(solver *ConcurrentSolver) {
 	for update := range p.sChan {
 		// first wait for a worker to free
