@@ -149,7 +149,6 @@ func (solver *NaiveSolver) updateR(r Role, c, d Concept, bc *ELBaseComponents) b
 	return false
 }
 
-// TODO seems some iterations are just... stupid.
 // check again!
 func (solver *NaiveSolver) Solve(tbox *NormalizedTBox, manager *domains.CDManager) {
 	solver.init(tbox.Components)
