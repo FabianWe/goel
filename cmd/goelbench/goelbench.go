@@ -29,6 +29,7 @@ import (
 	"os"
 	"path"
 	"runtime"
+	"runtime/pprof"
 	"strings"
 	"time"
 
@@ -40,6 +41,7 @@ func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
 	var conceptNames, individuals, roles, ci, existentials, ri, numBench int
 	var compare bool
+
 	flag.IntVar(&conceptNames, "names", 0, "number of concept names")
 	flag.IntVar(&individuals, "individuals", 0, "number of individuals")
 	flag.IntVar(&roles, "roles", 0, "number of roles")
@@ -51,9 +53,21 @@ func main() {
 	var workers int
 	flag.IntVar(&workers, "workers", 25, "number of workers for the concurrent solver")
 	var cmd, out string
+	var cpuProfile string
 	flag.StringVar(&cmd, "cmd", "", "Command to execute, must be \"run\" or \"build\"")
 	flag.StringVar(&out, "out", "", "Directory to print output to / read input from")
+	flag.StringVar(&cpuProfile, "cpuprofile", "", "write cpu profile to file")
 	flag.Parse()
+
+	if cpuProfile != "" {
+		profileFile, profileErr := os.Create(cpuProfile)
+		if profileErr != nil {
+			log.Fatal(profileErr)
+		}
+		pprof.StartCPUProfile(profileFile)
+		defer pprof.StopCPUProfile()
+
+	}
 
 	switch cmd {
 	case "run":
@@ -97,18 +111,18 @@ func main() {
 			domains := domains.NewCDManager()
 			log.Printf("Running benchmark \"%s\"\n", fPath)
 			// fmt.Println(naive(box, domains))
-			runtime.GC()
-			fmt.Println("Rule Based             ", int64(ruleBased(box, domains)/time.Millisecond))
-			if compare {
-				compareMappings()
-			}
 			// runtime.GC()
-			// fmt.Println("Notification Concurrent", int64(notitificationConcurrent(box, domains)/time.Millisecond))
-			runtime.GC()
-			fmt.Println("Full Concurrent        ", int64(concurrent(box, domains, workers)/time.Millisecond))
-			if compare {
-				compareMappings()
-			}
+			// fmt.Println("Rule Based             ", int64(ruleBased(box, domains)/time.Millisecond))
+			// if compare {
+			// 	compareMappings()
+			// }
+			// // runtime.GC()
+			// // fmt.Println("Notification Concurrent", int64(notitificationConcurrent(box, domains)/time.Millisecond))
+			// runtime.GC()
+			// fmt.Println("Full Concurrent        ", int64(concurrent(box, domains, workers)/time.Millisecond))
+			// if compare {
+			// 	compareMappings()
+			// }
 			runtime.GC()
 			fmt.Println("Bulk concurrent        ", int64(bulk(box, domains, workers)/time.Millisecond))
 			if compare {

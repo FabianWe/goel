@@ -41,13 +41,13 @@ func main() {
 	// 	MaxNumFeatures:     1000}
 	builder := goel.RandomELBuilder{NumIndividuals: 0,
 		NumConceptNames:    10000,
-		NumRoles:           100,
+		NumRoles:           10,
 		NumConcreteDomains: 0,
 		MaxCDSize:          10,
 		MaxNumPredicates:   100,
 		MaxNumFeatures:     100}
 	fmt.Println("Building random TBox ...")
-	_, tbox := builder.GenerateRandomTBox(0, 1000, 1000, 2, 1000, 1000)
+	_, tbox := builder.GenerateRandomTBox(0, 10000, 10000, 2, 25000, 2)
 	normalizer := goel.NewDefaultNormalFormBUilder(100)
 	fmt.Println("Normalizing TBox ...")
 	start := time.Now()
@@ -57,9 +57,9 @@ func main() {
 	execTime := time.Since(start)
 	fmt.Printf("... Done after %v\n", execTime)
 	fmt.Println()
-	// fmt.Println("==== Naive ===")
-	// naive(normalized, domains)
-	// fmt.Println()
+	fmt.Println("==== Naive ===")
+	naive(normalized, domains)
+	fmt.Println()
 	fmt.Println("==== Rule Based ===")
 	rulebased(normalized, domains)
 	fmt.Println()

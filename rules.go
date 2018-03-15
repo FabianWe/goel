@@ -434,7 +434,6 @@ func NewCR4(r, dPrime, e uint) *CR4 {
 }
 
 func (n *CR4) GetRNotification(state StateHandler, r, c, d uint) bool {
-	// TODO maybe add some debugging messages, but I'm too lazy for that now
 	// check if dprime is in S(D) and then try to add E to S(C)
 	return state.ContainsConcept(d, n.DPrime) && state.AddConcept(c, n.E)
 }

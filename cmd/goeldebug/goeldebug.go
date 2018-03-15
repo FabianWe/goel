@@ -72,7 +72,7 @@ func runTests() {
 		MaxCDSize:          10,
 		MaxNumPredicates:   100,
 		MaxNumFeatures:     100}
-	duration := 1 * time.Hour
+	duration := 3 * time.Hour
 	start := time.Now()
 	for {
 		expired := time.Since(start)
@@ -147,7 +147,7 @@ func bar(tbox *goel.NormalizedTBox) {
 }
 
 func testInstance(builder *goel.RandomELBuilder) {
-	fmt.Println("Testing")
+	log.Println("Testing")
 	_, tbox := builder.GenerateRandomTBox(0, 100, 100, 2, 1000, 1000)
 	// _, tbox := builder.GenerateRandomTBox(0, 5, 5, 5, 5, 10)
 	normalizer := goel.NewDefaultNormalFormBUilder(100)
