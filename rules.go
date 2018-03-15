@@ -23,7 +23,6 @@
 package goel
 
 import (
-	"log"
 	"sync"
 
 	"github.com/FabianWe/goel/domains"
@@ -384,9 +383,6 @@ func (n *CR2) GetSNotification(state StateHandler, c, cPrime uint) bool {
 	case n.C2:
 		otherFound = state.ContainsConcept(c, n.C1)
 	default:
-		// TODO remove once tested
-		log.Printf("Wrong handler for rule CR2: Got update for %d, but only listening to %d and %d",
-			cPrime, n.C1, n.C2)
 		return false
 	}
 	return otherFound && state.AddConcept(c, n.D)
@@ -477,10 +473,10 @@ func (n *CR5) GetRNotification(state StateHandler, r, c, d uint) bool {
 }
 
 func (n *CR5) GetSNotification(state StateHandler, d, bot uint) bool {
-	if bot != 0 {
-		log.Printf("Error in rule CR5: Expected bottom concept, but got %d", bot)
-		return false
-	}
+	// if bot != 0 {
+	// 	log.Printf("Error in rule CR5: Expected bottom concept, but got %d", bot)
+	// 	return false
+	// }
 	res := false
 	numR := state.GetComponents().Roles
 	var r uint
@@ -638,6 +634,7 @@ func NewCR11(r1, r2, r3 uint) *CR11 {
 }
 
 func (n *CR11) GetRNotification(state StateHandler, r, c, d uint) bool {
+	// TODO some kind of union here would again avoid many locks, think about it
 	result := false
 
 	if r == n.R1 {

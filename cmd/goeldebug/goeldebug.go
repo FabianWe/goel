@@ -65,7 +65,7 @@ func runTests() {
 	// 	MaxCDSize:          10,
 	// 	MaxNumPredicates:   100,
 	// 	MaxNumFeatures:     100}
-	builder := goel.RandomELBuilder{NumIndividuals: 1000,
+	builder := goel.RandomELBuilder{NumIndividuals: 100,
 		NumConceptNames:    10000,
 		NumRoles:           1000,
 		NumConcreteDomains: 0,
@@ -115,7 +115,7 @@ func bar(tbox *goel.NormalizedTBox) {
 	domains := domains.NewCDManager()
 	s1, r1 := runTest(tbox, domains)
 	fmt.Println(strings.Repeat("@", 20))
-	s2, r2 := runRuleBased(tbox, domains)
+	s2, r2 := runrbnc(tbox, domains)
 	// findR(r1, r2, 10, 13)
 	// fmt.Println("7 for s1")
 	// findD(s1)
@@ -326,6 +326,13 @@ func runFullConcurrentTC(tbox *goel.NormalizedTBox, domains *domains.CDManager) 
 
 func runBulk(tbox *goel.NormalizedTBox, domains *domains.CDManager) ([]*goel.BCSet, []*goel.Relation) {
 	solver := goel.NewBulkSolver(goel.NewSetGraph(), nil)
+	solver.Init(tbox, domains)
+	solver.Solve(tbox)
+	return solver.S, solver.R
+}
+
+func runrbnc(tbox *goel.NormalizedTBox, domains *domains.CDManager) ([]*goel.BCSet, []*goel.Relation) {
+	solver := goel.NewNCRBSolver(goel.NewSetGraph(), nil)
 	solver.Init(tbox, domains)
 	solver.Solve(tbox)
 	return solver.S, solver.R

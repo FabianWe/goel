@@ -466,9 +466,14 @@ type AllChangesSolver struct {
 	graph ConceptGraph
 
 	search ExtendedReachabilitySearch
+
+	// TODO new: I think because graph search runs concurrently the pendingRUpdates
+	// must be protected as well!
+	pendingRMutex *sync.Mutex
 }
 
 func NewAllChangesSolver(graph ConceptGraph, search ExtendedReachabilitySearch) *AllChangesSolver {
+	var pendRMutex sync.Mutex
 	if search == nil {
 		search = BFSToSet
 	}
@@ -480,6 +485,7 @@ func NewAllChangesSolver(graph ConceptGraph, search ExtendedReachabilitySearch) 
 		graphChanged:          false,
 		graph:                 graph,
 		search:                search,
+		pendingRMutex:         &pendRMutex,
 	}
 }
 
@@ -506,7 +512,6 @@ func (solver *AllChangesSolver) Init(tbox *NormalizedTBox, domains *domains.CDMa
 
 func (solver *AllChangesSolver) AddConcept(c, d uint) bool {
 	res := solver.AllChangesSolverState.AddConcept(c, d)
-	// TODO right place?! I guess so
 	if res {
 		// add pending update
 		update := NewSUpdate(c, d)
@@ -560,6 +565,8 @@ func (solver *AllChangesSolver) AddRole(r, c, d uint) bool {
 	if res {
 		// update graph as well and issue a pending update
 		update := NewRUpdate(r, c, d)
+		// TODO new mutex, see above
+		solver.pendingRMutex.Lock()
 		solver.pendingRUpdates = append(solver.pendingRUpdates, update)
 		// change graph
 		solver.graphMutex.Lock()
@@ -569,6 +576,8 @@ func (solver *AllChangesSolver) AddRole(r, c, d uint) bool {
 		if graphUpdate {
 			solver.graphChanged = true
 		}
+		// TODO new mutex, see above
+		solver.pendingRMutex.Unlock()
 	}
 	return res
 }

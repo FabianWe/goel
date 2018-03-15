@@ -111,13 +111,18 @@ func main() {
 			domains := domains.NewCDManager()
 			log.Printf("Running benchmark \"%s\"\n", fPath)
 			// fmt.Println(naive(box, domains))
-			// runtime.GC()
-			// fmt.Println("Rule Based             ", int64(ruleBased(box, domains)/time.Millisecond))
-			// if compare {
-			// 	compareMappings()
-			// }
-			// // runtime.GC()
-			// // fmt.Println("Notification Concurrent", int64(notitificationConcurrent(box, domains)/time.Millisecond))
+
+			runtime.GC()
+			fmt.Println("Rule Based NC          ", int64(rbnc(box, domains)/time.Millisecond))
+			if compare {
+				compareMappings()
+			}
+
+			runtime.GC()
+			fmt.Println("Rule Based             ", int64(ruleBased(box, domains)/time.Millisecond))
+			if compare {
+				compareMappings()
+			}
 			// runtime.GC()
 			// fmt.Println("Full Concurrent        ", int64(concurrent(box, domains, workers)/time.Millisecond))
 			// if compare {
@@ -211,9 +216,6 @@ func compareMappings() {
 	if !cmp2 {
 		log.Println("Compare of R mappings failed")
 	}
-	if cmp1 && cmp2 {
-		log.Println("Compare success")
-	}
 }
 
 func ruleBased(normalized *goel.NormalizedTBox, domains *domains.CDManager) time.Duration {
@@ -264,6 +266,16 @@ func bulk(tbox *goel.NormalizedTBox, domains *domains.CDManager, workers int) ti
 	solver := goel.NewBulkSolver(goel.NewSetGraph(), nil)
 	solver.Workers = workers
 	solver.K = 200
+	solver.Init(tbox, domains)
+	solver.Solve(tbox)
+	execTime := time.Since(start)
+	shiftMapping(solver.S, solver.R)
+	return execTime
+}
+
+func rbnc(tbox *goel.NormalizedTBox, domains *domains.CDManager) time.Duration {
+	start := time.Now()
+	solver := goel.NewNCRBSolver(goel.NewSetGraph(), nil)
 	solver.Init(tbox, domains)
 	solver.Solve(tbox)
 	execTime := time.Since(start)
