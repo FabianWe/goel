@@ -189,25 +189,6 @@ func (state *NCAllChangesSolverState) FindConnectedPairs(s map[uint]struct{}) *B
 	return state.Searcher.FindConnectedPairs(state.Graph, s)
 }
 
-type NCRBSolver struct {
-	*NCAllChangesSolverState
-	*AllChangesRuleMap
-
-	pendingSupdates []*SUpdate
-	pendingRUpdates []*RUpdate
-	graphChanged    bool
-
-	// reequired for init later
-	graph ConceptGraph
-
-	search ExtendedReachabilitySearch
-
-	// TODO new: I think because graph search runs concurrently the pendingRUpdates
-	// must be protected as well!
-	// ignored here at the moment
-	// pendingRMutex *sync.Mutex
-}
-
 type NCAllChangesCR6 struct {
 	aMap map[uint]map[uint]struct{}
 }
@@ -385,6 +366,25 @@ func (rm *NCAllChangesRuleMap) newSubsetRule(c, d uint) bool {
 	oldLen := len(m)
 	m[c] = struct{}{}
 	return oldLen != len(m)
+}
+
+type NCRBSolver struct {
+	*NCAllChangesSolverState
+	*AllChangesRuleMap
+
+	pendingSupdates []*SUpdate
+	pendingRUpdates []*RUpdate
+	graphChanged    bool
+
+	// reequired for init later
+	graph ConceptGraph
+
+	search ExtendedReachabilitySearch
+
+	// TODO new: I think because graph search runs concurrently the pendingRUpdates
+	// must be protected as well!
+	// ignored here at the moment
+	// pendingRMutex *sync.Mutex
 }
 
 func NewNCRBSolver(graph ConceptGraph, search ExtendedReachabilitySearch) *NCRBSolver {
