@@ -22,7 +22,10 @@
 
 package goel
 
-import "math/rand"
+import (
+	"fmt"
+	"math/rand"
+)
 
 type RandomELBuilder struct {
 	NumIndividuals     uint
@@ -141,6 +144,7 @@ func (builder *NormalizedRandomELBuilder) chooseRole() uint {
 
 func (builder *NormalizedRandomELBuilder) GenerateRandomTBox(numNormalizedCI,
 	numExistentialRestrictions, numRI int) *NormalizedTBox {
+	fmt.Println("WHAT?!")
 
 	c := NewELBaseComponents(builder.NumIndividuals, 0, builder.NumConceptNames, builder.NumRoles)
 

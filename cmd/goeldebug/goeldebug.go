@@ -72,7 +72,7 @@ func runTests() {
 		MaxCDSize:          10,
 		MaxNumPredicates:   100,
 		MaxNumFeatures:     100}
-	duration := 3 * time.Hour
+	duration := 5 * time.Hour
 	start := time.Now()
 	for {
 		expired := time.Since(start)

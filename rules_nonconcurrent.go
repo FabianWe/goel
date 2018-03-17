@@ -370,7 +370,7 @@ func (rm *NCAllChangesRuleMap) newSubsetRule(c, d uint) bool {
 
 type NCRBSolver struct {
 	*NCAllChangesSolverState
-	*AllChangesRuleMap
+	*NCAllChangesRuleMap
 
 	pendingSupdates []*SUpdate
 	pendingRUpdates []*RUpdate
@@ -393,7 +393,7 @@ func NewNCRBSolver(graph ConceptGraph, search ExtendedReachabilitySearch) *NCRBS
 	}
 	return &NCRBSolver{
 		NCAllChangesSolverState: nil,
-		AllChangesRuleMap:       nil,
+		NCAllChangesRuleMap:     nil,
 		pendingSupdates:         nil,
 		pendingRUpdates:         nil,
 		graphChanged:            false,
@@ -414,8 +414,8 @@ func (solver *NCRBSolver) Init(tbox *NormalizedTBox, domains *domains.CDManager)
 		wg.Done()
 	}()
 	go func() {
-		solver.AllChangesRuleMap = NewAllChangesRuleMap()
-		solver.AllChangesRuleMap.Init(tbox)
+		solver.NCAllChangesRuleMap = NewNCAllChangesRuleMap()
+		solver.NCAllChangesRuleMap.Init(tbox)
 		wg.Done()
 	}()
 	wg.Wait()
@@ -533,7 +533,7 @@ L:
 			// now also do a notification for CR6
 			solver.cr6.GetSNotification(solver, c, d)
 			// apply subset notifications for cr6
-			solver.AllChangesRuleMap.ApplySubsetNotification(solver, c, d)
+			solver.NCAllChangesRuleMap.ApplySubsetNotification(solver, c, d)
 			// apply notification for CR7/CR8
 			solver.cr7A8.GetSNotification(solver, c, d)
 		case len(solver.pendingRUpdates) != 0:

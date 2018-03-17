@@ -110,7 +110,6 @@ func main() {
 			// TODO domains created here, not so nice
 			domains := domains.NewCDManager()
 			log.Printf("Running benchmark \"%s\"\n", fPath)
-			// fmt.Println(naive(box, domains))
 
 			runtime.GC()
 			fmt.Println("Rule Based NC          ", int64(rbnc(box, domains)/time.Millisecond))
@@ -118,16 +117,16 @@ func main() {
 				compareMappings()
 			}
 
-			runtime.GC()
-			fmt.Println("Rule Based             ", int64(ruleBased(box, domains)/time.Millisecond))
-			if compare {
-				compareMappings()
-			}
 			// runtime.GC()
-			// fmt.Println("Full Concurrent        ", int64(concurrent(box, domains, workers)/time.Millisecond))
+			// fmt.Println("Rule Based             ", int64(ruleBased(box, domains)/time.Millisecond))
 			// if compare {
 			// 	compareMappings()
 			// }
+			runtime.GC()
+			fmt.Println("Full Concurrent        ", int64(concurrent(box, domains, workers)/time.Millisecond))
+			if compare {
+				compareMappings()
+			}
 			runtime.GC()
 			fmt.Println("Bulk concurrent        ", int64(bulk(box, domains, workers)/time.Millisecond))
 			if compare {
